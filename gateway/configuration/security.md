@@ -15,11 +15,7 @@ Management API — **резервированный** порт (`18090` по у�
 `X-Management-Token`.
 
 Токен передаётся в Compose отдельной переменной (`LIAPOLDUS_MGMT_TOKEN`), а не
-зашит в конфиг. `--no-management` полностью выключает порт; CLI-диагностика при
-этом работает офлайн.
-
-:warning: без токена management принимает только loopback; для доступа к mgmt
-из внешней сети токен обязателен.
+зашит в конфиг. `--no-management` полностью выключает порт.
 
 ## Service accounts и роли
 
@@ -36,6 +32,9 @@ gateway accounts create ops --role=platform-admin --config gateway.yaml
 | --- | --- |
 | `platform-admin` | все глобальные endpoints и тенанты |
 | `tenant-admin` | только `/api/tenants/<свой-id>` (проверка tenant) |
+
+`tenant-admin` вне своего `/api/tenants/<id>` и глобальные endpoints — `403`;
+без действительного ключа/токена и вне loopback — `401`.
 
 Ротация/отзыв — `gateway accounts rotate <id>` / `revoke <id>`; отзыв делает
 запись неактивной, не удаляя её. Запись в конфиг атомарная, файл
@@ -63,9 +62,8 @@ TLS-слушателе.
 
 ### TLS
 
-- Минимум TLS 1.2; HTTP/2 по ALPN при TLS.
-- Мульти-серт SNI-подбор по Host, fallback — первый сертификат слушателя.
-- HSTS ставится только поверх TLS.
+Правила TLS (минимум 1.2, HTTP/2 по ALPN при TLS, SNI-подбор с fallback на
+первый серт) — [TLS и Reload](tls-reload). HSTS ставится только поверх TLS.
 
 ### Rate limit и CORS
 
@@ -95,8 +93,7 @@ server:
 
 ## Docker
 
-- Контейнеры `read_only` + `no-new-privileges`, не root процессы кода не
-  требуют.
+- Контейнеры `read_only` + `no-new-privileges`; root не требуется.
 - Management-порт наружу — только `127.0.0.1:18090` (не публиковать в сеть).
 - Токен — через env, не в образ и не в `docker compose config` по умолчанию.
 

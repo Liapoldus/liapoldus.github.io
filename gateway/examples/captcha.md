@@ -43,15 +43,8 @@ server:
 
 ## 3. Провайдер: параметры в вызове
 
-`verifyUrl` и `secret` приходят в каждом запросе (headers/body), поэтому
-конфиг не зависит от провайдера:
-
-```yaml
-# Cloudflare Turnstile, hCaptcha или reCAPTCHA — одинаковый вызов:
-# verifyUrl и secret провайдера передаёт клиент в запросе на /api/captcha/verify
-```
-
-Например, для reCAPTCHA:
+Конфиг не зависит от провайдера: `verifyUrl` и `secret` приходят в каждом
+запросе (заголовки/тело). Например, для reCAPTCHA:
 
 ```http
 POST /api/captcha/verify HTTP/1.1
@@ -81,8 +74,7 @@ curl -H 'Host: site.localhost' \
 
 По умолчанию плагин обращается только к `challenges.cloudflare.com`,
 `www.google.com`, `google.com`, `hcaptcha.com`, `api.hcaptcha.com`. Разрешить
-свой endpoint (например, в грид-команде): `allowAnyHost: true` либо через
-`allowedHosts`:
+собственный endpoint — `allowAnyHost: true` либо `allowedHosts`:
 
 ```yaml
 timeout: 5s

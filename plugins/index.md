@@ -8,9 +8,8 @@ TCP/protobuf и вызывает объявленные **capabilities**.
 не в репозитории ядра gateway. Из репозитория плагина собирается его
 собственный бинарник, который gateway запускает.
 
-Плагин не знает о системе управления вне gateway. Вся связь идёт только через
-gateway: он передаёт конфиг instance, а схему `config.schema` отдаёт наружу
-по management API. Никто не подключается к плагинам напрямую.
+Плагин не знает о системе управления вне gateway: вся связь идёт только через
+него, а схема `config.schema` отдаётся наружу по management API.
 
 ## Декларация
 
@@ -111,13 +110,8 @@ sequenceDiagram
     end
 ```
 
-Переходы:
-
-- **Stopped** — декларирован, не запущен.
-- **Starting** — процесс стартует, gateway ждёт ready (`startTimeout`).
-- **Running** — ping, manifest и config.apply прошли; health-проверки идут
-  каждые `healthInterval`; при падении процесса — restart (autoRestart) или fail.
-- **Failed** — не удалось стартовать/связь пропала; `lastError` фиксируется.
+Health-проверки идут каждые `healthInterval`; при падении процесса — restart
+(`autoRestart`) или `Failed` (фиксируется `lastError`).
 
 ### Стоп и управление
 
@@ -132,8 +126,8 @@ sequenceDiagram
 
 ## Вызовы capabilities
 
-Capability присваивается HTTP-matcher'у без знания его предметной семантики в
-ядре gateway — объявление в `apiRoutes`:
+Capability привязывается к HTTP-маршруту в `apiRoutes` (ядро не знает её
+предметной семантики):
 
 ```yaml
 server:
@@ -151,19 +145,12 @@ JSON).
 
 ## Ошибки плагинов → HTTP
 
-| Ошибка запуска/взаимодействия | HTTP-ответ |
-| --- | --- |
-| failure запуска / startup timeout | 503 Service Unavailable |
-| connection refused / disconnect | 503 / 504 |
-| call timeout | 504 Gateway Timeout |
-| protocol violation, malformed/oversized frame | 502 Bad Gateway |
-| concurrency/resource limit | 429 или 503 |
-| plugin internal error (typed `Error{code}`) | 502 |
-
-Typed error плагина включает `code`, `message`, `retryable` — gateway решает
-про повтор, клиент всегда получает согласованный 5xx. Resource limits
-(timeout, размеры сообщений, concurrency) опциональны; memory/CPU-лимиты —
-platform-specific и не ломают macOS/Windows/Linux.
+Ошибки запуска и вызовов преобразуются в согласованные HTTP-ответы — таблица и
+правила: [Контракт протокола](/gateway/architecture/contract). Typed
+`Error{code, message, retryable}` — сигнал gateway про повтор, клиент всегда
+получает 5xx. Resource limits (timeout, размеры сообщений, concurrency)
+опциональны; memory/CPU-лимиты — platform-specific и не ломают
+macOS/Windows/Linux.
 
 ## Управление через gateway
 

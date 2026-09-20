@@ -103,7 +103,7 @@ unary: попытка открыть по ним stream отклоняется `
 при запуске/reload она передаётся плагину через `config.apply`.
 
 Protocol logs: плагин шлёт `EVENT`-кадры с payload `{"level","message",
-"fields"}` (лёвены `debug|info|warn|error`); gateway видит их отдельными
+"fields"}` (уровни `debug|info|warn|error`); gateway видит их отдельными
 сообщениями и не путает с ответами на вызовы.
 
 ## Unary call

@@ -10,11 +10,15 @@
 Плагин обязан:
 
 - принимать `--port <port>` (обязателен) и опционально `--config <path>`;
-- слушать `127.0.0.1:<port>` (bind только на loopback);
+- слушать только `127.0.0.1:<port>` (bind на loopback);
 - через `runtime` (или `Server` + `Handler`) отвечать на методы протокола
-  `manifest`, `health`, `config.schema`, `config.apply`, `shutdown`;
-- реализовать business-методы объявленных capabilities;
-- корректно завершаться по `shutdown` / `SIGTERM`.
+  `manifest`, `health`, `config.schema`, `config.apply`, `shutdown` до истечения
+  `startTimeout` gateway (default 10s);
+- отвечать `{"applied": true}` на `config.apply`;
+- реализовать business-методы объявленных capabilities, уважая `context`;
+- ограничивать payload лимитами протокола (`pluginprotocol.Limits`);
+- корректно завершаться по `shutdown` / `SIGTERM`;
+- собираться на macOS/Windows/Linux.
 
 ### 1. Структура проекта
 
@@ -199,14 +203,3 @@ go build ./...
 oversized messages, concurrent calls, все направления stream, cancellation,
 restart. Примеры проверок — `*_test.go` в `pkg/pluginprotocol`
 (`frame_fuzz_test.go`, `session_test.go`, `tcp_test.go`).
-
-## Требования к плагину
-
-- Слушать **только** loopback (`127.0.0.1`).
-- Отвечать на `health`/`manifest` до истечения `startTimeout` gateway
-  (default 10s).
-- Отвечать `{"applied": true}` на `config.apply`.
-- Уважать `context` (cancellation/deadline) во всех бизнес-методах.
-- Ограничивать размер payload лимитами протокола (см. `pluginprotocol.Limits`).
-- Собираться на всех трёх ОС (macOS/Windows/Linux); memory/CPU лимиты —
-  platform-specific и не должны ломать сборку.

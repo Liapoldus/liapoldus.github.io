@@ -43,7 +43,7 @@ binary; gateway сам запускает instance и передаёт порт 
 | `EVENT` | протокольный лог |
 | `ERROR` | ошибка |
 
-Гейтway устанавливает лимиты `MaxPayloadBytes`, `CallTimeoutMillis`,
+Gateway устанавливает лимиты `MaxPayloadBytes`, `CallTimeoutMillis`,
 `MaxFrameBytes` — превышение трактуется как protocol violation.
 
 ## Streams

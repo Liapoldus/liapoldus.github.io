@@ -1,7 +1,7 @@
 # Management API
 
-Резервированный HTTP API на порту `management.port` (`18090`). Нужен
-операторам. Публичный рантайм на эти endpoints не влияет.
+Резервированный HTTP API управления на порту `management.port` (`18090`),
+отдельный от публичного трафика.
 
 Все endpoints, кроме `/healthz`, требуют аутентификации (см.
 [Безопасность](security)): Bearer-токен или API-key.
@@ -33,13 +33,12 @@ curl http://localhost:18090/healthz
 | `POST` | `/api/reload` | перечитать `gateway.yaml` + include |
 | `PUT` | `/api/config` | записать и загрузить новый `gateway.yaml` |
 
-`POST /api/reload`: имя конфига берётся из текущего процесса. Если reload
-меняет «сигнатуру слушателей» (порты, таймауты, mgmt-токен, TLS-серты, http2) —
-ответ `409 restart required`, изменения требуют перезапуска процесса.
+`POST /api/reload`: имя конфига берётся из текущего процесса. Изменения
+«сигнатуры слушателей» (порты, таймауты, mgmt-порт/токен, TLS, http2) →
+`409 restart required` — правила в [TLS и Reload](tls-reload).
 
-`PUT /api/config`: тело — новый YAML. Запись атомарная: файл валидируется до
-переименования. Отключить нежелательное дистанционное изменение локального
-конфига можно переопределением токена через `--management-token`.
+`PUT /api/config`: тело — новый YAML; запись атомарная: файл валидируется до
+переименования.
 
 ## Сайты
 
@@ -92,10 +91,3 @@ curl -X POST -H "Authorization: Bearer $TOKEN" http://localhost:18090/api/reload
 # Логи плагина
 curl -H "Authorization: Bearer $TOKEN" http://localhost:18090/api/plugins/forms-db/logs
 ```
-
-## Роли
-
-- `platform-admin` — все endpoints.
-- `tenant-admin` — только `GET /api/tenants/{id}` своего тенанта; глобальные и
-  legacy endpoints возвращают `403 Forbidden`.
-- Без действительного ключа/токена/loopback — `401 Unauthorized`.

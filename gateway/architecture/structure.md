@@ -130,8 +130,8 @@ HTTP/CLI/plugin protocol handlers, DTO, decode/encode, маршруты, пре�
 ошибок и transport-specific middleware. Вызывает application и не создаёт
 concrete infrastructure.
 
-Например, CLI gateway: `cli.Env` содержит фабрики `NewPluginManager` и
-`NewMetrics`, инъекционные в `cmd`. Presentation-слой не создаёт супервизор сам.
+Пример: подкоманды CLI — `cli.Env` с фабриками `NewPluginManager`/`NewMetrics`,
+инъецируемыми в `cmd`; presentation супервизор сам не создаёт.
 
 ### `cmd`
 

@@ -86,7 +86,7 @@ sequenceDiagram
 
     C->>L: HTTP/HTTPS request
     L->>D: dispatch (актуальный обработчик)
-    D->>R: выбор блокa по Host/SNI
+    D->>R: выбор блока по Host/SNI
     R->>R: middleware (access-log, rate limit, CORS, security, cache)
     alt статический сайт
         R->>F: отдать файл (ETag/Cache-Control)
