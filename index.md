@@ -34,10 +34,6 @@ features:
       на сайте.
     link: /gateway/examples/
     linkText: Смотреть примеры
-  - title: Changelog
-    details: Версии gateway и плагинов — даты, изменения, критерии готовности.
-    link: /changelog/
-    linkText: История версий
 ---
 
 ## Компоненты

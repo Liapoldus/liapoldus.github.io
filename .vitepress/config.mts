@@ -30,8 +30,7 @@ export default withMermaid(
             { text: 'Архитектура', link: '/gateway/architecture/' }
           ]
         },
-        { text: 'Плагины', link: '/plugins/' },
-        { text: 'Changelog', link: '/changelog/' }
+        { text: 'Плагины', link: '/plugins/' }
       ],
 
       search: {
@@ -76,12 +75,6 @@ export default withMermaid(
               { text: 'Формы на сайте', link: '/gateway/examples/forms' },
               { text: 'Капча на сайте', link: '/gateway/examples/captcha' }
             ]
-          }
-        ],
-        '/changelog/': [
-          {
-            text: 'Changelog',
-            items: [{ text: 'Версии', link: '/changelog/' }]
           }
         ],
         '/gateway/configuration/': [
