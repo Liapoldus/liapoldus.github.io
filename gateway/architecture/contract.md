@@ -34,8 +34,14 @@ binary; gateway сам запускает instance и передаёт порт 
 - protobuf `Frame` с полями `kind`, `request_id`, `stream_id` и payload —
   protobuf `Envelope` (method, capability, metadata, payload, error).
 
-Frame kind: `CALL` / `CALL_RESULT` / `STREAM_OPEN` / `STREAM_DATA` /
-`STREAM_CLOSE` / `CANCEL` / `EVENT` (протокольный лог) / `ERROR`.
+| Frame kind | Назначение |
+| --- | --- |
+| `CALL` | unary-вызов |
+| `CALL_RESULT` | ответ unary |
+| `STREAM_OPEN` / `STREAM_DATA` / `STREAM_CLOSE` | stream-обмен |
+| `CANCEL` | отмена вызова/потока |
+| `EVENT` | протокольный лог |
+| `ERROR` | ошибка |
 
 Гейтway устанавливает лимиты `MaxPayloadBytes`, `CallTimeoutMillis`,
 `MaxFrameBytes` — превышение трактуется как protocol violation.
@@ -44,10 +50,12 @@ Frame kind: `CALL` / `CALL_RESULT` / `STREAM_OPEN` / `STREAM_DATA` /
 
 Поддерживаются все четыре направления обмена:
 
-- unary `Call`;
-- client stream;
-- server stream;
-- bidirectional stream.
+| Направление | Описание |
+| --- | --- |
+| unary `Call` | запрос → ответ |
+| client stream | серия сообщений клиента → один ответ |
+| server stream | один запрос → серия ответов |
+| bidirectional | оба направления одновременно |
 
 Отмена: gateway шлёт `CANCEL` (или закрывает соединение), плагин обязан
 уважать контекст. Backpressure — плагин не обязан буферизовать бесконечно:
@@ -77,9 +85,10 @@ gateway приостанавливает отправку, если плагин
 
 ## Соблюдение протокола
 
-- Плагин обязан открыть сокет на `127.0.0.1:<port>` к моменту
-  `startTimeout` и ответить на `health`/`manifest`.
-- Manifest плагина должен совпадать с декларацией в `gateway.yaml`
-  (name, protocol, capabilities).
-- `config.apply` должен вернуть `{"applied": true}`.
-- Плагин должен корректно завершаться по `shutdown` / `SIGTERM`.
+| Требование | Дедлайн/условие |
+| --- | --- |
+| Открыть сокет на `127.0.0.1:<port>` | до истечения `startTimeout` |
+| Ответить на `health` / `manifest` | там же |
+| Manifest совпадает с декларацией `gateway.yaml` | name, protocol, capabilities |
+| `config.apply` → `{"applied": true}` | при старте |
+| Завершение по `shutdown` / `SIGTERM` | корректное |

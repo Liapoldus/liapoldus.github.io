@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 
 const base = process.env.BASE_PATH || '/'
 
@@ -11,6 +12,12 @@ export default withMermaid(
     lang: 'ru-RU',
     base,
     cleanUrls: true,
+
+    markdown: {
+      config(md) {
+        md.use(tabsMarkdownPlugin)
+      }
+    },
 
     head: [
       ['link', { rel: 'icon', href: `${base}favicon.svg`, type: 'image/svg+xml' }]

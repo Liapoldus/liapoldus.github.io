@@ -23,11 +23,11 @@ allowedHosts:           # заменяет default (провайдеры Cloudfl
 allowAnyHost: false
 ```
 
-- `timeout` — таймаут запроса к провайдеру (default `5s`).
-- `allowedHosts` — список хостов, которым разрешён запрос к `verifyUrl`.
-  Default: `challenges.cloudflare.com`, `www.google.com`, `google.com`,
-  `hcaptcha.com`, `api.hcaptcha.com`.
-- `allowAnyHost` — разрешить любой хост из `verifyUrl`.
+| Ключ | Назначение | По умолчанию |
+| --- | --- | --- |
+| `timeout` | таймаут запроса к провайдеру | `5s` |
+| `allowedHosts` | хосты, которым разрешён запрос к `verifyUrl`; `"*"` — поддомены | `challenges.cloudflare.com`, `www.google.com`, `google.com`, `hcaptcha.com`, `api.hcaptcha.com` |
+| `allowAnyHost` | разрешить любой хост из `verifyUrl` | `false` |
 
 ## Декларация в gateway.yaml
 

@@ -16,15 +16,39 @@ MySQL. Эталонный пример плагина для [гайда по с
 
 ## Конфиг instance
 
+Пример DSN по каждой поддерживаемой СУБД:
+
+:::tabs
+== SQLite
+
 ```yaml
-driver: sqlite          # sqlite | postgres | mysql (mariadb = mysql)
-dsn: forms.db
+driver: sqlite          # путь к файлу БД
+dsn: data/forms.db
 tablePrefix: form_
 ```
 
-- `driver` — одна из поддерживаемых СУБД.
-- `dsn` — connection string соответствующей СУБД (для sqlite — путь к файлу).
-- `tablePrefix` — префикс таблиц плагина (default `form_`).
+== PostgreSQL
+
+```yaml
+driver: postgres
+dsn: postgres://forms:secret@localhost:5432/forms?sslmode=disable
+tablePrefix: form_
+```
+
+== MySQL / MariaDB
+
+```yaml
+driver: mysql           # mariadb = mysql
+dsn: forms:secret@tcp(localhost:3306)/forms?parseTime=true
+tablePrefix: form_
+```
+:::
+
+| Ключ | Назначение | По умолчанию |
+| --- | --- | --- |
+| `driver` | одна из: `sqlite` / `postgres` / `mysql` | — |
+| `dsn` | connection string СУБД (для sqlite — путь к файлу) | — |
+| `tablePrefix` | префикс таблиц плагина | `form_` |
 
 Различия СУБД (placeholder-синтаксис, возможности, driver setup) скрыты общим
 repository-контрактом плагина: различия не протекают в domain/application.

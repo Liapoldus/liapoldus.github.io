@@ -1,61 +1,44 @@
 # Конфигурация
 
-Конфиг процесса — единый `gateway.yaml` («микро-nginx»). Весь источник
-состояния — на диске; БД у gateway нет.
-
-Путь задаётся `--config`, env `LIAPOLDUS_GATEWAY_CONFIG` либо default.
+Единый `gateway.yaml` («микро-nginx»). Весь источник состояния — на диске;
+БД у gateway нет. Путь задаётся `--config`, env `LIAPOLDUS_GATEWAY_CONFIG`
+либо default.
 
 ## Возможности
 
-- **Сайты из registry.** Версии раздаются из `sites/<slug>/<version>/`,
-  `current` — активная, `prev` — резервная для мгновенного отката.
-- **Server-блоки.** Слушатели, выбор по Host, статика, `proxyPass`, редиректы,
-  маршруты, языки сайтов.
-- **TLS и HTTP/2.** Мульти-сертификатный SNI-подбор, ALPN h2, h2c на «голом»
-  HTTP.
-- **Обычные веб-функции.** Сжатие gzip/brotli, access-лог, rate limit по IP,
-  CORS, security-заголовки, ETag и Cache-Control.
-- **Плагины.** Внешние процессы, запускаемые gateway, с полноценным
-  протоколом (unary + все направления stream).
-- **Управление.** CLI-подкоманды (офлайн-доставка) и резервированный
-  management HTTP API.
-- **Наблюдаемость.** Prometheus и OTLP push экспорт, структурированные логи.
+| Возможность | Описание |
+| --- | --- |
+| **Сайты из registry** | версии раздаются из `sites/<slug>/<version>/`; `current` — активная, `prev` — резервная для отката |
+| **Server-блоки** | слушатели, выбор по Host, статика, `proxyPass`, редиректы, маршруты, языки сайтов |
+| **TLS и HTTP/2** | мульти-сертификатный SNI-подбор, ALPN h2, h2c на «голом» HTTP |
+| **Веб-функции** | gzip/brotli, access-лог, rate limit по IP, CORS, security-заголовки, ETag, Cache-Control |
+| **Плагины** | внешние процессы с полным протоколом (unary + все направления stream) |
+| **Управление** | CLI-подкоманды (офлайн-доставка) и management HTTP API |
+| **Наблюдаемость** | Prometheus и OTLP push-экспорт, структурированные логи |
 
 ## Быстрый старт
-
-Минимальный запуск gateway за несколько минут.
 
 ### 1. Соберите gateway
 
 ```bash
 cd gateway/core
-go build ./cmd/gateway
+go build ./cmd/gateway     # появится ./bin/gateway (или задайте -o)
 ```
-
-Бинарник появится как `gateway` в текущей директории (или задайте
-`-o ./bin/gateway`).
 
 ### 2. Создайте конфиг
 
 `gateway.yaml`:
 
 ```yaml
-# Публичный порт по умолчанию (для implicit-сайтов и server без listen).
-listen: "18080"
-
-# Каталог registry: sites/<slug>/current/...
-registry: ./data/registry
-
-# Управление: порт и токен (пустой токен — только loopback).
-management:
+listen: "18080"            # публичный порт по умолчанию
+registry: ./data/registry  # каталог реестра сайтов
+management:                # порт управления
   enabled: true
   port: "18090"
-  token: ""
+  token: ""                # пусто = только loopback
 ```
 
 ### 3. Опубликуйте простой сайт
-
-Создайте версию сайта в registry. Персональный конфиг сайта — unified schema:
 
 ```bash
 mkdir -p data/registry/sites/example/current
@@ -70,29 +53,12 @@ loginRequired: false
 YAML
 ```
 
-### 4. Запустите
+### 4. Запустите и проверьте
 
 ```bash
 ./bin/gateway serve
-# или с явным путём к конфигу:
-LIAPOLDUS_GATEWAY_CONFIG=gateway.yaml ./bin/gateway serve
-```
-
-Вывод должен показать публичный runtime и management-порт:
-
-```text
-gateway: публичный рантайм слушает :18080 (режим gateway)
-gateway: mgmt :18090 слушает (токен не задан — только loopback)
-```
-
-### 5. Проверьте
-
-```bash
-curl -H 'Host: example.localhost' http://localhost:18080/
-# -> <h1>Hello, Liapoldus</h1>
-
-curl http://localhost:18090/healthz
-# -> {"status":"ok","process":"gateway-mgmt"}
+curl -H 'Host: example.localhost' http://localhost:18080/   # -> <h1>Hello, Liapoldus</h1>
+curl http://localhost:18090/healthz                          # -> {"status":"ok",...}
 ```
 
 Если `Host` не задан, gateway выберет подходящий блок по умолчанию.
@@ -158,26 +124,55 @@ plugins:                         # внешние плагины (см. «Пла
     config: ./conf/forms-db.yaml
 ```
 
-Плагины и service accounts хранятся только в корневом `gateway.yaml`, не в
-tenant include.
+### Справочник корневых ключей
+
+| Ключ | Назначение | По умолчанию |
+| --- | --- | --- |
+| `instance.mode` | режим процесса: `gateway` или `single` | — |
+| `instance.name` | имя процесса (в логах) | — |
+| `registry` | корень реестра сайтов `sites/<slug>/…` | — |
+| `listen` | публичный порт по умолчанию | — |
+| `management` | порт управления + токен (`enabled` требует `port`) | выключен |
+| `controlPlane.auth.serviceAccounts` | service accounts управления | `[]` |
+| `include` | доп. конфиги; server-блоки объединяются | `[]` |
+| `tenants` | изолированные владельцы ресурсов | `[]` |
+| `http` | таймауты публичных слушателей | 30s/30s/120s/64K |
+| `logging` | access-лог: `access` (куда), `format` (`json`/`plain`) | `[stdout]`, `plain` |
+| `metrics` | `prometheus` (bool) + `otlp` (endpoint, interval) | выключены |
+| `server` | серверные блоки | `[]` |
+| `plugins` | декларации плагинов | `{}` |
+
+> Плагины и service accounts хранятся только в корневом `gateway.yaml`,
+> не в tenant include.
 
 ## Server-блоки
 
 Один или несколько `server`; выбор блока — по `serverName` (Host), fallback —
 первый блок слушателя.
 
+:::tabs
+== Статический сайт из registry
+
 ```yaml
 server:
-  - listen: "18080"                      # порт (пусто = корневой listen)
-    serverName: ["blog.localhost"]       # hosts (алиас: hosts:)
-    site: blog                           # корень = registry/sites/blog/current
-    # root: /path/to/static              # альтернатива: прямой каталог
-    # proxyPass: "http://127.0.0.1:8080" # reverse-proxy (путь не меняется)
-    index: index.html                    # индексный файл
-    spa: true                            # fallback в index для SPA
-    prev: true                           # публичный /__prev/ (сверка перед откатом)
+  - serverName: ["blog.localhost"]  # hosts (алиас: hosts:)
+    site: blog                      # корень = registry/sites/blog/current
+    index: index.html
     languages: [ru, en]
     defaultLang: ru
+    compression: brotli             # gzip | brotli | off
+    cache:                          # Cache-Control для статики и index
+      static: "public, max-age=3600"
+      index: "no-cache"
+    prev: true                      # публичный /__prev/ (сверка перед откатом)
+```
+
+== Reverse proxy и маршруты
+
+```yaml
+server:
+  - serverName: ["api.localhost"]
+    proxyPass: "http://127.0.0.1:8080"  # reverse-proxy (путь не меняется)
     redirects:
       - from: /old
         to: /new
@@ -185,28 +180,55 @@ server:
     routes:
       - matcher: /api/*
         target: https://backend.example
-    apiRoutes:                           # внешний capability поверх HTTP
+    apiRoutes:                        # внешний capability поверх HTTP
       - methods: [POST]
         path: /api/forms/submit
         plugin:
           instance: forms-db
           capability: forms.submit
-    compression: brotli                  # gzip | brotli | off
-    cache:
-      static: "public, max-age=3600"
-      index: "no-cache"
-    http2: true                          # h2c на голом HTTP; nil = включён
-    tls:                                 # TLS на этом порту
+```
+
+== TLS и HTTP/2
+
+```yaml
+server:
+  - listen: "18443"
+    serverName: ["secure.localhost"]
+    site: blog
+    tls:
       certFile: ./tls/blog.crt
       keyFile: ./tls/blog.key
+    http2: true                 # при TLS — ALPN h2; на голом HTTP — h2c
 ```
+:::
+
+### Справочник ключей блока
+
+| Ключ | Назначение | По умолчанию |
+| --- | --- | --- |
+| `listen` | порт блока (пусто = корневой `listen`) | корневой порт |
+| `serverName` | Host-маски для выбора блока (алиас: `hosts`) | — |
+| `site` | сайт из registry: `sites/<slug>/current` | — |
+| `root` | альтернатива: прямой каталог статики | — |
+| `proxyPass` | backend reverse-proxy (путь не меняется) | — |
+| `index` | индексный файл | `index.html` |
+| `spa` | fallback в `index` для SPA | `false` |
+| `prev` | публичный `/__prev/` (сверка перед откатом) | `false` |
+| `languages` / `defaultLang` | языки сайта и язык по умолчанию | — |
+| `redirects` | `from → to` + `status` | `[]` |
+| `routes` | маршруты `matcher → target` | `[]` |
+| `apiRoutes` | вызовы capability поверх HTTP (`methods`, `path`, `plugin`) | `[]` |
+| `compression` | `gzip` / `brotli` / `off` | — |
+| `cache` | Cache-Control для `static` и `index` | — |
+| `http2` | h2c на голом HTTP; при TLS — ALPN h2 (nil = включён) | включён |
+| `tls.certFile` / `keyFile` | сертификат блока | отключён |
 
 ### Имплицитные сайты из registry
 
-Сайт, у которого есть `<registry>/sites/<slug>/config.yaml`, автоматически
-получает **имплицитный** server на listen по умолчанию с хостами из конфига.
-Явный `server` с тем же `site` переопределяет имплицитный (свой порт, TLS,
-proxyPass и т.д.).
+Сайт с `<registry>/sites/<slug>/config.yaml` автоматически получает
+**имплицитный** server на listen по умолчанию с хостами из конфига. Явный
+`server` с тем же `site` переопределяет имплицитный (свой порт, TLS, proxyPass
+и т.д.).
 
 ## Конфиг сайта (unified schema)
 
@@ -214,7 +236,6 @@ proxyPass и т.д.).
 
 ```yaml
 slug: example
-id: a1b2c3
 hosts: [example.localhost, localhost]
 languages: [ru, en]
 defaultLang: ru
@@ -226,26 +247,40 @@ redirects:
 routes: []                    # matcher → target (+priority)
 ```
 
-Это единый источник для CLI, management API и runtime: `gateway config <slug>`,
+| Ключ | Назначение | По умолчанию |
+| --- | --- | --- |
+| `slug` | идентификатор сайта (должен совпадать с каталогом) | — |
+| `hosts` | хосты имплицитного server | — |
+| `languages` / `defaultLang` | языки сайта и язык по умолчанию | — |
+| `loginRequired` | требуется ли вход | `false` |
+| `redirects` | редиректы | `[]` |
+| `routes` | маршруты | `[]` |
+
+Единый источник для CLI, management API и runtime: `gateway config <slug>`,
 `gateway routes <slug>`, `GET /api/sites/{slug}` отдают его напрямую.
 
 ## Версии сайта
 
-- `<registry>/sites/<slug>/current/` — активная версия (раздаётся);
-- `<registry>/sites/<slug>/prev/` — предыдущая (для отката);
-- публичный `/__prev/` (если `prev: true`) — сверка перед откатом.
+| Версия | Каталог | Использование |
+| --- | --- | --- |
+| `current` | `sites/<slug>/current/` | активная, раздаётся |
+| `prev` | `sites/<slug>/prev/` | предыдущая, для отката |
+| `/__prev/` | публичный (при `prev: true`) | сверка перед откатом |
 
 ## TLS
 
-- `server.tls.certFile/keyFile` — сертификат блока.
-- На одном слушателе несколько блоков с TLS: сертификаты индексируются по
-  хостам, выбор — по SNI, fallback — первый серт.
-- Минимальная версия TLS — 1.2; HTTP/2 при TLS автоматически (ALPN h2).
+| Правило | Значение |
+| --- | --- |
+| Сертификат блока | `server.tls.certFile` / `keyFile` |
+| Несколько блоков на слушателе | сертификаты индексируются по хостам, выбор — по SNI |
+| Fallback | первый серт слушателя |
+| Минимальная версия | TLS 1.2 |
+| HTTP/2 при TLS | автоматически (ALPN h2) |
 
 ## Reload
 
-`POST /api/reload` перечитывает `gateway.yaml` + include. Применяются изменения,
-не затрагивающие «сигнатуру слушателей» (listen-адреса, таймауты, mgmt-порт/
-токен, TLS-сертификаты, http2-флаги). Иначе ответ — `409 restart required`.
-`PUT /api/config` записывает новый `gateway.yaml` (атомарно, с валидацией) и
-перезагружает.
+| Запрос | Что делает |
+| --- | --- |
+| `POST /api/reload` | перечитывает `gateway.yaml` + include; применяет изменения, не трогающие «сигнатуру слушателей» (listen, таймауты, mgmt-порт/токен, TLS, http2) |
+| — | иначе ответ **`409 restart required`** |
+| `PUT /api/config` | записывает новый `gateway.yaml` (атомарно, с валидацией) и перезагружает |

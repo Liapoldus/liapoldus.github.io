@@ -36,6 +36,24 @@ plugins:
     healthInterval: 15s          # периодичность health-проверок (default 15s)
 ```
 
+### Справочник ключей декларации
+
+| Ключ | Назначение | По умолчанию |
+| --- | --- | --- |
+| `plugins.<id>` | декларация instance; `id` — ключ секции | — |
+| `.manifest` | ожидаемый контракт instance | **обязательно** |
+| `.manifest.protocol` | версия протокола | `liapoldus.plugin/v2` |
+| `.manifest.name` | имя (должно совпадать с `id`) | — |
+| `.manifest.capabilities` | список capability | `[]` |
+| `.enabled` | запускать при старте gateway | `false` |
+| `.binary` | путь к бинарнику (abs или относительно `gateway.yaml`) | — |
+| `.config` | собственный конфиг плагина (передаётся `--config`) | — |
+| `.args` | доп. аргументы процесса | `[]` |
+| `.env` | env с подстановкой `env:NAME` | `[]` |
+| `.autoRestart` | перезапуск при падении | `false` |
+| `.startTimeout` | таймаут старта | `10s` |
+| `.healthInterval` | период health-проверок | `15s` |
+
 ### Контракт instance
 
 `manifest` в конфиге — transport-independent декларация. При старте gateway
