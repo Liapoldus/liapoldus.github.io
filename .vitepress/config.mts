@@ -78,7 +78,11 @@ export default withMermaid(
           {
             text: 'Configuration',
             items: [
-              { text: 'gateway.yaml', link: '/gateway/configuration/' },
+              { text: 'Обзор и быстрый старт', link: '/gateway/configuration/' },
+              { text: 'Корневая схема', link: '/gateway/configuration/root-schema' },
+              { text: 'Server-блоки', link: '/gateway/configuration/server-blocks' },
+              { text: 'Конфиг сайта', link: '/gateway/configuration/site-config' },
+              { text: 'TLS и Reload', link: '/gateway/configuration/tls-reload' },
               { text: 'Management API', link: '/gateway/configuration/management-api' },
               { text: 'Безопасность', link: '/gateway/configuration/security' }
             ]

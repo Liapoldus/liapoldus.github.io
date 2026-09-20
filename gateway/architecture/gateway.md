@@ -9,12 +9,12 @@ Liapoldus — это **один процесс**: gateway. Его роль — d
 | --- | --- | --- | --- |
 | `gateway` | data plane + управление: публичный рантайм, mgmt API, CLI | нет | да |
 
-Gateway не является монолитом и не имеет доступа к БД. Он читает только два
-источника с диска:
+Источники состояния — только на диске:
 
-- персональный конфиг процесса — `gateway.yaml` (+ `include`);
-- готовые артефакты из **registry-volume** — `sites/<slug>/<version>/...`,
-  сформированные оператором по контракту.
+| Источник | Содержимое |
+| --- | --- |
+| персональный конфиг процесса | `gateway.yaml` (+ `include`); схема — [корневая схема](/gateway/configuration/root-schema) |
+| **registry-volume** | `sites/<slug>/<version>/...`; конфиг сайта — [unified schema](/gateway/configuration/site-config) |
 
 ```mermaid
 flowchart LR
@@ -29,40 +29,17 @@ flowchart LR
 Оператор пишет в registry и дергает mgmt-порт напрямую — отдельной системы
 управления нет.
 
-## Конфигурация процесса
-
-- Путь к конфигу: аргумент `--config`, либо env `LIAPOLDUS_GATEWAY_CONFIG`;
-  пустое значение — встроенный default.
-- Формат — YAML; секции: `instance`, `registry`, `listen`, `management`,
-  `plugins`, `tenants`, `serviceAccounts`, `include`, `server`, `http`, `security`,
-  `metrics`, `tls`.
-- `include` — дополнительные файлы (nginx-подобно); server-блоки объединяются.
-- Сайты, опубликованные в `<registry>/sites/<slug>/config.yaml`,
-  включаются **транспарентно** — без явных server-блоков.
-
-### Конфиг сайта (unified schema)
-
-Персональный конфиг каждого сайта лежит в `<registry>/sites/<slug>/config.yaml`
-и описывает: `slug`, `id`, `hosts`, `languages`, `defaultLang`, `redirects`
-(с status), `routes` (matcher → target, priority). Этот файл — единый источник
-для CLI, mgmt API и runtime.
-
 ## Data plane
 
 ### Слушатели и маршрутизация
 
 Gateway слушает один или несколько адресов (`server.listen`), каждый адрес
-обслуживает свой набор server-блоков:
+обслуживает свой набор server-блоков (см. [Server-блоки](/gateway/configuration/server-blocks)):
 
-- выбор блока — по `serverName` (Host/SNI);
-- fallback для слушателя — первый блок;
-- `site` — каталог в registry; `root` — прямой каталог; `proxyPass` — восходящий
-  upstream.
-
-TLS: на слушателе индексируются сертификаты всех его блоков по хостам, выбор по
-SNI (`GetCertificate`), fallback — первый серт. При TLS HTTP/2 включается
-автоматически (ALPN h2). На «голом» HTTP HTTP/2 доступен как h2c (по конфигу
-сервера, по умолчанию включён).
+- выбор блока — по `serverName` (Host/SNI); fallback — первый блок слушателя;
+- `site` — каталог в registry; `root` — прямой каталог; `proxyPass` — upstream;
+- TLS: сертификаты блоков индексируются по хостам, выбор по SNI; при TLS HTTP/2
+  включается автоматически (ALPN h2), на «голом» HTTP — h2c.
 
 ### Immutable snapshot
 
@@ -93,8 +70,8 @@ flowchart TB
 
 Смена конфига без изменения «подписи слушателей» (listen-адреса, таймауты,
 mgmt-порт/токен, TLS-серты, http2-флаги) применяется горячо через `/api/reload`.
-Если подпись меняется, gateway честно отвечает `409 restart required` — без
-ложного «reloaded».
+Если подпись меняется, gateway отвечает `409 restart required` — без ложного
+«reloaded».
 
 ### Путь запроса
 
@@ -125,117 +102,49 @@ sequenceDiagram
 
 ### Middleware
 
-Каждый middleware читает конфиг серверного блока и применяется к ответу
+Каждый middleware читает конфиг серверного блока
 (`internal/presentation/serve/web.go`):
 
-- **compression** — gzip или brotli по `Accept-Encoding` (по конфигу `off`);
-  при сжатии убираются `Content-Length` и `ETag`, добавляется `Vary`.
-- **access log** — структурированный JSON или plain line; remote IP, метод, URI,
-  host, status, длительность, байты, UA, опционально `X-Request-Id`.
-- **rate limit** — token bucket по IP (`ipLimiter`), ответ `429` + `Retry-After`;
-  запись автоматически удаляется после окна.
-- **CORS** — по конфигу сервера: allow-origin по списку (включая `*`), методы,
-  headers, `Max-Age`; `OPTIONS` → `204`.
-- **security headers** — `Content-Security-Policy`, `X-Frame-Options`,
-  `X-Content-Type-Options` (`nosniff`), `Referrer-Policy`, `Strict-Transport-Security`
-  (HSTS только при TLS).
-- **cache** — слабый `ETag` по размеру+времени файла и `Cache-Control` по типу
-  файла, если не заданы заранее.
+| Middleware | Поведение |
+| --- | --- |
+| **compression** | gzip/brotli по `Accept-Encoding` (по конфигу `off`); при сжатии убираются `Content-Length` и `ETag`, добавляется `Vary` |
+| **access log** | структурированный JSON или plain; remote IP, метод, URI, host, status, длительность, байты, UA, опционально `X-Request-Id` |
+| **rate limit** | token bucket по IP (`ipLimiter`), ответ `429` + `Retry-After`; запись удаляется после окна |
+| **CORS** | allow-origin по списку (включая `*`), методы, headers, `Max-Age`; `OPTIONS` → `204` |
+| **security headers** | CSP, `X-Frame-Options`, `X-Content-Type-Options` (`nosniff`), `Referrer-Policy`, HSTS (только при TLS) |
+| **cache** | слабый `ETag` по размеру+времени файла и `Cache-Control` по типу файла, если не заданы заранее |
 
 ## Control plane
 
 ### Management-порт
 
-Резервированный порт управления (`management.enabled/port/token`), отдельный
-канал наблюдения и управления. Безопасность:
-
-- токен задан → обязателен Bearer-токен (`Authorization`/`X-Management-Token`)
-  или API key (`X-API-Key`), сверка — constant-time;
-- токен пуст → запросы только с loopback;
-- CLI может выключить управление флагом `--no-management`;
-- в docker-композиции mgmt-порт наружу пробрасывается только на loopback хоста.
-
-Абстракция авторизации: service accounts (`lpgw_<id>_<key>`, bcrypt-хеш в
-конфиге) с ролями `platform-admin` / `tenant-admin`; `tenantAuth` допускает
-`tenant-admin` только к своему `/api/tenants/{id}`.
-
-### Эндпоинты mgmt
-
-```mermaid
-flowchart LR
-    subgraph open["без авторизации"]
-        H["GET /healthz"]
-    end
-    subgraph ops["наблюдение"]
-        M["GET /metrics (Prometheus)"]
-        S["GET /api/status"]
-        T["GET /api/tenants"]
-        TS["GET /api/tenants/{id}"]
-    end
-    subgraph sites["сайты и версии"]
-        LS["GET /api/sites"]
-        SC["GET /api/sites/{slug}"]
-        SV["GET /api/sites/{slug}/versions"]
-        CU["GET /api/sites/{slug}/current"]
-        PV["GET /api/sites/{slug}/prev"]
-        RB["POST /api/sites/{slug}/rollback"]
-        US["POST /api/sites/{slug}/static/{path...}"]
-        DS["DELETE /api/sites/{slug}/static/{path...}"]
-    end
-    subgraph cfg["конфигурация"]
-        RL["POST /api/reload"]
-        CFG["PUT /api/config"]
-    end
-    subgraph pg["плагины (при супервизоре)"]
-        PL["GET /api/plugins"]
-        PD["GET /api/plugins/{id}"]
-        LG["GET /api/plugins/{id}/logs"]
-        RPC["POST /api/plugins/{id}/rpc"]
-        RS["POST /api/plugins/{id}/restart"]
-        STP["POST /api/plugins/{id}/stop"]
-        STA["POST /api/plugins/{id}/start"]
-    end
-```
-
-Все операции mgmt дублируют автономные CLI-команды и работают с тем же диском
-(registry), что и runtime. `/api/plugins/{id}/rpc` — проксирование произвольного
-RPC плагина (raw JSON), доступ только по mgmt-авторизации.
+Резервированный порт управления (`management.enabled/port/token`) — отдельный
+канал наблюдения и управления. Правила безопасности, service accounts и
+эндпоинты — в [Безопасность](/gateway/configuration/security) и
+[Management API](/gateway/configuration/management-api).
 
 ### CLI: автономная доставка
 
-CLI — это **не третий бинарник**: подкоманды единого бинарника gateway,
-офлайн-режим доставки. Они читают персональные конфиги и артефакты с диска и
-не требуют работающего runtime:
-
-| Подкоманда | Назначение |
-| --- | --- |
-| `serve` | единственный долгоживущий процесс (публичный рантайм + mgmt) |
-| `versions` | список версий сайта на диске |
-| `current` / `prev` | показать текущую/предыдущую версию |
-| `rollback` | prev становится current (атомарно через `.rollback-tmp`) |
-| `config` | показать персональный конфиг сайта (unified schema) |
-| `routes` | показать маршруты и редиректы сайта |
-| `status` | диагностика: listen, mgmt, сайты на диске |
-| `health` | автономная проверка здоровья registry |
-| `accounts` | выпуск/ротация/отзыв service account API keys |
-| `help` | справка |
+CLI — **не третий бинарник**: подкоманды единого бинарника gateway, офлайн-режим
+доставки. Читают персональные конфиги и артефакты с диска и не требуют
+работающего runtime (`serve` — единственный долгоживущий процесс). Справочник —
+[CLI](/gateway/cli/).
 
 ## Метрики
 
 `infrastructure/metrics` — порт `domain.MetricsPort`. Включается в `cmd`, если
-настроен хотя бы один экспорт:
+настроен хотя бы один экспорт (`prefix` метрик — `gateway_`):
 
-- **Prometheus** — `GET /metrics` на mgmt-порте (за авторизацией);
-- **OTLP push** — периодическая отправка в эндпоинт (интервал по конфигу,
-  по умолчанию 15s).
-
-Prefix метрик — `gateway_`.
+| Экспорт | Механизм |
+| --- | --- |
+| **Prometheus** | `GET /metrics` на mgmt-порте (за авторизацией) |
+| **OTLP push** | периодическая отправка в эндпоинт (интервал по конфигу, по умолчанию 15s) |
 
 ## Ошибки и graceful shutdown
 
 - `serve` ждёт `SIGINT`/`SIGTERM`, затем останавливает супервизор плагинов
   (`manager.Close()`) и гасит все `http.Server` через `Shutdown(ctx)` с
   таймаутом 10s.
-- Ошибки plugin-вызовов (см. protocol.md) преобразуются в согласованные 5xx
-  ответы gateway: startup/failure → 503, timeout/disconnect → 504, plugin
+- Ошибки plugin-вызовов (см. [protocol.md](protocol.md)) преобразуются в
+  согласованные 5xx: startup failure → 503, timeout/disconnect → 504, plugin
   internal error → 502.

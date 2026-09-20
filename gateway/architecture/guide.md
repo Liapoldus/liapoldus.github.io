@@ -179,20 +179,8 @@ go build -o bin/<name> ./cmd/<name>
 ./bin/<name> --port 18099 --config ./conf/dev.yaml
 ```
 
-В «боевом» режиме gateway сам выбирает порт и передаёт `--port`:
-
-```yaml
-plugins:
-  <name>:
-    manifest:
-      protocol: liapoldus.plugin/v2
-      name: <name>
-      capabilities: [<prefix>.<verb>]
-    enabled: true
-    binary: ./bin/<name>
-    config: ./conf/dev.yaml
-    autoRestart: true
-```
+В «боевом» режиме gateway сам выбирает порт и передаёт `--port`. Декларация
+экземпляра в `gateway.yaml` — общий формат: [«Плагины»](/plugins/).
 
 После старта gateway инстанс доступен через управление:
 `GET /api/plugins`, `GET /api/plugins/<name>/logs`, `POST /api/plugins/<name>/restart`.

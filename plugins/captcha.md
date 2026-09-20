@@ -29,31 +29,8 @@ allowAnyHost: false
 | `allowedHosts` | хосты, которым разрешён запрос к `verifyUrl`; `"*"` — поддомены | `challenges.cloudflare.com`, `www.google.com`, `google.com`, `hcaptcha.com`, `api.hcaptcha.com` |
 | `allowAnyHost` | разрешить любой хост из `verifyUrl` | `false` |
 
-## Декларация в gateway.yaml
-
-```yaml
-plugins:
-  captcha:
-    manifest:
-      protocol: liapoldus.plugin/v2
-      name: captcha
-      capabilities: [captcha.verify]
-    enabled: true
-    binary: ./bin/captcha
-    config: ./conf/captcha.yaml
-```
-
-Вызов capability из маршрута:
-
-```yaml
-server:
-  - apiRoutes:
-      - methods: [POST]
-        path: /api/captcha/verify
-        plugin:
-          instance: captcha
-          capability: captcha.verify
-```
+Декларация плагина и привязка capability к маршруту — общий синтаксис
+[«Обзор и настройка»](/plugins/).
 
 Параметры провайдера (`verifyUrl`, `secret`) плагин получает в параметрах
 **каждого** вызова (тело/заголовки HTTP-запроса, проброшенные gateway как

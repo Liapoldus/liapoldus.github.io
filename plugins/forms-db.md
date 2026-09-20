@@ -53,31 +53,5 @@ tablePrefix: form_
 Различия СУБД (placeholder-синтаксис, возможности, driver setup) скрыты общим
 repository-контрактом плагина: различия не протекают в domain/application.
 
-## Декларация в gateway.yaml
-
-```yaml
-plugins:
-  forms-db:
-    manifest:
-      protocol: liapoldus.plugin/v2
-      name: forms-db
-      capabilities: [forms.submit, forms.list, forms.delete]
-    enabled: true
-    binary: ./bin/forms-db
-    config: ./conf/forms-db.yaml
-    autoRestart: true
-```
-
-Вызов capability из маршрута:
-
-```yaml
-server:
-  - apiRoutes:
-      - methods: [POST]
-        path: /api/forms/submit
-        plugin:
-          instance: forms-db
-          capability: forms.submit
-```
-
-Runtime-конфиг меняется только через `gateway.yaml` + reload.
+Декларация плагина и привязка capability к маршруту — общий синтаксис
+[«Обзор и настройка»](/plugins/).
