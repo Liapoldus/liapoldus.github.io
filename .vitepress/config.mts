@@ -91,7 +91,13 @@ export default withMermaid(
         '/gateway/cli/': [
           {
             text: 'CLI',
-            items: [{ text: 'Справочник подкоманд', link: '/gateway/cli/' }]
+            items: [
+              { text: 'Обзор', link: '/gateway/cli/' },
+              { text: 'serve', link: '/gateway/cli/serve' },
+              { text: 'Версии и откат', link: '/gateway/cli/versions' },
+              { text: 'Диагностика', link: '/gateway/cli/inspect' },
+              { text: 'accounts', link: '/gateway/cli/accounts' }
+            ]
           }
         ],
         '/gateway/deploy/': [
