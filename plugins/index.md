@@ -4,6 +4,10 @@
 запускает каждый **instance** как subprocess, связывается с ним по localhost
 TCP/protobuf и вызывает объявленные **capabilities**.
 
+Каждый плагин живёт в **отдельном git-репозитории** со своим Go-модулем —
+не в репозитории ядра gateway. Из репозитория плагина собирается его
+собственный бинарник, который gateway запускает.
+
 Плагин не знает о системе управления вне gateway. Вся связь идёт только через
 gateway: он передаёт конфиг instance, а схему `config.schema` отдаёт наружу
 по management API. Никто не подключается к плагинам напрямую.
@@ -166,5 +170,7 @@ rpc|cancel|restart|stop|start`. Runtime-настройки меняются то
 
 ## Для авторов плагинов
 
-Контракт протокола и [гайд создания плагина](/gateway/architecture/guide) на Go
-с `pkg/pluginprotocol` описаны в разделе «[Архитектура](/gateway/architecture/)»:
+- [Контракт протокола](/gateway/architecture/contract) — методы, фреймы,
+  streams, ошибки.
+- [Гайд создания плагина](/gateway/architecture/guide) — пошагово на Go
+  с `pkg/pluginprotocol`.

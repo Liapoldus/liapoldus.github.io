@@ -4,7 +4,8 @@ Stateless-плагин проверки капчи: верифицирует т�
 Google reCAPTCHA и hCaptcha. Каждый вызов `captcha.verify` получает
 `verifyUrl` и `secret` из `gateway.yaml` — плагин не хранит секреты провайдеров.
 
-Каталог: `gateway/plugins/captcha` (отдельный Go-модуль).
+Репозиторий: **отдельный git-репозиторий** плагина — свой Go-модуль,
+не в репозитории ядра gateway. Бинарник собирается из этого репозитория.
 
 ## Capability
 

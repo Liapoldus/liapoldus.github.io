@@ -6,30 +6,37 @@
 в отдельных каталогах; каждый Go-проект — отдельный модуль.
 
 ```text
-gateway/                 # Git-репозиторий gateway
+gateway/                 # Git-репозиторий gateway (только ядро)
   core/                  # Go-модуль gateway (единственный бинарник)
-  plugins/captcha/       # отдельный Go-модуль plugin
-  plugins/forms-db/      # отдельный Go-модуль plugin
+forms-db/                # Git-репозиторий и Go-модуль плагина форм
+captcha/                 # Git-репозиторий и Go-модуль плагина капчи
 pkg/                     # отдельный Git-репозиторий общих библиотек
 ```
+
+Каждый плагин — отдельный git-репозиторий со своим Go-модулем, не в
+репозитории ядра gateway.
 
 ```mermaid
 flowchart TB
     subgraph repoGateway["репозиторий gateway"]
         core["core — модуль: cmd/gateway"]
-        captcha["plugins/captcha — модуль"]
-        formsdb["plugins/forms-db — модуль"]
+    end
+    subgraph repoFormsdb["репозиторий forms-db"]
+        formsdb["forms-db — модуль"]
+    end
+    subgraph repoCaptcha["репозиторий captcha"]
+        captcha["captcha — модуль"]
     end
     subgraph repoPkg["репозиторий pkg"]
         pp["pkg/pluginprotocol — модуль"]
     end
 
     core -- "import" --> pp
-    captcha -- "import" --> pp
     formsdb -- "import" --> pp
+    captcha -- "import" --> pp
 
-    core -. "запускает как процессы" .-> captcha
     core -. "запускает как процессы" .-> formsdb
+    core -. "запускает как процессы" .-> captcha
 ```
 
 Все модули объединяются в корневой `go.work`:
@@ -39,8 +46,8 @@ use (
     ./pkg
     ./tools/architecturelint
     ./gateway/core
-    ./gateway/plugins/captcha
-    ./gateway/plugins/forms-db
+    ./forms-db
+    ./captcha
 )
 ```
 
@@ -171,8 +178,8 @@ logger/metrics, application-сервисы и presentation-серверы и п�
 Локальный namespace — `liapoldus.local/...`. Известные модули:
 
 - `liapoldus.local/gateway/core`
-- `liapoldus.local/gateway/plugins/captcha`
-- `liapoldus.local/gateway/plugins/forms-db`
+- `liapoldus.local/forms-db`
+- `liapoldus.local/captcha`
 - `liapoldus.local/pkg/pluginprotocol`
 
 Namespace меняется только отдельным решением.

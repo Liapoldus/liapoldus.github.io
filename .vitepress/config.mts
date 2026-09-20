@@ -19,17 +19,7 @@ export default withMermaid(
     themeConfig: {
       nav: [
         { text: 'Главная', link: '/' },
-        {
-          text: 'Gateway',
-          items: [
-            { text: 'Обзор', link: '/gateway/' },
-            { text: 'Практические примеры', link: '/gateway/examples/' },
-            { text: 'Configuration', link: '/gateway/configuration/' },
-            { text: 'CLI', link: '/gateway/cli/' },
-            { text: 'Deploy', link: '/gateway/deploy/' },
-            { text: 'Архитектура', link: '/gateway/architecture/' }
-          ]
-        },
+        { component: 'GatewayNav' },
         { text: 'Плагины', link: '/plugins/' }
       ],
 

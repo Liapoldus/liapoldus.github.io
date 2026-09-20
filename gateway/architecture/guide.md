@@ -2,7 +2,8 @@
 
 Пошаговый сценарий создания плагина на Go с общей библиотекой
 `pkg/pluginprotocol`. Эталонные примеры — плагины [forms-db](/plugins/forms-db)
-и [captcha](/plugins/captcha): структура каталога `gateway/plugins/<name>`.
+и [captcha](/plugins/captcha): каждый — отдельный репозиторий со своей
+структурой каталога `<name>/`.
 
 ## Минимальный плагин
 
@@ -17,10 +18,11 @@
 
 ### 1. Структура проекта
 
-Плагин — отдельный Go-модуль с теми же четырьмя слоями, что и gateway:
+Плагин — отдельный git-репозиторий и Go-модуль с теми же четырьмя слоями,
+что и gateway:
 
 ```text
-gateway/plugins/<name>/
+<name>/
   cmd/<name>/main.go        # composition root + flags + server
   internal/config/          # конфиг instance (YAML)
   internal/presentation/    # Handler: business-методы (JSON decode/encode)
@@ -170,7 +172,7 @@ onEvent: func(ev pluginprotocol.Event) {
 ### 6. Локальный запуск и отладка
 
 ```bash
-cd gateway/plugins/<name>
+cd <name>
 go build -o bin/<name> ./cmd/<name>
 
 # ручной запуск (например, с nc/pytest-стыком):
