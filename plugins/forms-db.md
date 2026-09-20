@@ -1,7 +1,7 @@
 # forms-db
 
 Плагин форм: простые формы веб-сайта, сохраняемые в SQLite, PostgreSQL или
-MySQL. Эталонный пример плагина для [guides по созданию плагинов](/plugins/guide).
+MySQL. Эталонный пример плагина для [гайда по созданию плагинов](/gateway/architecture/guide).
 
 Каталог: `gateway/plugins/forms-db` (отдельный Go-модуль).
 

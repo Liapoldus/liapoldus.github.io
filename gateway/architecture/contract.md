@@ -2,7 +2,7 @@
 
 Контракт между gateway и плагином. Плагин — отдельный кроссплатформенный
 binary; gateway сам запускает instance и передаёт порт через аргументы.
-Канонический wire-спецификация — [Plugin protocol](/architecture/protocol);
+Канонический wire-спецификация — [Plugin protocol](/gateway/architecture/protocol);
 здесь — выжимка, которой достаточно автору плагина.
 
 ## Transport

@@ -145,7 +145,7 @@ platform-specific и не ломают macOS/Windows/Linux.
 
 ## Управление через gateway
 
-Supervisor-эндпоинты management API (см. [Management API](/configuration/management-api)):
+Supervisor-эндпоинты management API (см. [Management API](/gateway/configuration/management-api)):
 `GET /api/plugins`, `GET /api/plugins/{id}` (состояние/PID/uptime/последняя
 ошибка/capabilities), `GET /api/plugins/{id}/logs`, `POST /api/plugins/{id}/
 rpc|cancel|restart|stop|start`. Runtime-настройки меняются только через
@@ -158,7 +158,6 @@ rpc|cancel|restart|stop|start`. Runtime-настройки меняются то
 
 ## Для авторов плагинов
 
-- [Контракт протокола](/plugins/contract) — transport, методы, фреймы,
-  streams, ошибки.
-- [Гайд: создание плагина](/plugins/guide) — пошаговый сценарий на Go с
-  `pkg/pluginprotocol`.
+[Контракт протокола](/gateway/architecture/contract) и
+[гайд создания плагина](/gateway/architecture/guide) на Go описаны в разделе
+«[Архитектура](/gateway/architecture/)».

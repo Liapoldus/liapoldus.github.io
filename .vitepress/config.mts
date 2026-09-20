@@ -5,9 +5,9 @@ const base = process.env.BASE_PATH || '/'
 
 export default withMermaid(
   defineConfig({
-    title: 'Liapoldus Gateway',
+    title: 'Liapoldus',
     description:
-      'Документация Liapoldus gateway: настройка, CLI, развёртывание, архитектура и плагины.',
+      'Liapoldus — набор компонентов для публикации сайтов: gateway, плагины, документация.',
     lang: 'ru-RU',
     base,
     cleanUrls: true,
@@ -19,44 +19,58 @@ export default withMermaid(
     themeConfig: {
       nav: [
         { text: 'Главная', link: '/' },
-        { text: 'Configuration', link: '/configuration/' },
-        { text: 'CLI', link: '/cli/' },
-        { text: 'Deploy', link: '/deploy/' },
-        { text: 'Архитектура', link: '/architecture/' },
+        {
+          text: 'Gateway',
+          items: [
+            { text: 'Обзор', link: '/gateway/' },
+            { text: 'Configuration', link: '/gateway/configuration/' },
+            { text: 'CLI', link: '/gateway/cli/' },
+            { text: 'Deploy', link: '/gateway/deploy/' },
+            { text: 'Архитектура', link: '/gateway/architecture/' }
+          ]
+        },
         { text: 'Плагины', link: '/plugins/' }
       ],
 
       sidebar: {
-        '/configuration/': [
+        '/gateway/': [
+          {
+            text: 'Gateway',
+            items: [{ text: 'Обзор', link: '/gateway/' }]
+          }
+        ],
+        '/gateway/configuration/': [
           {
             text: 'Configuration',
             items: [
-              { text: 'gateway.yaml', link: '/configuration/' },
-              { text: 'Management API', link: '/configuration/management-api' },
-              { text: 'Безопасность', link: '/configuration/security' }
+              { text: 'gateway.yaml', link: '/gateway/configuration/' },
+              { text: 'Management API', link: '/gateway/configuration/management-api' },
+              { text: 'Безопасность', link: '/gateway/configuration/security' }
             ]
           }
         ],
-        '/cli/': [
+        '/gateway/cli/': [
           {
             text: 'CLI',
-            items: [{ text: 'Справочник подкоманд', link: '/cli/' }]
+            items: [{ text: 'Справочник подкоманд', link: '/gateway/cli/' }]
           }
         ],
-        '/deploy/': [
+        '/gateway/deploy/': [
           {
             text: 'Deploy',
-            items: [{ text: 'Развёртывание', link: '/deploy/' }]
+            items: [{ text: 'Развёртывание', link: '/gateway/deploy/' }]
           }
         ],
-        '/architecture/': [
+        '/gateway/architecture/': [
           {
             text: 'Архитектура',
             items: [
-              { text: 'Обзор', link: '/architecture/' },
-              { text: 'Структура проектов', link: '/architecture/structure' },
-              { text: 'Gateway: data/control plane', link: '/architecture/gateway' },
-              { text: 'Plugin protocol', link: '/architecture/protocol' }
+              { text: 'Обзор', link: '/gateway/architecture/' },
+              { text: 'Структура проектов', link: '/gateway/architecture/structure' },
+              { text: 'Gateway: data/control plane', link: '/gateway/architecture/gateway' },
+              { text: 'Plugin protocol', link: '/gateway/architecture/protocol' },
+              { text: 'Контракт протокола', link: '/gateway/architecture/contract' },
+              { text: 'Гайд: создание плагина', link: '/gateway/architecture/guide' }
             ]
           }
         ],
@@ -65,8 +79,6 @@ export default withMermaid(
             text: 'Плагины',
             items: [
               { text: 'Обзор и настройка', link: '/plugins/' },
-              { text: 'Контракт протокола', link: '/plugins/contract' },
-              { text: 'Гайд: создание плагина', link: '/plugins/guide' },
               { text: 'forms-db', link: '/plugins/forms-db' },
               { text: 'captcha', link: '/plugins/captcha' }
             ]

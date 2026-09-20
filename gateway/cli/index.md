@@ -83,4 +83,4 @@ gateway accounts create ops --role=platform-admin --config gateway.yaml
 gateway --help    справка по подкомандам
 ```
 
-Подробно про секреты и роли — в [Безопасности](/configuration/security).
+Подробно про секреты и роли — в [Безопасности](/gateway/configuration/security).

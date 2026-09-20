@@ -25,9 +25,12 @@ Gateway — единственная обязательная часть; plugin
 | [structure.md](structure.md) | Структура репозиториев, обязательные DDD-слои, правила зависимостей, общая библиотека `pkg`. |
 | [gateway.md](gateway.md) | Data plane и control plane gateway, путь запроса, immutable snapshot, управление и метрики. |
 | [protocol.md](protocol.md) | Transport: TCP loopback, protobuf, length-prefixed frames, multiplexing, методы, streams, ошибки → 5xx. |
+| [contract.md](contract.md) | Контракт протокола для авторов плагинов: методы, фреймы, streams, ошибки. |
+| [guide.md](guide.md) | Гайд создания плагина на Go с `pkg/pluginprotocol`. |
 
-Документация по плагинам (декларация, супервизор, жизненный цикл, контракт
-и гайд создания) ведётся в разделе «[Плагины](/plugins/)» сайта.
+Документация по декларации, супервизору и жизненному циклу плагинов ведётся в
+разделе «[Плагины](/plugins/)»; контракт протокола и гайд создания — выше в
+таблице.
 
 ## Общая схема
 

@@ -33,7 +33,7 @@ jobs:
       - name: Build VitePress
         run: npm run build
         env:
-          BASE_PATH: /docs/
+          BASE_PATH: /
 
       - name: Configure Pages
         uses: actions/configure-pages@v6
