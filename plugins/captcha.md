@@ -1,0 +1,60 @@
+# captcha
+
+Stateless-плагин проверки капчи: верифицирует токены Cloudflare,
+Google reCAPTCHA и hCaptcha. Каждый вызов `captcha.verify` получает
+`verifyUrl` и `secret` из `gateway.yaml` — плагин не хранит секреты провайдеров.
+
+Каталог: `gateway/plugins/captcha` (отдельный Go-модуль).
+
+## Capability
+
+| Capability | Тип | Назначение |
+| --- | --- | --- |
+| `captcha.verify` | unary | проверить токен капчи у провайдера |
+
+## Конфиг instance
+
+```yaml
+timeout: 5s
+allowedHosts:           # заменяет default (провайдеры Cloudflare/Google/hCaptcha)
+  - challenges.cloudflare.com
+  - "*"                  # "." префикс — поддомены
+allowAnyHost: false
+```
+
+- `timeout` — таймаут запроса к провайдеру (default `5s`).
+- `allowedHosts` — список хостов, которым разрешён запрос к `verifyUrl`.
+  Default: `challenges.cloudflare.com`, `www.google.com`, `google.com`,
+  `hcaptcha.com`, `api.hcaptcha.com`.
+- `allowAnyHost` — разрешить любой хост из `verifyUrl`.
+
+## Декларация в gateway.yaml
+
+```yaml
+plugins:
+  captcha:
+    manifest:
+      protocol: liapoldus.plugin/v2
+      name: captcha
+      capabilities: [captcha.verify]
+    enabled: true
+    binary: ./bin/captcha
+    config: ./conf/captcha.yaml
+```
+
+Вызов capability из маршрута:
+
+```yaml
+server:
+  - apiRoutes:
+      - methods: [POST]
+        path: /api/captcha/verify
+        plugin:
+          instance: captcha
+          capability: captcha.verify
+```
+
+Параметры провайдера (`verifyUrl`, `secret`) плагин получает в параметрах
+**каждого** вызова (тело/заголовки HTTP-запроса, проброшенные gateway как
+payload/metadata), а не из своего конфига — так плагин остаётся stateless, а
+секреты разных сайтов не смешиваются.
