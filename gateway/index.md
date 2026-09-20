@@ -114,14 +114,30 @@ curl http://localhost:18090/healthz
 
 Если `Host` не задан, gateway выберет подходящий блок по умолчанию.
 
-## Разделы
+## Разделы документации
 
-- [Configuration](/gateway/configuration/) — полный справочник по `gateway.yaml`,
-  management API и безопасности.
-- [CLI](/gateway/cli/) — подкоманды: версии, откат, диагностика.
-- [Deploy](/gateway/deploy/) — локальная разработка, Docker Compose, переменные
-  окружения.
-- [Архитектура](/gateway/architecture/) — целевая структура проектов,
-  data/control plane gateway, plugin protocol.
-- [Плагины](/plugins/) — декларация, жизненный цикл и существующие плагины
-  (forms-db, captcha).
+<div class="cards">
+  <a class="card" href="/gateway/examples/">
+    <h3>Практические примеры</h3>
+    <p>Полные сценарии настройки: статика, reverse proxy, TLS, формы, капча.</p>
+  </a>
+  <a class="card" href="/gateway/configuration/">
+    <h3>Configuration</h3>
+    <p>gateway.yaml, server-блоки, TLS/SNI, reload, management API, безопасность.</p>
+  </a>
+  <a class="card" href="/gateway/cli/">
+    <h3>CLI</h3>
+    <p>Подкоманды: версии сайтов, откат, диагностика диска.</p>
+  </a>
+  <a class="card" href="/gateway/deploy/">
+    <h3>Deploy</h3>
+    <p>Локальная разработка, Docker Compose, переменные окружения.</p>
+  </a>
+  <a class="card" href="/gateway/architecture/">
+    <h3>Архитектура</h3>
+    <p>Структура проектов, data/control plane gateway, plugin protocol.</p>
+  </a>
+</div>
+
+Краткое содержание каждого каталога — в [обзоре архитектуры](/gateway/architecture/).
+Плагины и их настройка описаны отдельно в разделе «[Плагины](/plugins/)».

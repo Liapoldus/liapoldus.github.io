@@ -153,11 +153,18 @@ rpc|cancel|restart|stop|start`. Runtime-настройки меняются то
 
 ## Существующие плагины
 
-- [forms-db](/plugins/forms-db) — формы: submit/list/delete, SQLite/PostgreSQL/MySQL.
-- [captcha](/plugins/captcha) — stateless-проверка Cloudflare/Google/hCaptcha.
+<div class="cards">
+  <a class="card" href="/plugins/forms-db">
+    <h3>forms-db</h3>
+    <p>Формы: submit/list/delete. SQLite, PostgreSQL, MySQL.</p>
+  </a>
+  <a class="card" href="/plugins/captcha">
+    <h3>captcha</h3>
+    <p>Stateless-проверка Cloudflare, Google reCAPTCHA, hCaptcha.</p>
+  </a>
+</div>
 
 ## Для авторов плагинов
 
-[Контракт протокола](/gateway/architecture/contract) и
-[гайд создания плагина](/gateway/architecture/guide) на Go описаны в разделе
-«[Архитектура](/gateway/architecture/)».
+Контракт протокола и [гайд создания плагина](/gateway/architecture/guide) на Go
+с `pkg/pluginprotocol` описаны в разделе «[Архитектура](/gateway/architecture/)»:

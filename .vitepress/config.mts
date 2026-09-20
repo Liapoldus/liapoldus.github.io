@@ -23,20 +23,65 @@ export default withMermaid(
           text: 'Gateway',
           items: [
             { text: 'Обзор', link: '/gateway/' },
+            { text: 'Практические примеры', link: '/gateway/examples/' },
             { text: 'Configuration', link: '/gateway/configuration/' },
             { text: 'CLI', link: '/gateway/cli/' },
             { text: 'Deploy', link: '/gateway/deploy/' },
             { text: 'Архитектура', link: '/gateway/architecture/' }
           ]
         },
-        { text: 'Плагины', link: '/plugins/' }
+        { text: 'Плагины', link: '/plugins/' },
+        { text: 'Changelog', link: '/changelog/' }
       ],
+
+      search: {
+        provider: 'local',
+        options: {
+          translations: {
+            button: {
+              buttonText: 'Поиск',
+              buttonAriaLabel: 'Поиск по документации'
+            },
+            modal: {
+              displayDetails: 'Показать подразделы',
+              noResultsText: 'Ничего не найдено',
+              resetButtonTitle: 'Сбросить запрос',
+              footer: {
+                selectText: 'выбрать',
+                selectKeyAriaLabel: 'Enter',
+                navigateText: 'перейти',
+                navigateKeyAriaLabel: 'Стрелки',
+                closeKeyAriaLabel: 'Закрыть (Esc)'
+              }
+            }
+          }
+        }
+      },
 
       sidebar: {
         '/gateway/': [
           {
             text: 'Gateway',
             items: [{ text: 'Обзор', link: '/gateway/' }]
+          }
+        ],
+        '/gateway/examples/': [
+          {
+            text: 'Практические примеры',
+            items: [
+              { text: 'Обзор примеров', link: '/gateway/examples/' },
+              { text: 'Простой сайт', link: '/gateway/examples/simple-site' },
+              { text: 'Reverse proxy', link: '/gateway/examples/proxy' },
+              { text: 'TLS и SNI', link: '/gateway/examples/tls' },
+              { text: 'Формы на сайте', link: '/gateway/examples/forms' },
+              { text: 'Капча на сайте', link: '/gateway/examples/captcha' }
+            ]
+          }
+        ],
+        '/changelog/': [
+          {
+            text: 'Changelog',
+            items: [{ text: 'Версии', link: '/changelog/' }]
           }
         ],
         '/gateway/configuration/': [
