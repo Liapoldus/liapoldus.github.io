@@ -12,14 +12,14 @@
 | `variables` | строковые значения | подставляются как `${name}` только в значения строк |
 | `secrets` | именованные `env:`/`file:` ссылки | plaintext запрещён; значение не сериализуется обратно |
 | `registry` | диск releases, audit и TLS | `path` обязателен, если есть site или TLS storage |
-| `sites` | известные каталоги сайтов | name связывает route с registry site |
+| `sites` | named static sources | `release` registry или `directory` local root |
 | `listeners` | публичные HTTP/TCP/UDP sockets | один name — один listener; конфликт address не применяется |
 | `upstreams` | target groups proxy | targets, discovery, health, balance и retry |
 | `tlsProfiles`, `tlsIssuers` | сертификаты и TLS | profile назначается listener, issuer выдаёт material |
 | `authPolicies`, `wafPolicies`, `rateLimits` | политики | route ссылается по имени; порядок всегда auth → WAF → limit |
 | `dataProviders`, `captchaProviders` | внешние security resources | доступны только явно назначенной политике |
 | `plugins` | отдельные plugin processes | binary, capabilities, limits и grants |
-| `management` | local control-plane | address, accounts или local static token |
+| `management` | control-plane listener | listener, accounts или local static token |
 | `logging`, `metrics`, `tracing` | export telemetry | runtime traffic не зависит от exporter |
 
 ## Формы значений

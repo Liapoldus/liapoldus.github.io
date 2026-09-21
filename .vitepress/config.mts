@@ -70,7 +70,7 @@ export default defineConfig({
         ],
         '/gateway/': [
           {
-            text: 'Начало работы',
+            text: 'Оператор',
             items: [
               { text: 'Gateway: обзор', link: '/gateway/' },
               { text: 'Первый сайт', link: '/gateway/configuration/' },
@@ -96,7 +96,7 @@ export default defineConfig({
         ],
         '/gateway/configuration/': [
           {
-            text: 'Конфигурация',
+            text: 'Оператор · конфигурация',
             items: [
               { text: 'Обзор и быстрый старт', link: '/gateway/configuration/' },
               { text: 'Язык gateway.yaml', link: '/gateway/configuration/yaml-reference' },
@@ -117,7 +117,7 @@ export default defineConfig({
         ],
         '/gateway/cli/': [
           {
-            text: 'CLI и операции',
+            text: 'Оператор · CLI',
             items: [
               { text: 'Обзор', link: '/gateway/cli/' },
               { text: 'serve', link: '/gateway/cli/serve' },
@@ -129,7 +129,7 @@ export default defineConfig({
         ],
         '/gateway/deploy/': [
           {
-            text: 'Развёртывание',
+            text: 'Оператор · развёртывание',
             items: [
               { text: 'Развёртывание', link: '/gateway/deploy/' },
               { text: 'Логи и наблюдаемость', link: '/gateway/deploy/observability' }
@@ -138,22 +138,26 @@ export default defineConfig({
         ],
         '/gateway/api/': [
           {
-            text: 'Gateway API',
+            text: 'Оператор · Gateway API',
             items: [
               { text: 'Обзор', link: '/gateway/api/' },
               { text: 'Аутентификация', link: '/gateway/api/authentication' },
               { text: 'Ресурсы и операции', link: '/gateway/api/operations' },
+              { text: 'Config API', link: '/gateway/api/config' },
+              { text: 'Sites API', link: '/gateway/api/sites' },
+              { text: 'Audit и operations', link: '/gateway/api/audit' },
               { text: 'OpenAPI', link: '/gateway/api/openapi' }
             ]
           }
         ],
         '/gateway/architecture/': [
           {
-            text: 'Архитектура',
+            text: 'Реализатор · архитектура',
             items: [
               { text: 'Обзор', link: '/gateway/architecture/' },
               { text: 'Границы и решения', link: '/gateway/architecture/target' },
               { text: 'Компоненты runtime', link: '/gateway/architecture/gateway' },
+              { text: 'Blueprint реализации', link: '/gateway/architecture/implementation' },
               { text: 'Кодовая архитектура', link: '/gateway/architecture/structure' },
               { text: 'Plugin protocol', link: '/gateway/architecture/protocol' },
               { text: 'Гайд: создание плагина', link: '/gateway/architecture/guide' }
@@ -162,7 +166,7 @@ export default defineConfig({
         ],
         '/plugins/': [
           {
-            text: 'Плагины',
+            text: 'Интегратор · плагины',
             items: [
               { text: 'Обзор и настройка', link: '/plugins/' },
               { text: 'tls-issuer', link: '/plugins/tls-issuer' },

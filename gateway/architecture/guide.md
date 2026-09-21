@@ -109,7 +109,7 @@ func schema() pluginprotocol.ConfigSchema {
 }
 ```
 
-Схема отдаётся через `config.schema` по management API (не подключаясь к
+Схема отдаётся через `config.schema` по plugin protocol (не подключаясь к
 плагину напрямую). Runtime-конфиг — содержимое файла `--config`: gateway
 передаёт его в `config.apply`, плагин применяет через
 `RuntimeOptions.OnConfig`.

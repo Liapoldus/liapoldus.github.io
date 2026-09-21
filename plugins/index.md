@@ -5,6 +5,9 @@ public listener и не регистрирует route: Gateway принимае
 YAML-rule и передаёт capability только разрешённый запрос, stream или datagram
 flow.
 
+Через TCP/UDP capability plugin может реализовать любой прикладной протокол;
+Gateway при этом остаётся владельцем public socket, TLS, policy и limits.
+
 ## Декларация instance
 
 ```yaml
@@ -111,4 +114,6 @@ route. Они всё равно объявлены в YAML и не получа�
 </div>
 
 Для wire-деталей см. [Plugin protocol](/gateway/architecture/protocol), для
-авторов процессов — [гайд](/gateway/architecture/guide).
+авторов процессов — [гайд](/gateway/architecture/guide). Их JSON contracts,
+typed errors, grants и acceptance requirements находятся в
+<a href="/spec/plugin-contracts.json" target="_blank" rel="noopener">plugin-contracts.json</a>.

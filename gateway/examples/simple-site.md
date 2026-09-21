@@ -21,7 +21,7 @@ redirects: [{ from: /start, to: /, status: 308 }]
 ```yaml
 # gateway.yaml
 registry: { path: ./data/registry }
-sites: { blog: { path: ./data/registry/sites/blog } }
+sites: { blog: { source: { type: release, slug: blog } } }
 listeners:
   web:
     type: http

@@ -3,10 +3,10 @@ layout: home
 
 hero:
   name: Liapoldus
-  text: Платформа публикации публичных сайтов
+  text: Масштабируемый Gateway и web server
   tagline: >-
-    Публикация версий сайтов из registry, TLS/HTTP/2,
-    маршрутизация и изолированные плагины без собственной БД gateway.
+    HTTP(S), TCP, UDP, static delivery, маршрутизация,
+    сетевой control plane и изолированные plugins.
   actions:
     - theme: brand
       text: Начать с первого сайта
@@ -24,14 +24,14 @@ hero:
 features:
   - title: Gateway
     details: >-
-      Начните с базового сайта, затем переходите к конфигурации, TLS/SNI,
-      reload, management API, CLI и развёртыванию.
+      HTTP(S), TCP и UDP: static sources, reverse proxy, TLS, policies,
+      snapshots и безопасное управление.
     link: /gateway/
     linkText: Разделы документации
   - title: Плагины
     details: >-
-      forms-db, captcha — внешние процессы, которые gateway запускает и вызывает
-      по liapoldus plugin protocol.
+      Reference plugins и contract для любых прикладных протоколов поверх
+      TCP/UDP.
     link: /plugins/
     linkText: Существующие плагины
   - title: Архитектура и UX

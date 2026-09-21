@@ -127,9 +127,8 @@ backpressure, payload limits и typed errors соответствуют обще
 contract.
 
 TCP `STREAM_OPEN` payload: `{"kind":"tcp","source":"ip:port",
-"destination":"ip:port","sni":"…","alpn":"…"}`. UDP payload:
-`{"kind":"udp","source":"ip:port","destination":"ip:port","data":"base64"}`;
-каждый `STREAM_DATA` содержит один datagram. Payload не содержит HTTP headers,
+"destination":"ip:port","sni":"…","alpn":"…"}`. UDP `STREAM_OPEN`
+не содержит data; каждый `STREAM_DATA` несёт один raw datagram bytes. Payload не содержит HTTP headers,
 cookies, identity или secret, если route не выдал их явным context/grant.
 
 ## Cancellation и deadlines

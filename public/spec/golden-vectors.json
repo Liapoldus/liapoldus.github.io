@@ -38,6 +38,18 @@
     {"id":"tls-renewal-degraded","input":{"certificateExpired":true,"renewal":"failed"},"expected":{"status":503,"code":"tls_degraded","auditAction":"tls_renewal_failed"}},
     {"id":"http3-bind","input":{"protocols":["http/1.1","h2","h3"],"address":":443"},"expected":{"binds":["tcp://:443","udp://:443"],"tlsRequired":true}},
     {"id":"telemetry-export-failure","input":{"otlp":"unavailable"},"expected":{"trafficStatus":200,"exporterFailureLogged":true}},
-    {"id":"audit-retention","input":{"auditAgeDays":91},"expected":{"removed":true,"retentionDays":90}}
+    {"id":"audit-retention","input":{"auditAgeDays":91},"expected":{"removed":true,"retentionDays":90}},
+    {"id":"release-source-current","input":{"site":{"source":{"type":"release","slug":"blog"}},"current":"r2"},"expected":{"manifest":"sites/blog/releases/r2/site.yaml","publish":true,"rollback":true}},
+    {"id":"directory-source-read","input":{"site":{"source":{"type":"directory","root":"/srv/blog"}},"request":"/index.html"},"expected":{"file":"/srv/blog/index.html","manifest":"/srv/blog/site.yaml","watcher":false}},
+    {"id":"directory-source-publish","input":{"command":"gateway site publish docs ./public","site":{"source":{"type":"directory","root":"/srv/docs"}}},"expected":{"exit":4,"code":"site_source_immutable","stateChanged":false}},
+    {"id":"directory-manifest-reload","input":{"directorySiteYamlChanged":true,"reload":true},"expected":{"manifestReparsed":true,"activeSnapshotChanged":true}},
+    {"id":"management-remote-valid","input":{"management":{"listener":{"address":"0.0.0.0:9443","tlsProfile":"admin"}},"tlsProfile":{"clientAuth":{"mode":"require"}},"clientCert":true,"bearer":true},"expected":{"status":200}},
+    {"id":"management-remote-missing-tls","input":{"management":{"listener":{"address":"0.0.0.0:9443"}}},"expected":{"status":422,"code":"management_tls_required"}},
+    {"id":"management-remote-missing-mtls","input":{"management":{"listener":{"address":"0.0.0.0:9443","tlsProfile":"public"}},"tlsProfile":{}},"expected":{"status":422,"code":"management_mtls_required"}},
+    {"id":"management-remote-client-denial","input":{"remote":true,"clientCert":false,"bearer":true},"expected":{"status":401,"code":"mtls_required"}},
+    {"id":"cli-config-discovery","input":{"env":{"LIAPOLDUS_CONFIG_DIR":"/etc/lpgw"},"files":["/etc/lpgw/gateway.yaml"]},"expected":{"configPath":"/etc/lpgw/gateway.yaml","source":"LIAPOLDUS_CONFIG_DIR"}},
+    {"id":"cli-config-missing","input":{"files":[]},"expected":{"exit":2,"code":"config_not_found"}},
+    {"id":"tcp-plugin-protocol","input":{"listener":"tcp","plugin":"peer.session","payloadHex":"0102"},"expected":{"transport":"tcp","payloadEncoding":"raw-bytes"}},
+    {"id":"udp-upstream-protocol","input":{"listener":"udp","upstream":"dns-relay","datagramHex":"ab"},"expected":{"transport":"udp","datagramPreserved":true}}
   ]
 }

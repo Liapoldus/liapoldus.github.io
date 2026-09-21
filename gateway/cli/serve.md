@@ -1,6 +1,6 @@
 # `serve`
 
-Запускает data plane и, если не задан `--no-management`, local Gateway API.
+Запускает data plane и, если не задан `--no-management`, Gateway API listener.
 
 ```text
 gateway serve [--config PATH] [--config-dir DIR] [--no-management]

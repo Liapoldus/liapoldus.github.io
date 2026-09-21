@@ -2,11 +2,16 @@ openapi: 3.1.1
 info:
   title: Liapoldus Management API
   version: 1.0.0
-  description: Нормативный local control-plane API Liapoldus.
+  description: Нормативный control-plane API Liapoldus. На loopback требует Bearer service key; вне loopback требует TLS, mTLS и Bearer service key.
 servers:
   - url: http://127.0.0.1:9090
+  - url: https://management.example.com:9443
 security:
   - bearerAuth: []
+x-liapoldus-remote-security:
+  required:
+    - mtls
+    - bearerAuth
 paths:
   /healthz:
     get:
@@ -109,6 +114,7 @@ paths:
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: lpgw service key }
+    mtls: { type: mutualTLS, description: Required together with bearerAuth on non-loopback management listeners. }
   parameters:
     Slug: { name: slug, in: path, required: true, schema: { type: string, pattern: '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$' } }
     Id: { name: id, in: path, required: true, schema: { type: string } }
@@ -125,7 +131,7 @@ components:
     Validation: { allOf: [{ $ref: '#/components/schemas/Revision' }, { type: object, required: [valid], properties: { valid: { const: true } } }] }
     Config: { allOf: [{ $ref: '#/components/schemas/Revision' }, { type: object, required: [yaml], properties: { yaml: { type: string } } }] }
     Status: { type: object, required: [revision, digest, listeners, upstreams, plugins, requestId], properties: { revision: { type: string }, digest: { type: string }, listeners: { type: array, items: { $ref: '#/components/schemas/Listener' } }, upstreams: { type: array, items: { $ref: '#/components/schemas/Upstream' } }, plugins: { type: array, items: { $ref: '#/components/schemas/Plugin' } }, requestId: { $ref: '#/components/schemas/RequestId' } } }
-    Site: { type: object, required: [slug, currentRevision, state], properties: { slug: { type: string }, currentRevision: { type: string }, previousRevision: { type: [string, 'null'] }, state: { enum: [ready, invalid, publishing] } } }
+    Site: { type: object, required: [name, source, state], properties: { name: { type: string }, source: { enum: [release, directory] }, slug: { type: [string, 'null'] }, root: { type: [string, 'null'] }, currentRevision: { type: [string, 'null'] }, previousRevision: { type: [string, 'null'] }, state: { enum: [ready, invalid, publishing] } } }
     SiteList: { type: object, required: [items, nextCursor, requestId], properties: { items: { type: array, items: { $ref: '#/components/schemas/Site' } }, nextCursor: { type: [string, 'null'] }, requestId: { $ref: '#/components/schemas/RequestId' } } }
     Publication: { type: object, required: [site, revision, previousRevision, requestId], properties: { site: { type: string }, revision: { type: string }, previousRevision: { type: [string, 'null'] }, requestId: { $ref: '#/components/schemas/RequestId' } } }
     PublishRequest: { type: object, additionalProperties: false, required: [source, idempotencyKey], properties: { source: { type: string }, idempotencyKey: { type: string, minLength: 16, maxLength: 128, pattern: '^[!-~]+$' } } }

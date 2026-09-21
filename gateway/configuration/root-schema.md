@@ -21,7 +21,7 @@ Include раскрываются до validation. Цикл, duplicate resource n
 | Поле | Объявляет | Использует |
 | --- | --- | --- |
 | `listeners` | HTTP/TCP/UDP bind и rules | OS socket |
-| `sites` | registry site path | `then.site` |
+| `sites` | release или directory static source | `then.site` |
 | `upstreams` | proxy target group | `then.proxy` |
 | `plugins` | supervised process/capabilities | `then.plugin` |
 
@@ -45,7 +45,7 @@ Include раскрываются до validation. Цикл, duplicate resource n
 
 | Поле | Назначение |
 | --- | --- |
-| `management` | local API address и service accounts |
+| `management` | control-plane listener и service accounts |
 | `logging` | JSON log sinks |
 | `metrics` | Prometheus / OTLP metrics |
 | `tracing` | OTLP traces и sampling |

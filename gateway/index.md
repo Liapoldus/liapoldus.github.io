@@ -5,13 +5,13 @@
 можно использовать как основу для настройки и демонстрации системы.
 :::
 
-**Liapoldus Gateway** — полнофункциональный multi-tenant web server и reverse
-proxy. Он обслуживает HTTP(S), TCP и UDP, раздаёт опубликованные сайты из
-registry, применяет политики безопасности, балансирует upstream и вызывает
-явно назначенные **плагины** как отдельные процессы.
+**Liapoldus Gateway** — web server, reverse proxy и transport runtime. Он
+обслуживает HTTP(S), TCP и UDP, раздаёт static sources, применяет политики,
+балансирует upstream и вызывает явно назначенные plugins. Новый прикладной
+протокол реализуется поверх TCP/UDP без изменения ядра.
 
-Gateway работает без собственной базы данных: конфиги и сайты — файлы на
-диске, управление — CLI и management HTTP API.
+Gateway работает без собственной базы данных: конфиги и static sources — файлы
+на диске, управление — CLI и защищённый Management API.
 
 ## С чего начать
 
@@ -19,11 +19,11 @@ Gateway работает без собственной базы данных: к
 
 | Нужно | Начните здесь |
 | --- | --- |
-| Опубликовать первый статический сайт | [Быстрый старт конфигурации](/gateway/configuration/) |
-| Настроить домен, TLS или proxy | [Практические примеры](/gateway/examples/) |
+| Описать listeners, static source или policies | [Конфигурация](/gateway/configuration/) |
+| Настроить proxy или security | [Практические примеры](/gateway/examples/) |
 | Автоматизировать Gateway | [Gateway API](/gateway/api/) |
-| Развернуть и эксплуатировать runtime | [Запуск](/gateway/deploy/) |
-| Понять контракт и ограничения системы | [Архитектура](/gateway/architecture/) |
+| Развернуть и наблюдать runtime | [Запуск](/gateway/deploy/) |
+| Реализовать совместимый Gateway | [Архитектура](/gateway/architecture/) |
 
 ## Разделы документации
 
@@ -34,7 +34,7 @@ Gateway работает без собственной базы данных: к
   </a>
   <a class="card" href="/gateway/configuration/">
     <h3>Configuration</h3>
-    <p>gateway.yaml, server-блоки, TLS/SNI, reload, management API, безопасность.</p>
+    <p>gateway.yaml, source types, listeners, TLS/SNI, reload и безопасность.</p>
   </a>
   <a class="card" href="/gateway/cli/">
     <h3>CLI</h3>
