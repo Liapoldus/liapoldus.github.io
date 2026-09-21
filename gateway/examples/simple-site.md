@@ -28,7 +28,7 @@ listeners:
     address: ':80'
     routes:
       - when: { host: blog.example.com }
-        then: { site: blog, cache: { static: public, maxAge: 1h }, compression: [br, gzip] }
+        then: { site: blog, cache: { visibility: public, maxAge: 1h }, compression: [br, gzip] }
 ```
 
 Публикация создаёт immutable release, проверяет `site.yaml` и только затем

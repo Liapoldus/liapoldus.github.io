@@ -6,15 +6,7 @@
 
 ## Системный контекст
 
-```mermaid
-flowchart LR
-    O[Оператор / CI] -->|артефакты, конфиг, CLI/API| G
-    V[Посетитель сайта] -->|HTTP/HTTPS| G[Gateway]
-    G -->|файлы| R[(Registry-volume)]
-    G -->|HTTP| U[Upstream-сервисы]
-    G -->|локальный protocol| P[Plugin instances]
-    M[Система мониторинга] <-->|метрики и логи| G
-```
+![Системный контекст Gateway](/diagrams/system-context.svg)
 
 Gateway не владеет контентом и не заменяет CI/CD: он принимает уже собранные
 артефакты. Gateway не является CMS, identity provider или очередью задач.

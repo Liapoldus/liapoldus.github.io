@@ -44,12 +44,19 @@ cache:
 
 1. Gateway копирует source во временный каталог в том же filesystem.
 2. Валидирует `site.yaml`, путь `index` и все release-файлы.
-3. Переименовывает каталог в `releases/<revision>`, заменяет `previous` на
-   прежний `current`, затем атомарно заменяет `current` на новый release.
-4. Пишет audit record и возвращает active/previous revision.
+3. Переименовывает каталог в `releases/<revision>`, атомарно заменяет
+   `previous` на прежний `current`, затем `current` на новый release.
+4. После успешного switch удаляет release, на который указывал прежний
+   `previous`: Gateway хранит ровно `current` и `previous`.
+5. Пишет audit record с prune и возвращает active/previous revision.
 
 При любой ошибке до последнего шага `current` и `previous` не меняются.
 `gateway rollback <slug>` и `POST /api/sites/{slug}/rollback` атомарно меняют
 ссылки местами; удаление release не входит в эти операции.
+
+`.publish.lock` — JSON `{pid,startedAt,nonce}`. Его lease равен 15 min.
+Gateway снимает lock только если указанный PID отсутствует или lease истёк, и
+пишет `publish_lock_recovered` в audit; действующий lock даёт `409
+publish_in_progress`. Ручное удаление lock не является штатной операцией.
 
 Главный route может дополнить policy, но не меняет файлы release.

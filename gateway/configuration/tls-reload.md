@@ -4,14 +4,7 @@ Gateway применяет конфигурацию как immutable runtime sna
 меняет работающий snapshot, пока дерево include, секреты, ссылки на ресурсы,
 regex, сертификаты и listeners не прошли полную проверку.
 
-```mermaid
-flowchart LR
-  A[YAML + include] --> B[Compile и validation]
-  B --> C[Resolve secrets и ресурсы]
-  C --> D[Подготовить listeners / TLS / pools]
-  D --> E[Атомарный swap snapshot]
-  E --> F[Graceful drain старых соединений]
-```
+![Жизненный цикл reload](/diagrams/reload-lifecycle.svg)
 
 ## Изменение конфигурации
 

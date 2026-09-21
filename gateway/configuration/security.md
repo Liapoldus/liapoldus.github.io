@@ -34,6 +34,19 @@ tlsProfiles:
 может завершать TLS (`terminate`) или передавать зашифрованный поток по SNI
 (`passthrough`). mTLS доступен только при termination.
 
+Protected storage находится в `${registry.path}/tls/<storage>/`: account keys,
+private keys и certificate chain имеют режим `0600`, владелец Gateway; plugins
+видят только opaque handle. HTTP/3 открывает UDP и TCP на одном address: QUIC
+использует тот же SNI/certificate profile, имеет лимиты listener `connections`,
+`bytesPerSecond` и idle timeout. Неуспешный renewal до истечения действующего
+certificate не прерывает трафик; после истечения профиль `degraded`, возвращает
+`503 tls_degraded`, пишет alert/audit и metric expiry.
+
+Допустимы только `strictTransportSecurity`, `contentSecurityPolicy`,
+`xContentTypeOptions`, `referrerPolicy`, `permissionsPolicy`, `frameOptions`.
+Значения переводятся соответственно в HSTS, CSP, X-Content-Type-Options,
+Referrer-Policy, Permissions-Policy и X-Frame-Options response headers.
+
 ## Публичная аутентификация
 
 ```yaml
@@ -59,10 +72,21 @@ SameSite=Lax` cookie, принимает callback только на `redirectUri
 state/nonce и создаёт encrypted session cookie. Logout удаляет cookie и делает
 issuer end-session redirect, если endpoint объявлен. Gateway не хранит пароли.
 
+`_lpgw_oidc_state` — AES-256-GCM signed/encrypted cookie, TTL 10 min;
+`_lpgw_session` — AES-256-GCM cookie, TTL 8 h. Оба `HttpOnly`, `Secure`,
+`SameSite=Lax`, `Path=/`; key берётся из named secret. Discovery разрешает
+только HTTPS issuer и его `end_session_endpoint`; callback path обязан точно
+совпадать с `redirectUri`.
+
 JWT берётся только из `Authorization: Bearer`; проверяются signature, `iss`,
 `aud`, expiry и `requiredClaims`. mTLS проверяет client certificate после TLS
 termination. Identity не проксируется неявно: route должен объявить allow-list
 headers для upstream или `plugin.context.identity` для plugin.
+
+JWT допускает только `EdDSA`, `ES256` и `RS256`; JWKS обновляется каждые 15 min
+и однократно при unknown `kid`. `iss` и `aud` обязательны. mTLS `require`
+отклоняет отсутствие/invalid certificate, `optional` разрешает отсутствие, но
+проверяет представленный certificate; subject mapping использует RE2.
 
 ## WAF и ограничения
 
@@ -82,6 +106,19 @@ WAF condition использует тот же язык `when`, что и route.
 `allow`, `deny`, `challenge` и `limit`. Geo/ASN проверка требует явно
 объявленного data provider; при его недоступности rule не становится silently
 allow — применяется заданный `onError`.
+
+```yaml
+dataProviders:
+  geo:
+    type: mmdb
+    path: /var/lib/liapoldus/GeoLite2-City.mmdb
+    onError: deny
+```
+
+`dataProviders` поддерживает только локальный MaxMind MMDB. Gateway читает
+новый файл во временный handle и атомарно заменяет active reader; failed reload
+сохраняет предыдущий reader. Если reader отсутствует/lookup failed, применяется
+`onError: allow|deny` (default `deny`).
 
 ## Captcha providers
 

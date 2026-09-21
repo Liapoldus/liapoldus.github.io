@@ -59,8 +59,9 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/gateway/con
   карточки перечислением в тексте.
 - Варианты конфигов — вкладки `:::tabs` / `== Имя` / `:::`
   (`vitepress-plugin-tabs`).
-- Схемы — mermaid (`theme: neutral`); chunk-warning >500kB из-за mermaid ожидаем,
-  не «чинить».
+- Схемы хранятся исходниками `diagrams/*.mmd` и VitePress автоматически
+  генерирует `public/diagrams/*.svg` перед dev/build. Runtime Mermaid и его
+  VitePress-плагин не используются: это исключает тяжёлый клиентский chunk.
 - `BASE_PATH: /` задаётся в workflow env; в конфиге default `/`. Не менять
   без отдельного решения.
 - Sidebar/nav редактируются только в `.vitepress/config.mts`. Новая страница
@@ -69,7 +70,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/gateway/con
 ## Структура репозитория
 
 ```text
-.vitepress/config.mts        # nav, sidebar, base, search, mermaid
+.vitepress/config.mts        # nav, sidebar, base, search
+diagrams/                     # Mermaid-исходники статических SVG-схем
 .vitepress/theme/            # кастомные компоненты (GatewayNav), custom.css
 .vitepress/shim/             # fastdom-заглушки для сборки (не трогать)
 public/                      # статика (favicon)

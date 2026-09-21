@@ -1,0 +1,9 @@
+flowchart LR
+    A[Описать изменение] --> B[Validate]
+    B -->|ошибка| C[Исправить источник]
+    C --> B
+    B -->|успех| D[Apply или publish]
+    D --> E[Проверить health и домен]
+    E -->|успех| F[Зафиксировать active revision]
+    E -->|сбой| G[Rollback]
+    G --> E

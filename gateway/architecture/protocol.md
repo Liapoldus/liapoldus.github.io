@@ -21,25 +21,7 @@ UDP (UDP не гарантирует доставку, порядок, цело�
 - **cancellation, deadlines, backpressure, graceful shutdown** — встроены в
   сессию.
 
-```mermaid
-flowchart LR
-    subgraph frame["Кадр на TCP (length-prefixed)"]
-        LEN["4 bytes (big-endian)<br/>размер protobuf-сообщения"]
-        MSG["protobuf Frame{...}"]
-    end
-    subgraph msg["Frame (plugin.proto)"]
-        K["kind: FRAME_KIND_CALL|CALL_RESULT|STREAM_OPEN|STREAM_DATA|STREAM_CLOSE|CANCEL|EVENT|ERROR"]
-        RID["request_id: uint64"]
-        SID["stream_id: uint64"]
-        PAY["payload: bytes (protobuf Envelope)"]
-    end
-    LEN --> MSG
-    MSG --- V
-    MSG --- K
-    MSG --- RID
-    MSG --- SID
-    MSG --- PAY
-```
+![Кадр plugin protocol](/diagrams/plugin-frame.svg)
 
 Флоу чтения сессии разделяет кадры по `StreamID`/`RequestID`:
 
@@ -137,26 +119,29 @@ Protocol logs: плагин шлёт `EVENT`-кадры с payload `{"level","me
 "fields"}` (уровни `debug|info|warn|error`); gateway видит их отдельными
 сообщениями и не путает с ответами на вызовы.
 
+## Startup handshake и grants
+
+Gateway выбирает свободный loopback port, запускает plugin c `--port`, затем в
+рамках `startTimeout: 10s` строго вызывает `manifest`, `health`,
+`config.schema`, `config.apply`. Только после `{"applied":true}` instance
+становится ready. `manifest` обязан вернуть
+`{"name":"…","capabilities":["…"]}`; `health` — `{"ready":true}`;
+`config.schema` — `{"fields":[…]}`; `shutdown` — `{"closed":true}`.
+Name/capabilities, не совпадающие с `gateway.yaml`, invalid JSON, timeout или
+любая error response дают `protocol_violation`/`plugin_unavailable` и instance
+не получает трафик.
+
+Grant передаётся только control-plane call как
+`{"id":"grant_…","kind":"storage|secret","purpose":"…","expiresAt":"RFC3339","handle":"opaque"}`.
+Gateway создаёт его для указанного instance/capability, отзываёт сразу после
+call независимо от результата и не передаёт filesystem path или raw secret в
+metadata. Memory limit измеряется RSS процесса каждые 1 s; превышение 256 MiB
+(или `limits.memory`) отменяет calls, завершает process и даёт
+`resource_exhausted`.
+
 ## Unary call
 
-```mermaid
-sequenceDiagram
-    participant G as Gateway (session)
-    participant P as Plugin (runtime)
-
-    G->>G: next request id
-    G->>P: CALL (envelope: method, capability, payload)
-    activate P
-    P->>P: dispatch по методу
-    P-->>G: CALL_RESULT (envelope: payload | error)
-    deactivate P
-    alt error поле
-        G-->>G: вернуть typed error
-    else payload
-        G-->>G: вернуть payload
-    end
-    Note over G: на таймаут ctx: CANCEL + Err deadline
-```
+![Unary call plugin protocol](/diagrams/plugin-unary-call.svg)
 
 Лимиты сессии: `MaxPayloadBytes` (ошибка `payload_too_large`),
 `CallTimeoutMillis` (авт. deadline через context), `MaxFrameBytes`
@@ -167,22 +152,7 @@ sequenceDiagram
 Одно соединение мультиплексирует многоstream параллельно. Stream-ид
 присваивается gateway; все фреймы stream несут `StreamID`.
 
-```mermaid
-sequenceDiagram
-    participant G as Gateway
-    participant P as Plugin
-
-    G->>P: STREAM_OPEN (method, capability, payload)
-    alt accept
-        P-->>G: STREAM_DATA (ответ)
-        G->>P: STREAM_DATA (фрагмент)
-        P-->>G: STREAM_DATA
-        G->>P: STREAM_CLOSE
-        Note over G,P: peer завершает поток
-    else reject
-        P-->>G: ERROR (из envelope)
-    end
-```
+![Stream plugin protocol](/diagrams/plugin-stream.svg)
 
 - `STREAM_OPEN` → сервер сам решает: ответить данными или `ERROR` (rejected).
 - `STREAM_DATA` — фрагмент потока (client→server и server→client одновременно:
@@ -204,6 +174,12 @@ TCP session использует bidirectional stream с lifecycle connect → d
 UDP flow использует сообщения datagram → result до flow idle timeout. Отмена,
 backpressure, payload limits и typed errors соответствуют общему protocol
 contract.
+
+TCP `STREAM_OPEN` payload: `{"kind":"tcp","source":"ip:port",
+"destination":"ip:port","sni":"…","alpn":"…"}`. UDP payload:
+`{"kind":"udp","source":"ip:port","destination":"ip:port","data":"base64"}`;
+каждый `STREAM_DATA` содержит один datagram. Payload не содержит HTTP headers,
+cookies, identity или secret, если route не выдал их явным context/grant.
 
 ## Cancellation и deadlines
 

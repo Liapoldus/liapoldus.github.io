@@ -13,15 +13,7 @@ internal/infrastructure/     network, DNS, filesystem, ACME, IPC, OTLP adapters
 internal/presentation/       YAML DTO, CLI, Management API, HTTP/L4 adapters
 ```
 
-```mermaid
-flowchart LR
-  P[presentation] --> A[application]
-  A --> D[domain]
-  I[infrastructure] --> D
-  C[cmd] --> P
-  C --> A
-  C --> I
-```
+![Направление зависимостей](/diagrams/code-layers.svg)
 
 `domain` не импортирует transport, YAML, SQL, filesystem, DNS, TLS/ACME,
 protobuf или observability SDK. `application` зависит только от domain ports.

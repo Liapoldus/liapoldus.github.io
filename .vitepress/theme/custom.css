@@ -198,14 +198,11 @@ html.dark .VPHome {
   color: var(--vp-c-text-muted);
 }
 
-/* ===== Mermaid ===== */
+/* ===== Статические схемы ===== */
 
-.mermaid {
+.vp-doc img[src^='/diagrams/'] {
   display: flex;
-  justify-content: center;
   margin: 24px 0;
-}
-.mermaid svg {
   max-width: 100%;
   height: auto;
   border-radius: var(--vp-border-radius);

@@ -15,6 +15,11 @@ Audit record содержит `timestamp`, `actor`, `action`, `resource`, `resul
 содержит `site`, `revision` и `previousRevision`; неуспешная попытка не имеет
 `digestAfter`.
 
+Audit записывается JSONL в `${registry.path}/audit/YYYY-MM-DD.jsonl`, ротируется
+ежедневно и хранится 90 дней. `timestamp` — RFC 3339 UTC с milliseconds,
+`durationMs` — integer milliseconds. Operation records хранятся локально 24 h;
+traces принадлежат внешнему OTLP backend и локально не retained.
+
 ## Prometheus и traces
 
 | Metric | Type | Labels |

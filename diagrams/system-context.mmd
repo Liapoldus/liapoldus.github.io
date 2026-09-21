@@ -1,0 +1,7 @@
+flowchart LR
+    O[Оператор / CI] -->|артефакты, конфиг, CLI/API| G
+    V[Посетитель сайта] -->|HTTP/HTTPS| G[Gateway]
+    G -->|файлы| R[(Registry-volume)]
+    G -->|HTTP| U[Upstream-сервисы]
+    G -->|локальный protocol| P[Plugin instances]
+    M[Система мониторинга] <-->|метрики и логи| G

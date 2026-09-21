@@ -72,6 +72,7 @@ curl http://localhost:9090/healthz                           # -> {"status":"ok"
 | Раздел | Содержание |
 | --- | --- |
 | [Корневая схема](root-schema) | полный `gateway.yaml`, справочник корневых ключей |
+| [Полная схема gateway.yaml](gateway-schema) | нормативные поля, типы, defaults, ограничения и validation codes |
 | [Маршруты и условия](server-blocks) | HTTP-listener, `when/then/else`, regex, действия и политики |
 | [TCP, UDP и P2P](transports) | L4-listener, relay, flows, TLS passthrough и plugin sessions |
 | [Upstream и балансировка](upstreams) | targets, DNS, health checks, балансировка и retry |
@@ -81,4 +82,6 @@ curl http://localhost:9090/healthz                           # -> {"status":"ok"
 | [Reload и конфликты](tls-reload) | snapshots, validation, digest и atomic apply |
 | [Management API](management-api) | HTTP-интерфейс управления |
 | [Наблюдаемость](observability) | JSON logs, audit, Prometheus и OTLP-контракты |
+| [Каталог ошибок](errors) | code, status, problem type, русский detail и CLI exit code |
+| [Acceptance matrix](acceptance) | обязательные сквозные сценарии реализации |
 | [Секреты и переменные](secrets) | include-дерево, `env:`, `file:`, подстановка и redaction |

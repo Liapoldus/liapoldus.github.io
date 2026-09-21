@@ -6,16 +6,7 @@ Gateway следует RFC; ниже перечислены правила Liapo
 
 ## Порядок обработки
 
-```mermaid
-flowchart LR
-  A[Request] --> B[Listener / TLS]
-  B --> C[Первый matching route]
-  C --> D[auth → WAF → rate limit]
-  D --> E[rewrite]
-  E --> F[site | proxy | plugin | redirect | deny]
-  F --> G[response headers → cache → compression]
-  G --> H[Response + telemetry]
-```
+![Порядок обработки HTTP-запроса](/diagrams/http-request-lifecycle.svg)
 
 Если route не совпал, Gateway отвечает `404 route_not_found`. Если policy
 отказала, terminal target не вызывается. Ошибка любого этапа использует

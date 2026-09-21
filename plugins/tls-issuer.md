@@ -49,25 +49,16 @@ ACME challenge path. Для DNS-01 Gateway выдаёт только време�
 доменов и purpose `acme-dns01`. Секрет не появляется в plugin config, логах,
 diagnostics или произвольном IPC metadata.
 
+Gateway создаёт temporary route `/.well-known/acme-challenge/<token>` только на
+выбранном listener, выше обычных routes, и удаляет его после terminal result.
+DNS-01 grant имеет purpose `acme-dns01`, domains из issuer и TTL 10 min;
+Gateway отзывает grant после каждой issue/renew/revoke операции. Storage handle
+указывает на `${registry.path}/tls/<storage>` и никогда не раскрывает path
+plugin-процессу.
+
 ## Контракт control-plane
 
-```mermaid
-sequenceDiagram
-  participant G as Gateway
-  participant P as tls-issuer
-  participant A as ACME CA
-  participant D as DNS provider
-  G->>P: issue/renew order + scoped grant
-  P->>A: создать order
-  alt HTTP-01
-    G->>G: обслужить временный challenge route
-  else DNS-01
-    P->>D: создать и удалить TXT record
-  end
-  P->>A: подтвердить challenge и получить certificate material
-  P-->>G: certificate chain + public metadata
-  G->>G: проверить SAN/key policy, записать storage, создать TLS snapshot
-```
+![Выпуск сертификата через tls-issuer](/diagrams/acme-issuance.svg)
 
 Плагин возвращает материал сертификата только по защищённому IPC. Gateway
 проверяет, что SAN входят в domains grant, ключ соответствует certificate,
@@ -84,3 +75,8 @@ Renewal запускается до `renewal.before`; неуспешная по�
 bounded backoff до `renewal.retry.max`. Пока существующий сертификат действителен,
 Gateway продолжает использовать его. Если срок истекает без успешного renewal,
 Gateway отправляет alert и помечает TLS profile как degraded.
+
+Issue/renew/revoke возвращают operation ID; статус читается через
+`GET /api/operations/{id}`. Успех и failure записывают audit с issuer/domain/
+serial, а `liapoldus_tls_certificate_expiry_seconds` отражает срок действующего
+certificate.

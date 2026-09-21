@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant G as Gateway
+    participant P as Plugin
+    G->>P: STREAM_OPEN method, capability, payload
+    alt accept
+        P-->>G: STREAM_DATA response
+        G->>P: STREAM_DATA fragment
+        P-->>G: STREAM_DATA
+        G->>P: STREAM_CLOSE
+    else reject
+        P-->>G: ERROR envelope
+    end

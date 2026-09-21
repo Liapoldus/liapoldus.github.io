@@ -1,0 +1,18 @@
+sequenceDiagram
+  participant O as Operator / API
+  participant C as Config Compiler
+  participant S as Snapshot Store
+  participant R as Runtime
+  O->>C: YAML tree + expected digest
+  C->>C: include, secrets, validation, regex compile
+  C->>S: compiled resource graph
+  S->>R: prepare listeners, TLS, pools, plugins
+  alt подготовка успешна
+    R-->>S: ready
+    S->>S: atomic active snapshot swap
+    S->>R: drain old snapshot
+    S-->>O: revision + digest + audit event
+  else подготовка неуспешна
+    R-->>S: typed error
+    S-->>O: error, active snapshot unchanged
+  end

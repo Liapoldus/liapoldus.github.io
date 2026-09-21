@@ -1,0 +1,18 @@
+flowchart LR
+  C[Клиенты] --> LM[Listener manager]
+  LM --> PD[Protocol dispatcher]
+  PD --> HE[HTTP engine]
+  PD --> LE[L4 engine]
+  HE --> PE[Policy engine]
+  LE --> PE
+  PE --> SR[Site registry]
+  PE --> UP[Upstream pool]
+  PE --> PS[Plugin supervisor]
+  CP[Control plane] --> CC[Config compiler]
+  CC --> SS[Snapshot store]
+  SS -->|active snapshot| LM
+  SS --> TM[TLS manager]
+  TM --> LM
+  O[Observability] <-. события .-> LM
+  O <-. события .-> HE
+  O <-. события .-> LE

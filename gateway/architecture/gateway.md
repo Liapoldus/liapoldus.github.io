@@ -4,27 +4,7 @@ Gateway — единый процесс data plane и local control plane. Он 
 прикладные данные сайтов, пользователей или пиров: источником состояния служат
 YAML, registry и защищённое certificate storage.
 
-```mermaid
-flowchart LR
-  C[Клиенты] --> LM[Listener manager]
-  LM --> PD[Protocol dispatcher]
-  PD --> HE[HTTP engine]
-  PD --> LE[L4 engine]
-  HE --> PE[Policy engine]
-  LE --> PE
-  PE --> SR[Site registry]
-  PE --> UP[Upstream pool]
-  PE --> PS[Plugin supervisor]
-
-  CP[Control plane] --> CC[Config compiler]
-  CC --> SS[Snapshot store]
-  SS -->|active snapshot| LM
-  SS --> TM[TLS manager]
-  TM --> LM
-  O[Observability] <-. события .-> LM
-  O <-. события .-> HE
-  O <-. события .-> LE
-```
+![Компоненты runtime Gateway](/diagrams/runtime-components.svg)
 
 ## Границы компонентов
 
@@ -46,26 +26,7 @@ flowchart LR
 
 ## Жизненный цикл конфигурации
 
-```mermaid
-sequenceDiagram
-  participant O as Operator / API
-  participant C as Config Compiler
-  participant S as Snapshot Store
-  participant R as Runtime
-  O->>C: YAML tree + expected digest
-  C->>C: include, secrets, validation, regex compile
-  C->>S: compiled resource graph
-  S->>R: prepare listeners, TLS, pools, plugins
-  alt подготовка успешна
-    R-->>S: ready
-    S->>S: atomic active snapshot swap
-    S->>R: drain old snapshot
-    S-->>O: revision + digest + audit event
-  else подготовка неуспешна
-    R-->>S: typed error
-    S-->>O: error; active snapshot unchanged
-  end
-```
+![Жизненный цикл snapshot](/diagrams/config-snapshot-lifecycle.svg)
 
 ## Пути трафика
 

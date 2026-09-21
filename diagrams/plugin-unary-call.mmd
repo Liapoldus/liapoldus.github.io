@@ -1,0 +1,10 @@
+sequenceDiagram
+    participant G as Gateway session
+    participant P as Plugin runtime
+    G->>G: next request id
+    G->>P: CALL envelope
+    activate P
+    P->>P: dispatch по методу
+    P-->>G: CALL_RESULT payload or error
+    deactivate P
+    Note over G: timeout: CANCEL + deadline error

@@ -12,28 +12,7 @@ Gateway владеет публичным трафиком, конфигурац
 
 ## Общая схема
 
-```mermaid
-flowchart LR
-    O[Оператор / CI] -->|YAML, CLI, API| CP
-    V[Посетитель] -->|HTTP(S), TCP, UDP| DP
-
-    subgraph G[Gateway]
-        CP[Local control plane<br/>validate · apply · audit]
-        SS[Active immutable snapshot]
-        DP[Data plane<br/>listen · route · policy]
-        PS[Plugin supervisor]
-        CP -->|атомарно активирует| SS
-        SS --> DP
-        SS --> PS
-    end
-
-    R[(Файлы: config, registry,<br/>certificates)] --> CP
-    DP -->|static release| R
-    DP -->|явный target| U[Upstream]
-    DP -->|разрешённая capability| PS
-    PS -->|loopback IPC| P[Plugin instance]
-    G -->|logs · metrics · traces| M[Наблюдаемость]
-```
+![Общая архитектура Liapoldus](/diagrams/architecture-overview.svg)
 
 ## Четыре правила реализации
 

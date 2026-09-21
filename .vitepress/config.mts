@@ -1,11 +1,10 @@
 import { defineConfig } from 'vitepress'
-import { withMermaid } from 'vitepress-plugin-mermaid'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
+import { diagramsPlugin } from './plugins/diagrams.mts'
 
 const base = process.env.BASE_PATH || '/'
 
-export default withMermaid(
-  defineConfig({
+export default defineConfig({
     title: 'Liapoldus',
     description:
       'Целевая документация Liapoldus — платформы публикации публичных сайтов.',
@@ -97,6 +96,7 @@ export default withMermaid(
             text: 'Конфигурация',
             items: [
               { text: 'Обзор и быстрый старт', link: '/gateway/configuration/' },
+              { text: 'Полная схема gateway.yaml', link: '/gateway/configuration/gateway-schema' },
               { text: 'Корневая схема', link: '/gateway/configuration/root-schema' },
               { text: 'Маршруты и условия', link: '/gateway/configuration/server-blocks' },
               { text: 'TCP, UDP и P2P', link: '/gateway/configuration/transports' },
@@ -107,6 +107,8 @@ export default withMermaid(
               { text: 'Reload и конфликты', link: '/gateway/configuration/tls-reload' },
               { text: 'Management API', link: '/gateway/configuration/management-api' },
               { text: 'Наблюдаемость', link: '/gateway/configuration/observability' },
+              { text: 'Каталог ошибок', link: '/gateway/configuration/errors' },
+              { text: 'Acceptance matrix', link: '/gateway/configuration/acceptance' },
               { text: 'Секреты и переменные', link: '/gateway/configuration/secrets' }
             ]
           }
@@ -167,15 +169,12 @@ export default withMermaid(
       }
     },
 
-    mermaid: {
-      theme: 'neutral'
-    },
-
     vite: {
       resolve: {
         alias: {}
       },
       plugins: [
+        diagramsPlugin(),
         {
           name: 'fastdom-shim',
           enforce: 'pre',
@@ -195,4 +194,3 @@ export default withMermaid(
       ]
     }
   })
-)

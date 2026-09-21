@@ -20,6 +20,7 @@ found, `6` authorization, `7` unavailable/timeout, `1` internal failure.
 | `config validate [PATH]` | YAML path | validate без записи; exit `3` при ошибке |
 | `reload` | `--config` | validate + atomic apply; exit `4` если нужен restart |
 | `site publish SLUG SOURCE` | complete release dir | создаёт immutable release и переключает `current` |
+| `site config SLUG` / `site routes SLUG` | slug | показывает `site.yaml` / bindings без изменения state |
 | `versions SLUG` | slug | release list, current, previous |
 | `current SLUG` / `previous SLUG` | slug | active/reference revision |
 | `rollback SLUG` | slug | атомарно меняет current и previous |

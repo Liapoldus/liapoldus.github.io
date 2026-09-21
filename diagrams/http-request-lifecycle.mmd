@@ -1,0 +1,8 @@
+flowchart LR
+  A[Request] --> B[Listener / TLS]
+  B --> C[Первый matching route]
+  C --> D[auth → WAF → rate limit]
+  D --> E[rewrite]
+  E --> F[site, proxy, plugin, redirect, deny]
+  F --> G[response headers → cache → compression]
+  G --> H[Response + telemetry]

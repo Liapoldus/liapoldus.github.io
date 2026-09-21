@@ -56,11 +56,31 @@ Management API — local control plane на `management.address`. `/healthz` н�
 | `GET /api/tls` | — | `200 {items,requestId}` | `401` |
 | `POST /api/tls/{issuer}/renew` | `{domains?,idempotencyKey}` | `202 {operationId,requestId}` | `404 issuer_not_found` |
 | `POST /api/tls/{issuer}/revoke` | `{serial,idempotencyKey}` | `202 {operationId,requestId}` | `404 certificate_not_found` |
+| `GET /api/operations/{id}` | — | `200` operation item | `404 operation_not_found` |
 
 `source` — absolute local path, доступный Gateway; body и каталог не принимаются
 по сети. `idempotencyKey` — 16–128 printable ASCII bytes; одинаковый ключ и
 маршрут повторяют сохранённый terminal response 24 часа. Параллельный publish
 одного `slug` возвращает `409`; другие сайты не блокируются.
+
+## Формы ресурсов
+
+Все списки используют opaque `cursor`; `limit` по умолчанию 50, допустим
+1–100. Ответ: `{items:[…],nextCursor:string|null,requestId:string}`.
+
+| Resource | Обязательные поля item |
+| --- | --- |
+| status | `revision`, `digest`, `listeners`, `upstreams`, `plugins`, `requestId` |
+| sites | `slug`, `currentRevision`, `previousRevision`, `state` |
+| listeners | `name`, `type`, `address`, `state`, `activeConnections` |
+| upstreams | `name`, `targets`, `healthyTargets`, `state` |
+| plugins | `id`, `state`, `capabilities`, `limits`, `health` |
+| tls | `profile`, `domain`, `serial`, `notAfter`, `state` |
+| audit | `timestamp`, `actor`, `action`, `resource`, `result`, `requestId`, `digestBefore`, `digestAfter` |
+
+Operation item: `{id,state,createdAt,startedAt?,finishedAt?,result?,problem?,requestId}`;
+`state` — `pending|running|succeeded|failed`. Results хранятся 24 h, после чего
+endpoint возвращает `404 operation_not_found`.
 
 ## Health и диагностика
 
