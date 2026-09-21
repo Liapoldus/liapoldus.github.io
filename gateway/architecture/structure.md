@@ -9,7 +9,8 @@ adapter-кода, IO или transport logic. Application реализует use 
 
 ```text
 cmd/gateway/                 composition root
-internal/domain/             models, policies, ports, domain errors
+internal/domain/models/      models, typed errors и validating constructors
+internal/domain/interfaces/  domain ports
 internal/application/        один flat package: compile/apply/publish/rollback use cases
 internal/infrastructure/     config/ network/ security/ storage/ plugins/ observability/
 internal/presentation/       api/ и cli/
