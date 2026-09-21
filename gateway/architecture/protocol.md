@@ -45,59 +45,10 @@ UDP (UDP не гарантирует доставку, порядок, цело�
 
 ## Нормативные сообщения
 
-Ниже — полный wire-контракт v1; имена и номера полей не меняются. Payload
-бизнес-вызова кодируется JSON согласно capability contract. Один unary payload
-не превышает 10 MiB; frame не превышает 1 MiB, поэтому большие stream payload
-делятся на `STREAM_DATA` фрагменты.
-
-```proto
-syntax = "proto3";
-
-enum FrameKind {
-  FRAME_KIND_UNSPECIFIED = 0;
-  CALL = 1;
-  CALL_RESULT = 2;
-  STREAM_OPEN = 3;
-  STREAM_DATA = 4;
-  STREAM_CLOSE = 5;
-  CANCEL = 6;
-  EVENT = 7;
-  ERROR = 8;
-}
-
-message Frame {
-  FrameKind kind = 1;
-  uint64 request_id = 2;
-  uint64 stream_id = 3;
-  bytes payload = 4;
-}
-
-message Envelope {
-  string         method     = 1;
-  string         capability = 2;
-  map<string,string> metadata = 3;
-  bytes          payload    = 4;
-  Error          error      = 5;
-}
-
-message Error {
-  string code      = 1;
-  string message   = 2;
-  bool   retryable = 3;
-}
-
-message Event {
-  string level = 1;
-  string message = 2;
-  map<string,string> fields = 3;
-}
-```
-
-- `Error` внутри Envelope — typed error: машиночитаемый `code`, человеческий
-  `message`, флаг `retryable` (например `db_error: retryable`, `not_found`,
-  `bad_request`, `validation_failed`, `unknown_method`, `invalid_stream_method`).
-- `Frame.payload` для `CALL`, `CALL_RESULT`, `STREAM_OPEN`, `STREAM_DATA` и
-  `ERROR` — сериализованный `Envelope`; для `EVENT` — `Event`.
+Полный wire-контракт v1, включая field numbers, `Manifest`, `ConfigSchema` и
+`ConfigField`, находится в [plugin.proto](/spec/plugin.proto). Payload
+бизнес-вызова — JSON согласно capability contract; unary payload ограничен
+10 MiB, frame — 1 MiB, большие данные передаются `STREAM_DATA` фрагментами.
 
 ## Методы протокола
 

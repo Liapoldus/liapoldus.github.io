@@ -5,35 +5,9 @@
 `sites/<slug>/releases/<revision>/`. В `site.yaml` запрещены домены, listener,
 upstream и credentials: публичное назначение делает route в `gateway.yaml`.
 
-```yaml
-# data/registry/sites/blog/site.yaml
-slug: blog
-index: index.html
-spa: true
-locales: [ru, en]
-defaultLocale: ru
-redirects:
-  - { from: /start, to: /, status: 308 }
-headers:
-  response:
-    set: { content-language: ru }
-cache:
-  static: { visibility: public, maxAge: 1h }
-```
-
-| Путь | Тип | Required / default | Ограничение и семантика |
-| --- | --- | --- | --- |
-| `slug` | string | required | `[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?`; совпадает с именем site resource и каталога |
-| `index` | relative path | `index.html` | файл внутри release; `/`, `..` и абсолютный путь запрещены |
-| `spa` | boolean | `false` | при `true` только HTML navigation miss возвращает `index` по правилам [HTTP runtime](http-runtime) |
-| `locales` | string[] | `[]` | уникальные BCP 47 language tags |
-| `defaultLocale` | string | absent | обязательно один из `locales`, если `locales` задан |
-| `redirects[]` | object | `[]` | `from` — exact path, `to` — absolute path, `status` — `301`, `302`, `307` или `308` |
-| `headers.response` | header actions | absent | response transforms сайта; route может только дополнить их |
-| `cache.static` | cache policy | absent | `visibility: public|private|no-store`, `maxAge: duration` |
-
-Неизвестный ключ, некорректный тип, несуществующий `index` или путь за
-пределами release дают `site_invalid` с YAML path; release не публикуется.
+Каноническая исполнимая схема — [site.schema.json](/spec/site.schema.json).
+Неизвестный ключ, неверный тип, несуществующий `index` или путь за пределами
+release дают `site_invalid` с YAML path; release не публикуется.
 
 ## Публикация и rollback
 

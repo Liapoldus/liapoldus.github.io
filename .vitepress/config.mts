@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 import { diagramsPlugin } from './plugins/diagrams.mts'
+import { openApiSpecPlugin } from './plugins/openapi-spec.mts'
 
 const base = process.env.BASE_PATH || '/'
 
@@ -11,6 +12,7 @@ export default defineConfig({
     lang: 'ru-RU',
     base,
     cleanUrls: true,
+    ignoreDeadLinks: [/^\/spec\//],
 
     markdown: {
       config(md) {
@@ -175,6 +177,7 @@ export default defineConfig({
       },
       plugins: [
         diagramsPlugin(),
+        openApiSpecPlugin(),
         {
           name: 'fastdom-shim',
           enforce: 'pre',

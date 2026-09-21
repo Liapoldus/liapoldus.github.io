@@ -208,6 +208,50 @@ html.dark .VPHome {
   border-radius: var(--vp-border-radius);
 }
 
+/* ===== OpenAPI reference ===== */
+
+.openapi-reference {
+  margin: 24px 0;
+}
+.openapi-reference header {
+  margin-bottom: 16px;
+}
+.openapi-eyebrow {
+  color: var(--vp-c-text-2);
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+.openapi-operation {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  margin: 10px 0;
+}
+.openapi-operation summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+}
+.openapi-operation__body {
+  border-top: 1px solid var(--vp-c-divider);
+  padding: 0 16px 16px;
+}
+.openapi-method {
+  border-radius: 4px;
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+}
+.openapi-method--get { background: #2e7d32; }
+.openapi-method--post { background: #1565c0; }
+.openapi-method--put { background: #9a6700; }
+.openapi-method--patch { background: #7b1fa2; }
+.openapi-method--delete { background: #c62828; }
+.openapi-response { margin: 12px 0; }
+.openapi-reference pre { max-height: 360px; overflow: auto; }
+
 /* ===== Поиск (local) ===== */
 
 .VPLocalSearch .search-input input {

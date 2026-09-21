@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Liapoldus error catalog",
+  "errors": [
+    {"code":"config_invalid","status":422,"type":"https://liapoldus.dev/problems/config_invalid","detail":"Конфигурация не прошла проверку.","cliExit":3},
+    {"code":"unknown_field","status":422,"type":"https://liapoldus.dev/problems/unknown_field","detail":"Обнаружено неизвестное поле конфигурации.","cliExit":3},
+    {"code":"invalid_regex","status":422,"type":"https://liapoldus.dev/problems/invalid_regex","detail":"Регулярное выражение недействительно.","cliExit":3},
+    {"code":"address_conflict","status":409,"type":"https://liapoldus.dev/problems/address_conflict","detail":"Адрес listener уже используется.","cliExit":4},
+    {"code":"digest_conflict","status":409,"type":"https://liapoldus.dev/problems/digest_conflict","detail":"Конфигурация была изменена другим оператором.","cliExit":4},
+    {"code":"publish_in_progress","status":409,"type":"https://liapoldus.dev/problems/publish_in_progress","detail":"Публикация этого сайта уже выполняется.","cliExit":4},
+    {"code":"release_invalid","status":422,"type":"https://liapoldus.dev/problems/release_invalid","detail":"Версия сайта не прошла проверку.","cliExit":3},
+    {"code":"no_previous_release","status":404,"type":"https://liapoldus.dev/problems/no_previous_release","detail":"Предыдущая версия сайта отсутствует.","cliExit":5},
+    {"code":"route_not_found","status":404,"type":"https://liapoldus.dev/problems/route_not_found","detail":"Для запроса не найден маршрут.","cliExit":null},
+    {"code":"challenge_required","status":403,"type":"https://liapoldus.dev/problems/challenge_required","detail":"Требуется пройти проверку captcha.","cliExit":null},
+    {"code":"rate_limited","status":429,"type":"https://liapoldus.dev/problems/rate_limited","detail":"Превышен лимит запросов.","cliExit":null},
+    {"code":"plugin_unavailable","status":503,"type":"https://liapoldus.dev/problems/plugin_unavailable","detail":"Плагин недоступен.","cliExit":7},
+    {"code":"plugin_timeout","status":504,"type":"https://liapoldus.dev/problems/plugin_timeout","detail":"Время ожидания ответа плагина истекло.","cliExit":7},
+    {"code":"protocol_violation","status":502,"type":"https://liapoldus.dev/problems/protocol_violation","detail":"Плагин нарушил контракт протокола.","cliExit":1},
+    {"code":"payload_too_large","status":413,"type":"https://liapoldus.dev/problems/payload_too_large","detail":"Payload плагина превышает допустимый размер.","cliExit":3},
+    {"code":"resource_exhausted","status":503,"type":"https://liapoldus.dev/problems/resource_exhausted","detail":"Исчерпан лимит ресурсов.","cliExit":7},
+    {"code":"tls_degraded","status":503,"type":"https://liapoldus.dev/problems/tls_degraded","detail":"TLS-профиль находится в деградированном состоянии.","cliExit":7}
+  ]
+}
