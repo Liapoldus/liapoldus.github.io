@@ -14,6 +14,8 @@ Google reCAPTCHA и hCaptcha. `captchaProviders` в `gateway.yaml` выбира�
 | --- | --- | --- |
 | `captcha.verify` | unary | проверить токен капчи у провайдера |
 
+Точный request/response capability — в <a href="/spec/plugin-contracts.json" target="_blank" rel="noopener">plugin-contracts.json</a>.
+
 ## Конфиг instance
 
 ```yaml

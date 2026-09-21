@@ -1,33 +1,17 @@
-# serve
+# `serve`
 
-Единственный долгоживущий процесс gateway: публичный рантайм (HTTP/HTTPS,
-раздача сайтов, capability-вызовы плагинов) + management. Все остальные
-подкоманды работают офлайн и не требуют запущенного `serve`.
+Запускает data plane и, если не задан `--no-management`, local Gateway API.
 
-```bash
-gateway serve [--config <gateway.yaml>] [--no-management]
+```text
+gateway serve [--config PATH] [--config-dir DIR] [--no-management]
 ```
 
-## Флаги
-
-| Флаг | Назначение |
+| Флаг | Эффект |
 | --- | --- |
-| `--config PATH` | путь к конфигу процесса |
-| `--no-management` | выключить management-порт |
+| `--config`, `--config-dir` | выбирают файл по [общему порядку](/gateway/cli/) |
+| `--no-management` | не открывает management listener |
 
-Порядок выбора конфига: `--config` → env `LIAPOLDUS_GATEWAY_CONFIG` →
-встроенный default.
-
-## Запуск и проверка
-
-```bash
-./bin/gateway serve
-curl http://localhost:18090/healthz          # {"status":"ok",...}
-curl -H 'Host: example.localhost' http://localhost:18080/
-```
-
-## Завершение
-
-`SIGINT`/`SIGTERM` запускают graceful shutdown: сначала останавливается
-супервизор плагинов (`manager.Close()`), затем все `http.Server` через
-`Shutdown(ctx)` с таймаутом 10s. Детали — в [архитектуре](/gateway/architecture/gateway).
+Перед bind Gateway собирает и валидирует полный snapshot. Ошибка конфигурации
+не открывает ни один listener и завершает процесс с exit `3`. `SIGINT` и
+`SIGTERM` прекращают accept, дают активным запросам 10 s и затем закрывают
+plugins и listeners.

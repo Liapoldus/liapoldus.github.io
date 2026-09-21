@@ -1,29 +1,21 @@
-# Версии, publish и rollback
+# Сайты и releases
 
-Registry хранит immutable release в `releases/<revision>/`; `current` и
-`previous` — symlink. Они не являются публичными URL и не содержат копии
-файлов. Полная файловая процедура — [Конфиг сайта](/gateway/configuration/site-config).
-
-```bash
-gateway site publish <slug> <source>
-gateway versions <slug>
-gateway current <slug>
-gateway previous <slug>
-gateway rollback <slug>
+```text
+gateway site publish SLUG SOURCE [--idempotency-key KEY]
+gateway site versions SLUG
+gateway site current SLUG
+gateway site previous SLUG
+gateway site rollback SLUG [--idempotency-key KEY]
 ```
 
-| Command | Exit / result |
-| --- | --- |
-| `site publish` | `0` и active/previous revision; `3` release invalid; `4` publish in progress |
-| `versions` | все immutable revision и ссылки current/previous |
-| `current`, `previous` | revision ссылки; `5` если ссылка отсутствует |
-| `rollback` | атомарно меняет ссылки; `5` если `previous` отсутствует |
+| Команда | Успех | Ошибка |
+| --- | --- | --- |
+| `publish` | новый `current`, старый `previous` | `3` invalid release, `4` lock/conflict |
+| `versions` | retained `current` и `previous` | `5` site missing |
+| `current` / `previous` | revision или `null` | `5` site missing |
+| `rollback` | атомарно меняет ссылки местами | `5` previous missing |
 
-```bash
-gateway versions blog
-# current: release-2026-09-21T10-00-00Z-a1b2c3d4e5f6
-# previous: release-2026-09-20T10-00-00Z-f6e5d4c3b2a1
-
-gateway rollback blog
-# current: release-2026-09-20T10-00-00Z-f6e5d4c3b2a1
-```
+`--idempotency-key` обязателен в automation; при отсутствии CLI генерирует
+ключ на один вызов. `--output json` publish/rollback возвращает
+`site`, `revision`, `previousRevision`, `requestId`. Source не изменяется;
+Gateway хранит только две версии. Lifecycle — в [конфиге сайта](/gateway/configuration/site-config).

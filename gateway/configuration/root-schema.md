@@ -1,143 +1,54 @@
-# Корневая схема
+# Корневые ресурсы
 
-`gateway.yaml` — точка входа конфигурации. Он описывает process-level ресурсы
-и подключает остальные YAML-файлы. Все ссылки на именованные ресурсы должны
-разрешиться при компиляции конфига; gateway не запускается с частично валидной
-конфигурацией.
+Корень `gateway.yaml` объявляет ресурсы процесса. Ресурс получает имя из ключа
+map; route и другие ресурсы ссылаются на него по этому имени.
 
-```yaml
-includes: [./conf.d/*.yaml]             # относительные файлы и glob
+## Загрузка
 
-variables:
-  publicDomain: example.com
-secrets:
-  oidcClientSecret: env:OIDC_CLIENT_SECRET
-  cloudflareDnsToken: file:/run/secrets/cloudflare-dns-token
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `includes` | `string[]` | дополнительные YAML-файлы или glob |
+| `variables` | `map<string>` | подстановка `${name}` в строковые значения |
+| `secrets` | `map<env:|file:>` | ссылочные секреты без plaintext |
+| `registry.path` | path | release, audit и TLS storage |
 
-registry:
-  path: ./data/registry
+Include раскрываются до validation. Цикл, duplicate resource name, отсутствующий
+файл и unresolved reference дают `config_invalid`; active snapshot остаётся
+прежним.
 
-upstreams:
-  app-api:
-    targets: [{ address: https://api.internal:8443 }]
-    discovery: { dns: api.internal, interval: 30s }
-    healthCheck: { path: /healthz, interval: 10s, timeout: 2s }
-    balance: least-connections             # round-robin | least-connections | hash
+## Трафик и маршрутизация
 
-tlsProfiles:
-  public:
-    certificates:
-      - domains: [${publicDomain}, www.${publicDomain}]
-        issuer: public-acme
-  internal-mtls:
-    certificates: [{ cert: file:/etc/liapoldus/internal.crt, key: file:/etc/liapoldus/internal.key }]
-    clientAuth: { mode: require, ca: file:/etc/liapoldus/clients-ca.pem }
+| Поле | Объявляет | Использует |
+| --- | --- | --- |
+| `listeners` | HTTP/TCP/UDP bind и rules | OS socket |
+| `sites` | registry site path | `then.site` |
+| `upstreams` | proxy target group | `then.proxy` |
+| `plugins` | supervised process/capabilities | `then.plugin` |
 
-authPolicies:
-  users:
-    oidc: { issuer: https://id.example.com, clientId: liapoldus, clientSecret: ${oidcClientSecret} }
-    jwt: { jwksUrl: https://id.example.com/keys, audiences: [public-api] }
+`listeners.<name>.type` выбирает `http`, `tcp` или `udp`. HTTP использует
+`routes`, L4 — `rules`. Синтаксис и evaluation — в
+[маршрутах](server-blocks) и [транспортах](transports).
 
-wafPolicies:
-  public:
-    rules:
-      - when: { requestSize: { gt: 10MiB } }
-        then: { deny: { status: 413 } }
-      - when: { sourceIp: { notIn: [10.0.0.0/8] }, path: { regex: '^/admin' } }
-        then: { challenge: { provider: captcha } }
+## Безопасность
 
-rateLimits:
-  public-api: { key: source-ip, requests: 120, per: 1m, burst: 30 }
-
-captchaProviders:
-  public:
-    plugin: { instance: captcha, capability: captcha.verify }
-    verifyUrl: https://www.google.com/recaptcha/api/siteverify
-    secret: ${recaptchaSecret}
-
-plugins:
-  forms:
-    binary: ./bin/forms-db
-    config: ./plugins/forms.yaml
-    capabilities: [forms.submit, forms.list]
-    limits: { calls: 100, timeout: 5s, memory: 256MiB }
-  tls-issuer:
-    binary: ./bin/tls-issuer
-    config: ./plugins/tls-issuer.yaml
-    capabilities: [tls.issue, tls.renew, tls.revoke]
-    grants:
-      storage: [tls-public]
-      secrets:
-        - name: cloudflareDnsToken
-          purpose: acme-dns01
-          domains: [${publicDomain}]
-
-tlsIssuers:
-  public-acme:
-    plugin: { instance: tls-issuer, capability: tls.issue }
-    storage: tls-public
-    challenges:
-      http01: { listener: public-http }
-      dns01: { secret: cloudflareDnsToken }
-    renewal: { before: 30d, retry: { initial: 5m, max: 12h } }
-
-sites:
-  blog: { path: ./data/registry/sites/blog }
-
-listeners:
-  public-http:
-    type: http
-    address: ':80'
-    routes:
-      - when: { host: [${publicDomain}, www.${publicDomain}] }
-        then: { redirect: { scheme: https, status: 308 } }
-  public-https:
-    type: http
-    address: ':443'
-    tls: public
-    routes:
-      - when: { host: ${publicDomain}, path: { prefix: /api/ } }
-        then: { proxy: app-api, auth: users, waf: public, rateLimit: public-api }
-      - when: { host: ${publicDomain} }
-        then: { site: blog }
-  tunnel:
-    type: tcp
-    address: ':8443'
-    tls: { mode: passthrough }
-    rules:
-      - when: { sni: relay.example.com }
-        then: { plugin: { instance: forms, capability: relay.tcp } }
-
-management:
-  address: 127.0.0.1:9090
-  serviceAccounts:
-    - id: ops
-      role: platform-admin
-      keyHash: file:/run/secrets/ops-key-hash
-
-logging: { format: json, access: [stdout] }
-metrics: { prometheus: true, otlp: { endpoint: https://otel.example.com, interval: 15s } }
-tracing: { otlp: { endpoint: https://otel.example.com }, sampling: parent-based }
-```
-
-## Корневые разделы
-
-| Раздел | Назначение |
+| Поле | Назначение |
 | --- | --- |
-| `includes` | дерево YAML-файлов, объединяемое до валидации |
-| `variables`, `secrets` | безопасные значения и ссылки, доступные через `${name}` |
-| `registry`, `sites` | опубликованные артефакты и их site YAML |
-| `listeners` | HTTP, TCP и UDP точки входа с маршрутами/правилами |
-| `upstreams` | discovery, health checks, балансировка и retry |
-| `tlsProfiles`, `tlsIssuers`, `authPolicies`, `wafPolicies`, `rateLimits`, `captchaProviders` | именованные политики, issuer’ы и правила |
-| `plugins` | процессы и разрешённые capabilities |
-| `management`, `logging`, `metrics`, `tracing` | управление и наблюдаемость |
+| `tlsProfiles`, `tlsIssuers` | server certificates и issuance |
+| `authPolicies` | OIDC, JWT, mTLS |
+| `dataProviders`, `wafPolicies` | MMDB source и WAF decisions |
+| `rateLimits`, `captchaProviders` | token bucket и captcha verification |
 
-Все верхнеуровневые ключи имеют тип `object` (кроме `includes: string[]`);
-неизвестный ключ запрещён. Имена ресурсов — `[a-z][a-z0-9-]{0,62}`. Отсутствие
-ссылочного ресурса, неправильный тип и неразрешённый secret дают `422
-config_invalid` с точным YAML path. Конкретные вложенные поля определяют
-канонические тематические страницы; пример на этой странице не расширяет схему.
+Все security resources именованные: объявление само по себе не защищает
+трафик, пока route не укажет `auth`, `waf` или `rateLimit`.
 
-Семантика include, переменных и секретов описана в [Секреты и переменные](secrets).
-Маршрутизация — в [Маршруты и условия](server-blocks).
+## Управление и export
+
+| Поле | Назначение |
+| --- | --- |
+| `management` | local API address и service accounts |
+| `logging` | JSON log sinks |
+| `metrics` | Prometheus / OTLP metrics |
+| `tracing` | OTLP traces и sampling |
+
+Полные типы, defaults и ограничения — в
+<a href="/spec/gateway.schema.json" target="_blank" rel="noopener">gateway.schema.json</a>.

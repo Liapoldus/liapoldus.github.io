@@ -4,6 +4,10 @@
 WAF policy и rate limit. Все они именованы в корневом YAML и назначаются на
 конкретный route или L4-rule.
 
+Канонический lifecycle OIDC/JWT/mTLS, captcha, Geo/ASN и TLS находится в
+<a href="/spec/security-runtime.json" target="_blank" rel="noopener">security-runtime.json</a>.
+Эта страница содержит только конфигурационную навигацию и не расширяет contract.
+
 ## TLS
 
 ```yaml
@@ -79,9 +83,11 @@ issuer end-session redirect, если endpoint объявлен. Gateway не х
 совпадать с `redirectUri`.
 
 JWT берётся только из `Authorization: Bearer`; проверяются signature, `iss`,
-`aud`, expiry и `requiredClaims`. mTLS проверяет client certificate после TLS
-termination. Identity не проксируется неявно: route должен объявить allow-list
-headers для upstream или `plugin.context.identity` для plugin.
+`aud`, expiry, `nbf` и `requiredClaims` с leeway 60 s. Ошибка даёт RFC 9457
+`401` и `WWW-Authenticate: Bearer error="invalid_token"`. mTLS проверяет
+client certificate после TLS termination. Identity не проксируется неявно:
+route обязан объявить allow-list в `proxy.requestHeaders` или
+`plugin.context.identity` для plugin.
 
 JWT допускает только `EdDSA`, `ES256` и `RS256`; JWKS обновляется каждые 15 min
 и однократно при unknown `kid`. `iss` и `aud` обязательны. mTLS `require`
@@ -132,6 +138,13 @@ captchaProviders:
 ```
 
 `challenge: { provider: public }` и captcha route ссылаются только на имя
-provider. Клиент передаёт исключительно token. Gateway выдаёт captcha plugin
-verify URL и scoped secret в `plugin.context.secrets` для одного вызова; URL и
+provider. При блокировке Gateway отвечает `403 challenge_required` с Problem
+Details extensions `provider` и `challengeToken`; token одноразовый, opaque и
+живёт 10 min. Browser отправляет `POST
+/.well-known/liapoldus/challenge/verify` с JSON
+`{"challengeToken":"…","responseToken":"…"}`. При успехе Gateway ставит
+`_lpgw_challenge` (`HttpOnly; Secure; SameSite=Lax; Path=/`, TTL 10 min), после
+чего клиент повторяет исходный запрос. Неверный/expired token даёт `403
+challenge_required`; provider failure — `503 plugin_unavailable`. Gateway
+выдаёт captcha plugin verify URL и scoped secret только на этот вызов; URL и
 секрет из request headers/body запрещены.

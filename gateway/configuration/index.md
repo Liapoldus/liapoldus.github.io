@@ -21,57 +21,25 @@ target-spec: если будущая реализация расходится �
 | **Управление** | CLI, Management API, audit, revision/digest и optimistic lock |
 | **Наблюдаемость** | JSON logs, Prometheus и OpenTelemetry metrics/traces |
 
-## Быстрый старт
+## Работа с конфигом
 
-### 1. Проверьте доступность gateway
+1. Выберите путь с `--config`, `LIAPOLDUS_GATEWAY_CONFIG` или каталог через
+   `LIAPOLDUS_CONFIG_DIR`.
+2. Объявите корневые ресурсы: `registry`, `listeners` и один terminal target.
+3. Проверьте граф: `gateway config validate`.
+4. Получите описание поля: `gateway config explain <yaml-path>`.
+5. Запустите `gateway serve`; reload никогда не заменяет active snapshot до
+   завершения полной validation.
 
-```bash
-gateway help
-```
-
-### 2. Создайте конфиг
-
-`gateway.yaml`:
-
-```yaml
-registry: { path: ./data/registry }
-sites: { example: { path: ./data/registry/sites/example } }
-listeners:
-  web:
-    type: http
-    address: ':18080'
-    routes:
-      - when: { host: example.localhost }
-        then: { site: example }
-management: { address: 127.0.0.1:9090 }
-```
-
-### 3. Подготовьте простой сайт
-
-```bash
-data/registry/sites/example/
-├── site.yaml
-├── releases/release-2026-09-21/index.html
-├── current -> releases/release-2026-09-21
-└── previous -> releases/release-2026-09-20
-```
-
-### 4. Запустите и проверьте
-
-```bash
-gateway serve --config gateway.yaml
-curl -H 'Host: example.localhost' http://localhost:18080/   # -> <h1>Hello, Liapoldus</h1>
-curl http://localhost:9090/healthz                           # -> {"status":"ok",...}
-```
-
-Маршрут выбирается первым совпавшим `when`; fallback нужно объявить явным
-последним route.
+Полные сценарии живут в [примерах](/gateway/examples/), а эта область описывает
+только язык конфигурации.
 
 ## Разделы
 
 | Раздел | Содержание |
 | --- | --- |
-| [Корневая схема](root-schema) | полный `gateway.yaml`, справочник корневых ключей |
+| [Язык gateway.yaml](yaml-reference) | поля, типы значений и общие правила |
+| [Корневые ресурсы](root-schema) | группы корневых ключей и связи между ними |
 | [Полная схема gateway.yaml](gateway-schema) | нормативные поля, типы, defaults, ограничения и validation codes |
 | [Маршруты и условия](server-blocks) | HTTP-listener, `when/then/else`, regex, действия и политики |
 | [TCP, UDP и P2P](transports) | L4-listener, relay, flows, TLS passthrough и plugin sessions |
@@ -80,8 +48,8 @@ curl http://localhost:9090/healthz                           # -> {"status":"ok"
 | [HTTP runtime](http-runtime) | точный порядок HTTP-обработки, static, SPA, cache, headers и WebSocket |
 | [TLS, auth и WAF](security) | ACME, mTLS, OIDC/JWT, политики и ограничения |
 | [Reload и конфликты](tls-reload) | snapshots, validation, digest и atomic apply |
-| [Management API](management-api) | HTTP-интерфейс управления |
-| [Наблюдаемость](observability) | JSON logs, audit, Prometheus и OTLP-контракты |
+| [Gateway API](/gateway/api/) | аутентификация, ресурсы, operations и OpenAPI |
+| [Логи и наблюдаемость](/gateway/deploy/observability) | deployment, audit, Prometheus и OTLP |
 | [Каталог ошибок](errors) | code, status, problem type, русский detail и CLI exit code |
 | [Acceptance matrix](acceptance) | обязательные сквозные сценарии реализации |
 | [Секреты и переменные](secrets) | include-дерево, `env:`, `file:`, подстановка и redaction |

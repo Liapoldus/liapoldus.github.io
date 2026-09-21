@@ -1,8 +1,9 @@
 # HTTP runtime
 
-Эта страница задаёт каноническое поведение HTTP. Для стандартных HTTP-семантик
-Gateway следует RFC; ниже перечислены правила Liapoldus и места, где
-конфигурация влияет на результат.
+Канонический исполнимый контракт HTTP — <a href="/spec/http-runtime.json" target="_blank" rel="noopener">http-runtime.json</a>.
+Он определяет defaults, порядок pipeline, routing precedence, proxy/static,
+MIME, conditional/range, CORS, cache, compression, HTTP/2 и HTTP/3 limits.
+Markdown-страница не расширяет этот контракт.
 
 ## Порядок обработки
 
@@ -10,7 +11,7 @@ Gateway следует RFC; ниже перечислены правила Liapo
 
 Если route не совпал, Gateway отвечает `404 route_not_found`. Если policy
 отказала, terminal target не вызывается. Ошибка любого этапа использует
-`application/problem+json` из [Management API](management-api).
+`application/problem+json` из [Gateway API](/gateway/api/).
 
 ## Static и SPA
 
@@ -24,18 +25,11 @@ listing всегда выключен. Для директории ищется 
 Он не маскирует `403`, `5xx`, API/proxy routes и отсутствующие assets.
 
 Gateway поддерживает `ETag`, `Last-Modified`, `If-None-Match`,
-`If-Modified-Since`, byte `Range` и `HEAD` по RFC. ETag включает immutable
-release revision, поэтому publish автоматически инвалидирует cache key.
+`If-Modified-Since`, byte `Range` и `HEAD`; точный формат ETag и поведение
+single/multipart range определяет контракт.
 
 ## Transforms
 
-| Функция | Нормативное поведение |
-| --- | --- |
-| `rewrite` | выполняется один раз до target; regex RE2, `$1…$9`; результат обязан быть absolute path, иначе `422 rewrite_invalid` |
-| `redirect` | формирует `Location` из scheme/host/path/query; default status `308`; небезопасный CR/LF запрещён |
-| headers | `set`, `setIfAbsent`, `delete`; hop-by-hop headers запрещены; CORS — отдельный `cors` object |
-| cache | `no-store` отключает storage; иначе формируется `Cache-Control`; `Vary` дополняется только реально использованными вариантами |
-| compression | выбирает `br`, затем `gzip` по `Accept-Encoding`; только response ≥ 1 KiB без `Content-Encoding`, не для range/upgrade |
-| WebSocket | proxy передаёт RFC upgrade после auth/WAF/rate limit; static и plugin не делают implicit upgrade |
-
-HTTP request body лимит по умолчанию 10 MiB. Превышение — `413 body_too_large`.
+`rewrite` выполняется единожды, а преобразования response выполняются после
+terminal target. Условия, priority и порядок policy описаны в contract;
+синтаксис полей — в [gateway.schema.json](gateway-schema).

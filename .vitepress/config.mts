@@ -29,6 +29,7 @@ export default defineConfig({
         { text: 'Главная', link: '/' },
         { text: 'О продукте', link: '/product/' },
         { component: 'GatewayNav' },
+        { text: 'Gateway API', link: '/gateway/api/' },
         { text: 'Архитектура', link: '/gateway/architecture/' },
         { text: 'Плагины', link: '/plugins/' }
       ],
@@ -98,6 +99,7 @@ export default defineConfig({
             text: 'Конфигурация',
             items: [
               { text: 'Обзор и быстрый старт', link: '/gateway/configuration/' },
+              { text: 'Язык gateway.yaml', link: '/gateway/configuration/yaml-reference' },
               { text: 'Полная схема gateway.yaml', link: '/gateway/configuration/gateway-schema' },
               { text: 'Корневая схема', link: '/gateway/configuration/root-schema' },
               { text: 'Маршруты и условия', link: '/gateway/configuration/server-blocks' },
@@ -107,8 +109,6 @@ export default defineConfig({
               { text: 'Конфиг сайта', link: '/gateway/configuration/site-config' },
               { text: 'HTTP runtime', link: '/gateway/configuration/http-runtime' },
               { text: 'Reload и конфликты', link: '/gateway/configuration/tls-reload' },
-              { text: 'Management API', link: '/gateway/configuration/management-api' },
-              { text: 'Наблюдаемость', link: '/gateway/configuration/observability' },
               { text: 'Каталог ошибок', link: '/gateway/configuration/errors' },
               { text: 'Acceptance matrix', link: '/gateway/configuration/acceptance' },
               { text: 'Секреты и переменные', link: '/gateway/configuration/secrets' }
@@ -130,7 +130,21 @@ export default defineConfig({
         '/gateway/deploy/': [
           {
             text: 'Развёртывание',
-            items: [{ text: 'Развёртывание', link: '/gateway/deploy/' }]
+            items: [
+              { text: 'Развёртывание', link: '/gateway/deploy/' },
+              { text: 'Логи и наблюдаемость', link: '/gateway/deploy/observability' }
+            ]
+          }
+        ],
+        '/gateway/api/': [
+          {
+            text: 'Gateway API',
+            items: [
+              { text: 'Обзор', link: '/gateway/api/' },
+              { text: 'Аутентификация', link: '/gateway/api/authentication' },
+              { text: 'Ресурсы и операции', link: '/gateway/api/operations' },
+              { text: 'OpenAPI', link: '/gateway/api/openapi' }
+            ]
           }
         ],
         '/gateway/architecture/': [

@@ -1,9 +1,12 @@
 # Маршруты и условия
 
-HTTP-listener содержит упорядоченный список `routes`. Gateway берёт первое
-правило с истинным `when`; если оно отсутствует, используется `else` правила
-или `default`. Это единственная условная логика в YAML: она не исполняет код,
-не имеет циклов и валидируется при загрузке.
+HTTP-listener содержит упорядоченный список `routes`. Алгоритм без исключений:
+Gateway идёт по порядку; отсутствующий `when` равен `true`; при `true` выбирает
+`then`; при `false` выбирает `else`, если оно есть, иначе продолжает со
+следующим route. `default` допускается только в последнем route и выбирается,
+только если ни один route не выбрал terminal action. Нарушение даёт
+`config_invalid`. Это единственная условная логика в YAML: она не исполняет
+код и не имеет циклов.
 
 ```yaml
 listeners:
@@ -56,9 +59,14 @@ listeners:
 | `auth`, `waf`, `rateLimit` | применяет именованную политику до основного действия |
 | `headers`, `cache`, `compression`, `rewrite` | меняет обработку HTTP в пределах правила; `spa` задаётся только в `site.yaml` |
 
-В одном действии допустим ровно один terminal target: `site`, `proxy`,
+В одном route action допустим ровно один terminal target: `site`, `proxy`,
 `redirect`, `plugin` или `deny`. Политики и преобразования дополняют target,
-а не заменяют его.
+а не заменяют его. У WAF отдельный набор terminal actions: `allow`, `deny`,
+`challenge`, `limit`; это не route target.
+
+Точные формы matcher, proxy allow-list, request/response headers и порядок
+pipeline определяют <a href="/spec/gateway.schema.json" target="_blank" rel="noopener">gateway.schema.json</a> и
+<a href="/spec/http-runtime.json" target="_blank" rel="noopener">http-runtime.json</a>.
 
 ## HTTP-функции ядра
 

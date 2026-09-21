@@ -21,11 +21,35 @@
         }
       }
     },
-    "headers": { "$ref": "gateway.schema.json#/$defs/headerActionsWrapper" },
-    "cache": { "$ref": "gateway.schema.json#/$defs/cachePolicyWrapper" }
+    "headers": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "response": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "set": { "type": "object", "additionalProperties": { "type": "string" } },
+            "setIfAbsent": { "type": "object", "additionalProperties": { "type": "string" } },
+            "delete": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "cache": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "static": {
+          "type": "object", "additionalProperties": false, "required": ["visibility", "maxAge"],
+          "properties": {
+            "visibility": { "enum": ["public", "private", "no-store"] },
+            "maxAge": { "type": "string", "pattern": "^[0-9]+(?:ns|us|µs|ms|s|m|h|d)$" }
+          }
+        }
+      }
+    }
   },
-  "allOf": [{
-    "if": { "required": ["defaultLocale"] },
-    "then": { "properties": { "locales": { "contains": { "const": { "$data": "1/defaultLocale" } } } } }
-  }]
+  "x-liapoldus-semanticValidation": {
+    "defaultLocaleMustBeListed": true,
+    "code": "site_invalid",
+    "description": "При наличии defaultLocale его значение должно точно совпадать с одним из locales. Это межполевое правило проверяет Gateway после JSON Schema; $data и иные расширения валидатора не используются."
+  }
 }

@@ -1,13 +1,21 @@
 # Конфиг сайта в registry
 
-`site.yaml` — единственный контракт поведения опубликованного сайта. Он лежит
-в `sites/<slug>/site.yaml`, а неизменяемые артефакты — в
-`sites/<slug>/releases/<revision>/`. В `site.yaml` запрещены домены, listener,
+`site.yaml` — единственный контракт поведения опубликованного сайта. Source
+обязан содержать его в корне; во время publish Gateway валидирует и копирует
+его внутрь `sites/<slug>/releases/<revision>/site.yaml`. Active site config
+читается исключительно из target `current`, а не из изменяемого каталога
+`sites/<slug>/`. В `site.yaml` запрещены домены, listener,
 upstream и credentials: публичное назначение делает route в `gateway.yaml`.
 
 Каноническая исполнимая схема — <a href="/spec/site.schema.json" target="_blank" rel="noopener">site.schema.json</a>.
-Неизвестный ключ, неверный тип, несуществующий `index` или путь за пределами
-release дают `site_invalid` с YAML path; release не публикуется.
+Неизвестный ключ, неверный тип, несуществующий `index`, `defaultLocale` вне
+`locales`, или путь за пределами release дают `site_invalid` с YAML path;
+release не публикуется. Максимум release: 10 000 regular files, 1 GiB суммарно,
+никаких device/FIFO/socket и никаких symlink; нарушение даёт `release_invalid`.
+
+`locales` задаёт только допустимые URL-prefix. `/ru/a` ищется как `/ru/a` в
+release; путь без prefix ищется в `<defaultLocale>/…`, без redirect.
+`Accept-Language` полностью игнорируется.
 
 ## Публикация и rollback
 

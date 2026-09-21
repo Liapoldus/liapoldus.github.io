@@ -1,7 +1,7 @@
 # accounts
 
-Управление service accounts для management API. Роли, жизненный цикл и правила
-использования ключей — в [Безопасности](/gateway/configuration/security).
+Управление service accounts для Gateway API. Формат Bearer key и правила
+доступа — в [аутентификации API](/gateway/api/authentication).
 
 ```bash
 gateway accounts create <id> --role=platform-admin
@@ -11,7 +11,7 @@ gateway accounts revoke <id>
 
 | Флаг | Назначение |
 | --- | --- |
-| `--config <gateway.yaml>` | обязателен: уровень администрирования — низкий, ключи пишутся в конфиг процесса |
+| `--config`, `--config-dir` | выбирают config по [общему порядку](/gateway/cli/) |
 | `--role` | обязательное значение `platform-admin` |
 
 ## Как это работает
