@@ -1,178 +1,69 @@
 # Плагины
 
-Плагины — независимые кроссплатформенные **binary-процессы**. Gateway сам
-запускает каждый **instance** как subprocess, связывается с ним по localhost
-TCP/protobuf и вызывает объявленные **capabilities**.
+Плагин — независимый процесс с явно объявленными capabilities. Он не создаёт
+public listener и не регистрирует route: Gateway принимает трафик, выбирает
+YAML-rule и передаёт capability только разрешённый запрос, stream или datagram
+flow.
 
-Каждый плагин живёт в **отдельном git-репозитории** со своим Go-модулем —
-не в репозитории ядра gateway. Из репозитория плагина собирается его
-собственный бинарник, который gateway запускает.
-
-Плагин не знает о системе управления вне gateway: вся связь идёт только через
-него, а схема `config.schema` отдаётся наружу по management API.
-
-## Декларация
-
-Плагины объявляются **только явно** в `gateway.yaml` (или include-файлах) под
-секцией `plugins`. Без декларации gateway ничего о плагине не знает. `id`
-плагина — ключ секции.
+## Декларация instance
 
 ```yaml
 plugins:
-  forms-db:                      # id == ключ
-    manifest:                    # ожидаемый контракт instance (обязательно)
-      name: forms-db
-      capabilities: [forms.submit, forms.list, forms.delete]
-    enabled: true                # запускать при старте gateway
-    binary: ./bin/forms-db       # abs или относительно gateway.yaml
-    config: ./conf/forms-db.yaml # собственный конфиг плагина (--config)
-    args: []                     # доп. аргументы
-    env:                         # env с подстановкой env:NAME
-      - DATABASE_URL=env:DATABASE_URL
-    autoRestart: true            # перезапуск при падении
-    startTimeout: 10s            # таймаут старта (default 10s)
-    healthInterval: 15s          # периодичность health-проверок (default 15s)
+  forms:
+    binary: ./bin/forms-db
+    config: ./plugins/forms.yaml
+    args: []
+    env: [DATABASE_URL=env:FORMS_DATABASE_URL]
+    capabilities: [forms.submit, forms.list, forms.delete]
+    limits: { calls: 100, timeout: 5s, memory: 256MiB }
+    restart: { enabled: true, backoff: 1s, maxBackoff: 30s }
 ```
 
-### Справочник ключей декларации
+| Поле | Назначение |
+| --- | --- |
+| `binary`, `config`, `args`, `env` | запуск отдельного процесса и его изолированный конфиг |
+| `capabilities` | единственный список допустимых вызовов |
+| `limits` | concurrency, deadline, payload/flow и ресурсные пределы |
+| `restart` | политика восстановления после failure |
 
-| Ключ | Назначение | По умолчанию |
-| --- | --- | --- |
-| `plugins.<id>` | декларация instance; `id` — ключ секции | — |
-| `.manifest` | ожидаемый контракт instance | **обязательно** |
-| `.manifest.name` | имя (должно совпадать с `id`) | — |
-| `.manifest.capabilities` | список capability | `[]` |
-| `.enabled` | запускать при старте gateway | `false` |
-| `.binary` | путь к бинарнику (abs или относительно `gateway.yaml`) | — |
-| `.config` | собственный конфиг плагина (передаётся `--config`) | — |
-| `.args` | доп. аргументы процесса | `[]` |
-| `.env` | env с подстановкой `env:NAME` | `[]` |
-| `.autoRestart` | перезапуск при падении | `false` |
-| `.startTimeout` | таймаут старта | `10s` |
-| `.healthInterval` | период health-проверок | `15s` |
-
-### Контракт instance
-
-`manifest` в конфиге — transport-independent декларация. При старте gateway
-сверяет её с self-description запущенного плагина:
-
-- `name` запущенного плагина должен совпадать с id;
-- каждая задекларированная capability обязана фактически рекламироваться
-  плагином. Никакие capabilities не зашиты в ядро gateway.
-
-Несколько instances одного binary с разными `config`/`env` независимы — порт
-выбирается gateway на каждый процесс. Пустой manifest запрещён
-в production-конфиге (допустим только в unit-тестах).
-
-## Жизненный цикл
-
-```mermaid
-stateDiagram-v2
-    [*] --> Stopped: декларация в конфиге
-
-    Stopped --> Starting: Start (старт gateway или mgmt start)
-    Starting --> Running: dial + health + manifest + config.apply прошли
-    Starting --> Failed: таймаут/недоступность/санкции (SIGTERM)
-
-    Running --> Failed: упал / ping не ок / process error
-    Running --> Stopped: ручной stop или авто-restart
-    Failed --> Stopped: ручной stop
-    Stopped --> Starting: повторный Start
-    Failed --> Starting: autoRestart (пауза ~1s)
-
-    Running --> [*]: Close супервизора
-```
-
-Последовательность старта:
-
-```mermaid
-sequenceDiagram
-    participant G as Gateway (супервизор)
-    participant P as Plugin (binary)
-
-    G->>G: выбор свободного loopback-порта (127.0.0.1:0)
-    G->>P: exec binary --port <port> [--config <path>] [args...] + env
-
-    loop retry до startTimeout
-        G->>P: dial 127.0.0.1:<port>
-        G->>P: health (ping) / manifest (caps)
-        alt manifest не совпадает с declaration
-            G-->>G: validateManifest не прошёл, instance не стартует
-        else ок
-            G->>P: config.schema (YAML-схема конфига)
-            G->>P: config.apply (runtime-конфиг из gateway.yaml)
-            P-->>G: {"applied": true}
-            G->>G: instance running (готов принимать вызовы)
-        end
-    end
-```
-
-Health-проверки идут каждые `healthInterval`; при падении процесса — restart
-(`autoRestart`) или `Failed` (фиксируется `lastError`).
-
-### Стоп и управление
-
-- Graceful stop: `shutdown` RPC (контекст 5s) → `SIGTERM` → пауза 200ms →
-  `SIGKILL` (фолбек).
-- Ручной `stop` выставляет флаг: пока не последует явный `start`, супервизор
-  не рестартует.
-- `generation` отменяет устаревший запуск после stop/restart (защита от гонок
-  раундов).
-- Вывод плагина (stdout+stderr) пишется в системный stderr и в кольцевой
-  буфер на 200 строк для `GET /api/plugins/{id}/logs`.
-
-## Вызовы capabilities
-
-Capability привязывается к HTTP-маршруту в `apiRoutes` (ядро не знает её
-предметной семантики):
+## Назначение plugin target
 
 ```yaml
-server:
-  - apiRoutes:
-      - methods: [POST]
-        path: /api/forms/submit
-        plugin:
-          instance: forms-db
-          capability: forms.submit
+listeners:
+  web:
+    type: http
+    address: ':443'
+    routes:
+      - when: { method: [POST], path: { exact: /api/forms } }
+        then: { plugin: { instance: forms, capability: forms.submit } }
+  relay:
+    type: tcp
+    address: ':8443'
+    rules:
+      - when: {}
+        then: { plugin: { instance: peer-relay, capability: peer.session } }
 ```
 
-Gateway проверяет, что capability объявлена в manifest instance; вызов идёт по
-plugin protocol (unary Call или stream), ответ возвращается как есть (payload —
-JSON).
+Gateway проверяет существование instance и capability при compile. HTTP
+capability получает request context и тело в заданных лимитах; TCP capability
+получает двунаправленную session; UDP capability — datagram flow. Плагин не
+получает секреты, заголовки или client identity, если правило не разрешает их
+в `plugin.context`.
 
-## Ошибки плагинов → HTTP
+## Жизненный цикл и наблюдаемость
 
-Ошибки запуска и вызовов преобразуются в согласованные HTTP-ответы — таблица и
-правила: [Контракт протокола](/gateway/architecture/contract). Typed
-`Error{code, message, retryable}` — сигнал gateway про повтор, клиент всегда
-получает 5xx. Resource limits (timeout, размеры сообщений, concurrency)
-опциональны; memory/CPU-лимиты — platform-specific и не ломают
-macOS/Windows/Linux.
-
-## Управление через gateway
-
-Supervisor-эндпоинты management API (см. [Management API](/gateway/configuration/management-api)):
-`GET /api/plugins`, `GET /api/plugins/{id}` (состояние/PID/uptime/последняя
-ошибка/capabilities), `GET /api/plugins/{id}/logs`, `POST /api/plugins/{id}/
-rpc|cancel|restart|stop|start`. Runtime-настройки меняются только через
-`gateway.yaml` + reload.
+Supervisor запускает процесс на loopback IPC, проверяет health, применяет
+конфиг, ограничивает вызовы и выполняет graceful shutdown/restart. Ошибки
+преобразуются в response только ядром: plugin не определяет HTTP status или
+маршрутизацию. `GET /api/plugins` показывает состояние, health, limits и
+capabilities; logs проходят redaction и доступны через endpoint instance.
 
 ## Существующие плагины
 
 <div class="cards">
-  <a class="card" href="/plugins/forms-db">
-    <h3>forms-db</h3>
-    <p>Формы: submit/list/delete. SQLite, PostgreSQL, MySQL.</p>
-  </a>
-  <a class="card" href="/plugins/captcha">
-    <h3>captcha</h3>
-    <p>Stateless-проверка Cloudflare, Google reCAPTCHA, hCaptcha.</p>
-  </a>
+  <a class="card" href="/plugins/forms-db"><h3>forms-db</h3><p>Сохранение и управление отправками форм.</p></a>
+  <a class="card" href="/plugins/captcha"><h3>captcha</h3><p>Проверка challenge провайдеров.</p></a>
 </div>
 
-## Для авторов плагинов
-
-- [Контракт протокола](/gateway/architecture/contract) — методы, фреймы,
-  streams, ошибки.
-- [Гайд создания плагина](/gateway/architecture/guide) — пошагово на Go
-  с `pkg/pluginprotocol`.
+Для wire-деталей см. [Plugin protocol](/gateway/architecture/protocol), для
+авторов процессов — [гайд](/gateway/architecture/guide).

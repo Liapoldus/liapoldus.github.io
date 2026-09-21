@@ -1,105 +1,69 @@
-# Безопасность
+# TLS, auth и WAF
 
-## Management-порт
+Безопасность публичного listener’а складывается из TLS-профиля, auth policy,
+WAF policy и rate limit. Все они именованы в корневом YAML и назначаются на
+конкретный route или L4-rule.
 
-Management API — **резервированный** порт (`18090` по умолчанию), отдельный от
-публичного. Аутентификация определяется по приоритету:
-
-1. Если в `controlPlane.auth.serviceAccounts` есть записи — принимаются только
-   service account API keys (`lpgw_<id>_…` + bcrypt-проверка); простой токен
-   игнорируется.
-2. Иначе, если задан `management.token` — Bearer-токен.
-3. Иначе **только loopback** (`127.0.0.1`/`::1`/`localhost`).
-
-Ключ из заголовка: `Authorization: Bearer <key>` → `X-API-Key` →
-`X-Management-Token`.
-
-Токен передаётся в Compose отдельной переменной (`LIAPOLDUS_MGMT_TOKEN`), а не
-зашит в конфиг. `--no-management` полностью выключает порт.
-
-## Service accounts и роли
-
-Ключи `lpgw_<id>_<hex>` (192 бита энтропии) создаёт только CLI:
-
-```bash
-gateway accounts create ops --role=platform-admin --config gateway.yaml
-```
-
-Секрет показывается **один раз**; в `gateway.yaml` пишется только bcrypt-хеш
-(`keyHash`). Роли:
-
-| Роль | Права |
-| --- | --- |
-| `platform-admin` | все глобальные endpoints и тенанты |
-| `tenant-admin` | только `/api/tenants/<свой-id>` (проверка tenant) |
-
-`tenant-admin` вне своего `/api/tenants/<id>` и глобальные endpoints — `403`;
-без действительного ключа/токена и вне loopback — `401`.
-
-Ротация/отзыв — `gateway accounts rotate <id>` / `revoke <id>`; отзыв делает
-запись неактивной, не удаляя её. Запись в конфиг атомарная, файл
-перевалидируется перед переименованием.
-
-## Публичные сайты
-
-### Security-заголовки
+## TLS
 
 ```yaml
-server:
-  - security:
-      enabled: true
-      csp: "default-src 'self'"
-      frame: SAMEORIGIN              # или DENY
-      nosniff: true
-      referrerPolicy: strict-origin-when-cross-origin
-      hsts: "max-age=31536000"       # только при TLS
-      httpsRedirect: true            # 301 всех HTTP-запросов на HTTPS
-      httpsPort: 443                 # целевой порт для редиректа
+tlsProfiles:
+  public:
+    certificates:
+      - domains: [example.com, www.example.com]
+        acme: { issuer: lets-encrypt, email: ops@example.com, storage: file:/var/lib/liapoldus/acme }
+    protocols: [http/1.1, h2, h3]
+    securityHeaders:
+      strictTransportSecurity: max-age=31536000; includeSubDomains
+      contentSecurityPolicy: "default-src 'self'"
+  service-mtls:
+    certificates: [{ cert: file:/etc/liapoldus/service.crt, key: file:/etc/liapoldus/service.key }]
+    clientAuth: { mode: require, ca: file:/etc/liapoldus/clients-ca.pem }
 ```
 
-`httpsRedirect` оставляет `/healthz` без редиректа и не применяется на
-TLS-слушателе.
+Сертификат выбирается по SNI. ACME обновляет сертификаты в указанном
+защищённом storage и добавляет их в следующий runtime snapshot. TCP listener
+может завершать TLS (`terminate`) или передавать зашифрованный поток по SNI
+(`passthrough`). mTLS доступен только при termination.
 
-### TLS
-
-Правила TLS (минимум 1.2, HTTP/2 по ALPN при TLS, SNI-подбор с fallback на
-первый серт) — [TLS и Reload](tls-reload). HSTS ставится только поверх TLS.
-
-### Rate limit и CORS
+## Публичная аутентификация
 
 ```yaml
-server:
-  - rateLimit:
-      enabled: true
-      rps: 10
-      burst: 20
-      window: "1m"
-    cors:
-      enabled: true
-      allowedOrigins: [https://mydomain.example]
-      methods: [GET, POST, OPTIONS]
-      maxAge: 600
+authPolicies:
+  users:
+    oidc:
+      issuer: https://id.example.com
+      clientId: liapoldus
+      clientSecret: ${oidcClientSecret}
+      redirectUri: https://app.example.com/oauth/callback
+      scopes: [openid, profile, email]
+    jwt:
+      jwksUrl: https://id.example.com/keys
+      issuers: [https://id.example.com]
+      audiences: [public-api]
+      requiredClaims: { tenant: acme }
+    mtls: { identities: { subject: { regex: '^CN=service-' } } }
 ```
 
-При превышении — `429` с `Retry-After`. Дефолт CORS-методов: `GET,POST,OPTIONS`.
+OIDC выполняет browser redirect-flow, JWT проверяется по JWKS и claims, mTLS
+проверяет клиентский сертификат. Gateway не хранит учётные записи, пароли или
+сессии identity provider.
 
-## Плагины
+## WAF и ограничения
 
-- TCP **только loopback**; порт выбирает gateway и передаёт через `--port`.
-- Плагин не принимает соединений извне.
-- `allowedHosts` captcha-плагина ограничивает исходящие вызовы провайдеров.
-- Конфиг с секретами (в примерах — `secret` капчи) читается из `gateway.yaml`
-  и передаётся per-call, в конфиг плагина не пишется.
+```yaml
+wafPolicies:
+  public:
+    rules:
+      - when: { method: [TRACE], path: { regex: '.*' } }
+        then: { deny: { status: 405 } }
+      - when: { sourceIp: { notIn: [10.0.0.0/8] }, path: { regex: '^/admin' } }
+        then: { challenge: { provider: captcha } }
+rateLimits:
+  public-api: { key: source-ip, requests: 120, per: 1m, burst: 30 }
+```
 
-## Docker
-
-- Контейнеры `read_only` + `no-new-privileges`; root не требуется.
-- Management-порт наружу — только `127.0.0.1:18090` (не публиковать в сеть).
-- Токен — через env, не в образ и не в `docker compose config` по умолчанию.
-
-## Репозиторий
-
-- Секреты не коммитятся: `.gitignore` покрывает `*.pem`, ключи, базы в
-  registry; примеры конфигов используют placeholder'ы.
-- Сервисные ключи нигде не логируются: `accounts` печатает секрет только в
-  момент создания/ротации.
+WAF condition использует тот же язык `when`, что и route. Встроенные действия:
+`allow`, `deny`, `challenge` и `limit`. Geo/ASN проверка требует явно
+объявленного data provider; при его недоступности rule не становится silently
+allow — применяется заданный `onError`.

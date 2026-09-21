@@ -20,24 +20,17 @@ allowAnyHost: false
 ```yaml
 plugins:
   captcha:
-    manifest:
-      name: captcha
-      capabilities: [captcha.verify]
-    enabled: true
     binary: ./bin/captcha
     config: ./conf/captcha.yaml
-    autoRestart: true
-
-server:
-  - serverName: [site.localhost]
-    site: site
-    index: index.html
-    apiRoutes:
-      - methods: [POST]
-        path: /api/captcha/verify
-        plugin:
-          instance: captcha
-          capability: captcha.verify
+    capabilities: [captcha.verify]
+    restart: { enabled: true, backoff: 1s }
+listeners:
+  web:
+    type: http
+    address: ':80'
+    routes:
+      - when: { host: site.localhost, method: [POST], path: { exact: /api/captcha/verify } }
+        then: { plugin: { instance: captcha, capability: captcha.verify } }
 ```
 
 ## 3. Провайдер: параметры в вызове

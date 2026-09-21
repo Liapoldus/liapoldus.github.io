@@ -1,87 +1,69 @@
-# Server-блоки
+# Маршруты и условия
 
-Один или несколько `server`; выбор блока — по `serverName` (Host), fallback —
-первый блок слушателя.
-
-:::tabs
-== Статический сайт из registry
-
-```yaml
-server:
-  - serverName: ["blog.localhost"]  # hosts (алиас: hosts:)
-    site: blog                      # корень = registry/sites/blog/current
-    index: index.html
-    languages: [ru, en]
-    defaultLang: ru
-    compression: brotli             # gzip | brotli | off
-    cache:                          # Cache-Control для статики и index
-      static: "public, max-age=3600"
-      index: "no-cache"
-    prev: true                      # публичный /__prev/ (сверка перед откатом)
-```
-
-== Reverse proxy и маршруты
+HTTP-listener содержит упорядоченный список `routes`. Gateway берёт первое
+правило с истинным `when`; если оно отсутствует, используется `else` правила
+или `default`. Это единственная условная логика в YAML: она не исполняет код,
+не имеет циклов и валидируется при загрузке.
 
 ```yaml
-server:
-  - serverName: ["api.localhost"]
-    proxyPass: "http://127.0.0.1:8080"  # reverse-proxy (путь не меняется)
-    redirects:
-      - from: /old
-        to: /new
-        status: 301
+listeners:
+  api:
+    type: http
+    address: ':443'
+    tls: public
     routes:
-      - matcher: /api/*
-        target: https://backend.example
-    apiRoutes:                        # внешний capability поверх HTTP
-      - methods: [POST]
-        path: /api/forms/submit
-        plugin:
-          instance: forms-db
-          capability: forms.submit
+      - when:
+          host: api.example.com
+          method: [GET, POST]
+          path: { regex: '^/users(?:/[^/]+)?$' }
+          headers: { x-client: { exists: true } }
+        then:
+          proxy: app-api
+          auth: users
+          waf: public
+          rateLimit: public-api
+          headers: { request: { set: { x-gateway: liapoldus } } }
+        else:
+          deny: { status: 404 }
+      - when: { path: { prefix: / } }
+        then: { site: blog, spa: true }
 ```
 
-== TLS и HTTP/2
+## Условия `when`
 
-```yaml
-server:
-  - listen: "18443"
-    serverName: ["secure.localhost"]
-    site: blog
-    tls:
-      certFile: ./tls/blog.crt
-      keyFile: ./tls/blog.key
-    http2: true                 # при TLS — ALPN h2; на голом HTTP — h2c
-```
-:::
-
-## Справочник ключей блока
-
-| Ключ | Назначение | По умолчанию |
+| Поле | Применяется к | Значение |
 | --- | --- | --- |
-| `listen` | порт блока (пусто = корневой `listen`) | корневой порт |
-| `serverName` | Host-маски для выбора блока (алиас: `hosts`) | — |
-| `site` | сайт из registry: `sites/<slug>/current` | — |
-| `root` | альтернатива: прямой каталог статики | — |
-| `proxyPass` | backend reverse-proxy (путь не меняется) | — |
-| `index` | индексный файл | `index.html` |
-| `spa` | fallback в `index` для SPA | `false` |
-| `prev` | публичный `/__prev/` (сверка перед откатом) | `false` |
-| `languages` / `defaultLang` | языки сайта и язык по умолчанию | — |
-| `redirects` | `from → to` + `status` | `[]` |
-| `routes` | маршруты `matcher → target` | `[]` |
-| `apiRoutes` | вызовы capability поверх HTTP (`methods`, `path`, `plugin`) | `[]` |
-| `compression` | `gzip` / `brotli` / `off` | — |
-| `cache` | Cache-Control для `static` и `index` | — |
-| `http2` | h2c на голом HTTP; при TLS — ALPN h2 (nil = включён) | включён |
-| `tls.certFile` / `keyFile` | сертификат блока | отключён |
+| `host`, `method`, `path` | HTTP | строка, список, `{prefix}`, `{exact}`, `{regex}` |
+| `headers`, `query` | HTTP | наличие, exact, regex, список значений |
+| `sourceIp`, `destinationPort` | HTTP/L4 | CIDR, IP, порт или диапазон |
+| `sni`, `alpn`, `tls` | TLS/TCP | имя, список ALPN, `{enabled: true}` |
+| `requestSize`, `connectionAge` | HTTP/L4 | `{gt}`, `{gte}`, `{lt}`, `{lte}` |
+| `all`, `any`, `not` | все | композиция условий |
 
-Security-заголовки, rate limit и CORS задаются в том же блоке — смотри
-[Безопасность](security).
+Регулярные выражения используют безопасный RE2-совместимый синтаксис. Они
+компилируются вместе с итоговым YAML; ошибка содержит путь наподобие
+`listeners.api.routes[0].when.path.regex`.
 
-## Имплицитные сайты из registry
+## Действия `then` и `else`
 
-Сайт с `<registry>/sites/<slug>/config.yaml` автоматически получает
-**имплицитный** server на listen по умолчанию с хостами из конфига. Явный
-`server` с тем же `site` переопределяет имплицитный (свой порт, TLS, proxyPass
-и т.д.).
+| Действие | Результат |
+| --- | --- |
+| `site` | раздаёт опубликованный сайт из registry |
+| `proxy` | отправляет HTTP-запрос в upstream-группу |
+| `redirect` | отвечает redirect, при необходимости изменяя scheme/host/path |
+| `plugin` | передаёт разрешённый запрос в capability plugin instance |
+| `deny`, `challenge` | прекращает запрос или запускает policy challenge |
+| `auth`, `waf`, `rateLimit` | применяет именованную политику до основного действия |
+| `headers`, `cache`, `compression`, `rewrite` | меняет обработку HTTP в пределах правила |
+
+В одном действии допустим ровно один terminal target: `site`, `proxy`,
+`redirect`, `plugin` или `deny`. Политики и преобразования дополняют target,
+а не заменяют его.
+
+## HTTP-функции ядра
+
+Gateway встроенно поддерживает static files, SPA fallback, reverse proxy,
+WebSocket upgrade, redirects/rewrites, headers, CORS, compression, cache,
+health checks, балансировку, WAF, JWT/OIDC/mTLS и access logs. Прикладная
+операция, например запись формы или обработка peer-протокола, выполняется
+плагином через `plugin` target.

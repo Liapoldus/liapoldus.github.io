@@ -5,21 +5,20 @@
 конфигурацию целиком до запуска и сообщает путь YAML при ошибке.
 :::
 
-Единый `gateway.yaml` («микро-nginx»). Весь источник состояния — на диске;
-БД у gateway нет. Путь задаётся `--config`, env `LIAPOLDUS_GATEWAY_CONFIG`
-либо default.
+Единый `gateway.yaml` и дерево include описывают runtime. Gateway не требует
+собственной БД: конфигурация, registry и защищённое certificate storage —
+наблюдаемые источники состояния.
 
 ## Возможности
 
 | Возможность | Описание |
 | --- | --- |
-| **Сайты из registry** | версии раздаются из `sites/<slug>/<version>/`; `current` — активная, `prev` — резервная для отката |
-| **Server-блоки** | слушатели, выбор по Host, статика, `proxyPass`, редиректы, маршруты, языки сайтов |
-| **TLS и HTTP/2** | мульти-сертификатный SNI-подбор, ALPN h2, h2c на «голом» HTTP |
-| **Веб-функции** | gzip/brotli, access-лог, rate limit по IP, CORS, security-заголовки, ETag, Cache-Control |
-| **Плагины** | внешние процессы с полным протоколом (unary + все направления stream) |
-| **Управление** | CLI-подкоманды (офлайн-доставка) и management HTTP API |
-| **Наблюдаемость** | Prometheus и OTLP push-экспорт, структурированные логи |
+| **Сайты из registry** | опубликованные release в `sites/<slug>/`; `current` активен, `prev` доступен для rollback |
+| **HTTP(S)** | static, proxy, WebSocket, redirects, cache, compression, TLS, OIDC/JWT/mTLS и WAF |
+| **TCP, UDP и P2P** | listener’ы, TLS termination/passthrough, relay, ограничения и plugin targets |
+| **Upstream** | DNS discovery, health checks, балансировка, retry и connection pools |
+| **Управление** | CLI, Management API, audit, revision/digest и optimistic lock |
+| **Наблюдаемость** | JSON logs, Prometheus и OpenTelemetry metrics/traces |
 
 ## Быстрый старт
 
@@ -34,12 +33,16 @@ gateway help
 `gateway.yaml`:
 
 ```yaml
-listen: "18080"            # публичный порт по умолчанию
-registry: ./data/registry  # каталог реестра сайтов
-management:                # порт управления
-  enabled: true
-  port: "18090"
-  token: ""                # пусто = только loopback
+registry: { path: ./data/registry }
+sites: { example: { path: ./data/registry/sites/example } }
+listeners:
+  web:
+    type: http
+    address: ':18080'
+    routes:
+      - when: { host: example.localhost }
+        then: { site: example }
+management: { address: 127.0.0.1:9090 }
 ```
 
 ### 3. Подготовьте простой сайт
@@ -48,7 +51,7 @@ management:                # порт управления
 data/registry/
 └── sites/example/
     ├── current/index.html
-    └── config.yaml
+    └── site.yaml
 ```
 
 ### 4. Запустите и проверьте
@@ -56,18 +59,22 @@ data/registry/
 ```bash
 gateway serve --config gateway.yaml
 curl -H 'Host: example.localhost' http://localhost:18080/   # -> <h1>Hello, Liapoldus</h1>
-curl http://localhost:18090/healthz                          # -> {"status":"ok",...}
+curl http://localhost:9090/healthz                           # -> {"status":"ok",...}
 ```
 
-Если `Host` не задан, gateway выберет подходящий блок по умолчанию.
+Маршрут выбирается первым совпавшим `when`; fallback нужно объявить явным
+последним route.
 
 ## Разделы
 
 | Раздел | Содержание |
 | --- | --- |
 | [Корневая схема](root-schema) | полный `gateway.yaml`, справочник корневых ключей |
-| [Server-блоки](server-blocks) | инстансы `server`: статика/прокси/TLS во вкладках, справочник ключей, имплицитные сайты |
-| [Конфиг сайта](site-config) | unified schema `sites/<slug>/config.yaml`, версии `current`/`prev` |
-| [TLS и Reload](tls-reload) | сертификаты, SNI, HTTP/2, горячая перезагрузка |
+| [Маршруты и условия](server-blocks) | HTTP-listener, `when/then/else`, regex, действия и политики |
+| [TCP, UDP и P2P](transports) | L4-listener, relay, flows, TLS passthrough и plugin sessions |
+| [Upstream и балансировка](upstreams) | targets, DNS, health checks, балансировка и retry |
+| [Конфиг сайта](site-config) | `site.yaml` рядом с release, `current`/`prev` и rollback |
+| [TLS, auth и WAF](security) | ACME, mTLS, OIDC/JWT, политики и ограничения |
+| [Reload и конфликты](tls-reload) | snapshots, validation, digest и atomic apply |
 | [Management API](management-api) | HTTP-интерфейс управления |
-| [Безопасность](security) | токены, service accounts, security-заголовки, rate limit, CORS |
+| [Секреты и переменные](secrets) | include-дерево, `env:`, `file:`, подстановка и redaction |

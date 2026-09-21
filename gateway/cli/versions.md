@@ -27,8 +27,8 @@ gateway rollback <slug>   # prev становится current
 
 ```bash
 gateway versions blog
-# currents: v3 (2026-01-15) … prev: v2 (2026-01-10)
+# current: release-2026-01-15 … prev: release-2026-01-10
 
-gateway rollback blog   # v2 снова current
-gateway current blog    # …/sites/blog/current -> v2
+gateway rollback blog   # release-2026-01-10 снова current
+gateway current blog    # …/sites/blog/current -> release-2026-01-10
 ```

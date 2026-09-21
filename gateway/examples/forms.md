@@ -1,8 +1,8 @@
 # Формы на сайте: плагин forms-db
 
 Плагин **forms-db** сохраняет отправки форм в SQLite/PostgreSQL/MySQL и
-отдаёт их списком или по удалению. Вызовы — через `apiRoutes`: gateway сам
-прокидывает HTTP-запрос в capability плагина.
+отдаёт их списком или по удалению. YAML-route явно назначает capability
+плагина, а gateway передаёт ей HTTP-запрос.
 
 ## 1. Конфиг плагина
 
@@ -18,40 +18,22 @@ tablePrefix: form_
 
 ```yaml
 plugins:
-  forms-db:
-    manifest:
-      name: forms-db
-      capabilities: [forms.submit, forms.list, forms.delete]
-    enabled: true
+  forms:
     binary: ./bin/forms-db
     config: ./conf/forms-db.yaml
-    autoRestart: true
-
-management:
-  enabled: true
-  port: "18090"
-  token: ""
-
-server:
-  - serverName: [site.localhost]
-    site: site
-    index: index.html
-    apiRoutes:
-      - methods: [POST]
-        path: /api/forms/submit
-        plugin:
-          instance: forms-db
-          capability: forms.submit
-      - methods: [GET]
-        path: /api/forms/list
-        plugin:
-          instance: forms-db
-          capability: forms.list
-      - methods: [POST, DELETE]
-        path: /api/forms/delete
-        plugin:
-          instance: forms-db
-          capability: forms.delete
+    capabilities: [forms.submit, forms.list, forms.delete]
+    restart: { enabled: true, backoff: 1s }
+listeners:
+  web:
+    type: http
+    address: ':80'
+    routes:
+      - when: { host: site.localhost, method: [POST], path: { exact: /api/forms/submit } }
+        then: { plugin: { instance: forms, capability: forms.submit } }
+      - when: { host: site.localhost, method: [GET], path: { exact: /api/forms/list } }
+        then: { plugin: { instance: forms, capability: forms.list } }
+      - when: { host: site.localhost, method: [POST, DELETE], path: { exact: /api/forms/delete } }
+        then: { plugin: { instance: forms, capability: forms.delete } }
 ```
 
 ## 3. Проверка
@@ -79,13 +61,13 @@ curl -H 'Host: site.localhost' \
 
 ```bash
 curl http://localhost:18090/api/plugins
-curl http://localhost:18090/api/plugins/forms-db/logs
+curl http://localhost:9090/api/plugins/forms/logs
 ```
 
 Примечания:
 
 - Разные СУБД (placeholder-синтаксис, драйверы, возможности) скрыты внутри
   плагина общим repository-контрактом — в конфиге меняется только `driver`/`dsn`.
-- `autoRestart: true` — gateway перезапускает плагин при падении.
-- Runtime-настройки плагина меняются только в `gateway.yaml` + reload, а не в
-  браузере и не в отдельной таблице.
+- `restart.enabled: true` — gateway перезапускает плагин при падении.
+- Runtime-настройки плагина меняются через YAML + reload; capability не может
+  создать свой маршрут или публичный listener.

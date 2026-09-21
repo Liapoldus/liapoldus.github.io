@@ -16,20 +16,22 @@
   </a>
   <a class="card" href="/gateway/examples/proxy">
     <h3>Reverse proxy</h3>
-    <p>proxyPass и маршруты на бэкенд, SPA-fallback на index.html.</p>
+    <p>Upstream, OIDC, WAF и SPA fallback.</p>
   </a>
   <a class="card" href="/gateway/examples/tls">
-    <h3>TLS и SNI</h3>
-    <p>Мульти-сертификатный слушатель, выбор по SNI, HTTP/2 (ALPN h2).</p>
+    <h3>ACME TLS и mTLS</h3>
+    <p>Сертификаты, HTTP/3 и service-to-service защита.</p>
   </a>
   <a class="card" href="/gateway/examples/forms">
     <h3>Формы на сайте</h3>
-    <p>Плагин forms-db: apiRoutes для submit/list/delete.</p>
+    <p>Плагин forms-db через явно назначенные YAML-routes.</p>
   </a>
   <a class="card" href="/gateway/examples/captcha">
     <h3>Капча на сайте</h3>
     <p>Плагин captcha: проверка токена Cloudflare/reCAPTCHA/hCaptcha.</p>
   </a>
+  <a class="card" href="/gateway/examples/tcp"><h3>TCP passthrough</h3><p>Маршрутизация TLS-потоков по SNI.</p></a>
+  <a class="card" href="/gateway/examples/udp-p2p"><h3>UDP и P2P relay</h3><p>Защищённые datagram flows и plugin target.</p></a>
 </div>
 
 ## Общие шаги

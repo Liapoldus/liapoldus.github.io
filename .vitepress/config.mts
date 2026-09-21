@@ -84,7 +84,9 @@ export default withMermaid(
               { text: 'Обзор примеров', link: '/gateway/examples/' },
               { text: 'Простой сайт', link: '/gateway/examples/simple-site' },
               { text: 'Reverse proxy', link: '/gateway/examples/proxy' },
-              { text: 'TLS и SNI', link: '/gateway/examples/tls' },
+              { text: 'TLS, OIDC и WAF', link: '/gateway/examples/tls' },
+              { text: 'TCP passthrough', link: '/gateway/examples/tcp' },
+              { text: 'UDP и P2P relay', link: '/gateway/examples/udp-p2p' },
               { text: 'Формы на сайте', link: '/gateway/examples/forms' },
               { text: 'Капча на сайте', link: '/gateway/examples/captcha' }
             ]
@@ -96,11 +98,14 @@ export default withMermaid(
             items: [
               { text: 'Обзор и быстрый старт', link: '/gateway/configuration/' },
               { text: 'Корневая схема', link: '/gateway/configuration/root-schema' },
-              { text: 'Server-блоки', link: '/gateway/configuration/server-blocks' },
+              { text: 'Маршруты и условия', link: '/gateway/configuration/server-blocks' },
+              { text: 'TCP, UDP и P2P', link: '/gateway/configuration/transports' },
+              { text: 'Upstream и балансировка', link: '/gateway/configuration/upstreams' },
+              { text: 'TLS, auth и WAF', link: '/gateway/configuration/security' },
               { text: 'Конфиг сайта', link: '/gateway/configuration/site-config' },
-              { text: 'TLS и Reload', link: '/gateway/configuration/tls-reload' },
+              { text: 'Reload и конфликты', link: '/gateway/configuration/tls-reload' },
               { text: 'Management API', link: '/gateway/configuration/management-api' },
-              { text: 'Безопасность', link: '/gateway/configuration/security' }
+              { text: 'Секреты и переменные', link: '/gateway/configuration/secrets' }
             ]
           }
         ],
@@ -128,8 +133,8 @@ export default withMermaid(
             items: [
               { text: 'Обзор', link: '/gateway/architecture/' },
               { text: 'Границы и решения', link: '/gateway/architecture/target' },
-              { text: 'Структура проектов', link: '/gateway/architecture/structure' },
-              { text: 'Gateway: data/control plane', link: '/gateway/architecture/gateway' },
+              { text: 'Компоненты runtime', link: '/gateway/architecture/gateway' },
+              { text: 'Кодовая архитектура', link: '/gateway/architecture/structure' },
               { text: 'Plugin protocol', link: '/gateway/architecture/protocol' },
               { text: 'Контракт протокола', link: '/gateway/architecture/contract' },
               { text: 'Гайд: создание плагина', link: '/gateway/architecture/guide' }

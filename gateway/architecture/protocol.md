@@ -160,6 +160,18 @@ sequenceDiagram
 - Backpressure: сессия имеет буферизованные каналы на stream + TCP flow control;
   это гарантирует целостность потока и отсутствие потерь.
 
+## L4 sessions и UDP flows
+
+После выбора YAML-rule Gateway открывает capability session для TCP либо
+datagram flow для UDP. Gateway остаётся владельцем публичного socket, лимитов,
+TLS и маршрутизации; plugin получает только поток/датаграммы и разрешённый
+контекст. Плагин не открывает listener и не определяет сетевую политику.
+
+TCP session использует bidirectional stream с lifecycle connect → data → close.
+UDP flow использует сообщения datagram → result до flow idle timeout. Отмена,
+backpressure, payload limits и typed errors соответствуют общему protocol
+contract.
+
 ## Cancellation и deadlines
 
 - У каждой операции есть `context.Context`; при истечении deadline gateway шлёт

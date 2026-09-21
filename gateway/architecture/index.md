@@ -6,13 +6,12 @@
 
 Liapoldus состоит из:
 
-1. **Gateway** — самостоятельный multi-tenant L7 reverse proxy («микро-nginx»).
-   Работает без собственной БД: читает персональные конфиги и готовые
-   артефакты сборки с диска (registry-volume) и управляет внешними
-   plugin-процессами.
+1. **Gateway** — самостоятельный multi-tenant web server и reverse proxy.
+   Он принимает HTTP(S), TCP и UDP, компилирует YAML в immutable runtime
+   snapshots, управляет TLS, upstream и внешними plugin-процессами.
 2. **Plugins** — отдельные кроссплатформенные процессы, которые gateway
-   запускает и вызывает через plugin protocol. Плагин не знает о системе
-   управления gateway.
+   запускает и вызывает только из YAML-rule через plugin protocol. Плагин не
+   создаёт публичный listener и не управляет маршрутизацией gateway.
 
 Gateway — единственная обязательная часть; plugins подключаются по мере
 надобности.
@@ -67,7 +66,7 @@ flowchart LR
 | **Gateway без БД** | конфиги и версии сайтов — файлы на диске (registry); runtime — производная величина от файлов |
 | **Один процесс** | data plane и управление в едином process; нет отдельных сервисов |
 | **Plugins — отдельные процессы** | gateway запускает инстансы; несколько инстансов одного binary с разными конфигами |
-| **TCP, не HTTP/gRPC** | plugin IPC — localhost TCP + protobuf + length-prefixed frames |
+| **Явный plugin target** | route или L4-rule назначает capability; плагин не добавляет скрытые endpoint’ы |
 | **DDD-слои** | единая структура всех Go-проектов и общая библиотека `pkg` через `go.work` |
 
 ## Документы

@@ -1,83 +1,112 @@
 # Корневая схема
 
-Полный вид `gateway.yaml` (комментированный) и справочник корневых ключей.
-Server-блоки и конфиг сайта — отдельных страницах.
+`gateway.yaml` — точка входа конфигурации. Он описывает process-level ресурсы
+и подключает остальные YAML-файлы. Все ссылки на именованные ресурсы должны
+разрешиться при компиляции конфига; gateway не запускается с частично валидной
+конфигурацией.
 
 ```yaml
-instance:                        # идентификация процесса
-  mode: gateway
-  name: Liapoldus gateway
+includes: [./conf.d/*.yaml]             # относительные файлы и glob
 
-registry: ./data/registry        # корень реестра сайтов
+variables:
+  publicDomain: example.com
+secrets:
+  oidcClientSecret: env:OIDC_CLIENT_SECRET
+  dnsToken: file:/run/secrets/dns-token
 
-listen: "18080"                  # публичный порт по умолчанию
+registry:
+  path: ./data/registry
 
-management:                      # резервированный порт управления
-  enabled: true
-  port: "18090"
-  token: ""                      # пусто = только loopback
+upstreams:
+  app-api:
+    targets: [{ address: https://api.internal:8443 }]
+    discovery: { dns: api.internal, interval: 30s }
+    healthCheck: { path: /healthz, interval: 10s, timeout: 2s }
+    balance: least-connections             # round-robin | least-connections | hash
 
-controlPlane:                    # service accounts для management API
-  auth:
-    serviceAccounts:
-      - id: ops
-        role: platform-admin     # platform-admin | tenant-admin
-        keyHash: "$2a$10$..."    # bcrypt-хеш ключа lpgw_<id>_<hex>
+tlsProfiles:
+  public:
+    certificates:
+      - domains: [${publicDomain}, www.${publicDomain}]
+        acme: { issuer: lets-encrypt, email: ops@example.com }
+  internal-mtls:
+    certificates: [{ cert: file:/etc/liapoldus/internal.crt, key: file:/etc/liapoldus/internal.key }]
+    clientAuth: { mode: require, ca: file:/etc/liapoldus/clients-ca.pem }
 
-include: ["./conf.d/*.yaml"]     # доп. конфиги (server-блоки объединяются)
+authPolicies:
+  users:
+    oidc: { issuer: https://id.example.com, clientId: liapoldus, clientSecret: ${oidcClientSecret} }
+    jwt: { jwksUrl: https://id.example.com/keys, audiences: [public-api] }
 
-tenants:                         # изолированные владельцы ресурсов
-  - id: acme
-    domains: [acme.localhost]
+wafPolicies:
+  public:
+    rules:
+      - when: { requestSize: { gt: 10MiB } }
+        then: { deny: { status: 413 } }
+      - when: { sourceIp: { notIn: [10.0.0.0/8] }, path: { regex: '^/admin' } }
+        then: { challenge: { provider: captcha } }
 
-http:                            # таймауты публичных слушателей
-  readTimeout: 30s
-  writeTimeout: 30s
-  idleTimeout: 120s
-  maxHeaderBytes: 65536
+rateLimits:
+  public-api: { key: source-ip, requests: 120, per: 1m, burst: 30 }
 
-logging:                         # access-лог
-  access: [stdout]               # или путь к файлу
-  format: json                   # json | plain
-
-metrics:                         # наблюдаемость
-  prometheus: true
-  otlp:
-    enabled: false
-    endpoint: ""
-    interval: "15s"
-
-server:                          # серверные блоки (см. server-blocks)
-  - listen: "18080"
-    serverName: ["blog.localhost"]
-    site: blog
-
-plugins:                         # внешние плагины (см. «Плагины»)
-  forms-db:
-    manifest:
-      capabilities: [forms.submit, forms.list, forms.delete]
-    enabled: true
+plugins:
+  forms:
     binary: ./bin/forms-db
-    config: ./conf/forms-db.yaml
+    config: ./plugins/forms.yaml
+    capabilities: [forms.submit, forms.list]
+    limits: { calls: 100, timeout: 5s, memory: 256MiB }
+
+sites:
+  blog: { path: ./data/registry/sites/blog }
+
+listeners:
+  public-http:
+    type: http
+    address: ':80'
+    routes:
+      - when: { host: [${publicDomain}, www.${publicDomain}] }
+        then: { redirect: { scheme: https, status: 308 } }
+  public-https:
+    type: http
+    address: ':443'
+    tls: public
+    routes:
+      - when: { host: ${publicDomain}, path: { prefix: /api/ } }
+        then: { proxy: app-api, auth: users, waf: public, rateLimit: public-api }
+      - when: { host: ${publicDomain} }
+        then: { site: blog }
+  tunnel:
+    type: tcp
+    address: ':8443'
+    tls: { mode: passthrough }
+    rules:
+      - when: { sni: relay.example.com }
+        then: { plugin: { instance: forms, capability: relay.tcp } }
+
+management:
+  address: 127.0.0.1:9090
+  serviceAccounts:
+    - id: ops
+      role: platform-admin
+      keyHash: file:/run/secrets/ops-key-hash
+
+logging: { format: json, access: [stdout] }
+metrics: { prometheus: true, otlp: { endpoint: https://otel.example.com, interval: 15s } }
+tracing: { otlp: { endpoint: https://otel.example.com }, sampling: parent-based }
 ```
 
-## Справочник корневых ключей
+## Корневые разделы
 
-| Ключ | Назначение | По умолчанию |
-| --- | --- | --- |
-| `instance.mode` | режим процесса: `gateway` или `single` | — |
-| `instance.name` | имя процесса (в логах) | — |
-| `registry` | корень реестра сайтов `sites/<slug>/…` | — |
-| `listen` | публичный порт по умолчанию | — |
-| `management` | порт управления + токен (`enabled` требует `port`) | выключен |
-| `controlPlane.auth.serviceAccounts` | service accounts управления | `[]` |
-| `include` | доп. конфиги; server-блоки объединяются | `[]` |
-| `tenants` | изолированные владельцы ресурсов | `[]` |
-| `http` | таймауты публичных слушателей | 30s/30s/120s/64K |
-| `logging` | access-лог: `access` (куда), `format` (`json`/`plain`) | `[stdout]`, `plain` |
-| `metrics` | `prometheus` (bool) + `otlp` (endpoint, interval) | выключены |
-| `server` | серверные блоки | `[]` |
-| `plugins` | декларации плагинов | `{}` |
+| Раздел | Назначение |
+| --- | --- |
+| `includes` | дерево YAML-файлов, объединяемое до валидации |
+| `variables`, `secrets` | безопасные значения и ссылки, доступные через `${name}` |
+| `registry`, `sites` | опубликованные артефакты и их site YAML |
+| `listeners` | HTTP, TCP и UDP точки входа с маршрутами/правилами |
+| `upstreams` | discovery, health checks, балансировка и retry |
+| `tlsProfiles`, `authPolicies`, `wafPolicies`, `rateLimits` | именованные политики, на которые ссылаются правила |
+| `plugins` | процессы и разрешённые capabilities |
+| `management`, `logging`, `metrics`, `tracing` | управление и наблюдаемость |
 
-> Плагины и service accounts хранятся только в корневом `gateway.yaml`,
-> не в tenant include.
+Семантика include, переменных и секретов описана в [Секреты и переменные](secrets).
+Маршрутизация — в [Маршруты и условия](server-blocks).
