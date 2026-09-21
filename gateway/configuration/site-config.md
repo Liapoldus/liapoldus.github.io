@@ -5,7 +5,7 @@
 `sites/<slug>/releases/<revision>/`. В `site.yaml` запрещены домены, listener,
 upstream и credentials: публичное назначение делает route в `gateway.yaml`.
 
-Каноническая исполнимая схема — [site.schema.json](/spec/site.schema.json).
+Каноническая исполнимая схема — <a href="/spec/site.schema.json" target="_blank" rel="noopener">site.schema.json</a>.
 Неизвестный ключ, неверный тип, несуществующий `index` или путь за пределами
 release дают `site_invalid` с YAML path; release не публикуется.
 

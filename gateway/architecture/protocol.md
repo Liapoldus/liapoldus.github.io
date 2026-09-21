@@ -46,7 +46,7 @@ UDP (UDP не гарантирует доставку, порядок, цело�
 ## Нормативные сообщения
 
 Полный wire-контракт v1, включая field numbers, `Manifest`, `ConfigSchema` и
-`ConfigField`, находится в [plugin.proto](/spec/plugin.proto). Payload
+`ConfigField`, находится в <a href="/spec/plugin.proto" target="_blank" rel="noopener">plugin.proto</a>. Payload
 бизнес-вызова — JSON согласно capability contract; unary payload ограничен
 10 MiB, frame — 1 MiB, большие данные передаются `STREAM_DATA` фрагментами.
 

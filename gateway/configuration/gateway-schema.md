@@ -2,8 +2,8 @@
 
 Канонические исполнимые схемы конфигурации:
 
-- [gateway.schema.json](/spec/gateway.schema.json) — `gateway.yaml`;
-- [site.schema.json](/spec/site.schema.json) — `site.yaml`.
+- <a href="/spec/gateway.schema.json" target="_blank" rel="noopener">gateway.schema.json</a> — `gateway.yaml`;
+- <a href="/spec/site.schema.json" target="_blank" rel="noopener">site.schema.json</a> — `site.yaml`.
 
 Обе используют JSON Schema Draft 2020-12. Примеры и остальные Markdown-страницы
 не расширяют эти контракты.
