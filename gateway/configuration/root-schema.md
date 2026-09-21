@@ -12,7 +12,7 @@ variables:
   publicDomain: example.com
 secrets:
   oidcClientSecret: env:OIDC_CLIENT_SECRET
-  dnsToken: file:/run/secrets/dns-token
+  cloudflareDnsToken: file:/run/secrets/cloudflare-dns-token
 
 registry:
   path: ./data/registry
@@ -28,7 +28,7 @@ tlsProfiles:
   public:
     certificates:
       - domains: [${publicDomain}, www.${publicDomain}]
-        acme: { issuer: lets-encrypt, email: ops@example.com }
+        issuer: public-acme
   internal-mtls:
     certificates: [{ cert: file:/etc/liapoldus/internal.crt, key: file:/etc/liapoldus/internal.key }]
     clientAuth: { mode: require, ca: file:/etc/liapoldus/clients-ca.pem }
@@ -55,6 +55,25 @@ plugins:
     config: ./plugins/forms.yaml
     capabilities: [forms.submit, forms.list]
     limits: { calls: 100, timeout: 5s, memory: 256MiB }
+  tls-issuer:
+    binary: ./bin/tls-issuer
+    config: ./plugins/tls-issuer.yaml
+    capabilities: [tls.issue, tls.renew, tls.revoke]
+    grants:
+      storage: [tls-public]
+      secrets:
+        - name: cloudflareDnsToken
+          purpose: acme-dns01
+          domains: [${publicDomain}]
+
+tlsIssuers:
+  public-acme:
+    plugin: { instance: tls-issuer, capability: tls.issue }
+    storage: tls-public
+    challenges:
+      http01: { listener: public-http }
+      dns01: { secret: cloudflareDnsToken }
+    renewal: { before: 30d, retry: { initial: 5m, max: 12h } }
 
 sites:
   blog: { path: ./data/registry/sites/blog }
@@ -104,7 +123,7 @@ tracing: { otlp: { endpoint: https://otel.example.com }, sampling: parent-based 
 | `registry`, `sites` | опубликованные артефакты и их site YAML |
 | `listeners` | HTTP, TCP и UDP точки входа с маршрутами/правилами |
 | `upstreams` | discovery, health checks, балансировка и retry |
-| `tlsProfiles`, `authPolicies`, `wafPolicies`, `rateLimits` | именованные политики, на которые ссылаются правила |
+| `tlsProfiles`, `tlsIssuers`, `authPolicies`, `wafPolicies`, `rateLimits` | именованные политики, issuer’ы и правила |
 | `plugins` | процессы и разрешённые capabilities |
 | `management`, `logging`, `metrics`, `tracing` | управление и наблюдаемость |
 

@@ -146,6 +146,7 @@ export default withMermaid(
             text: 'Плагины',
             items: [
               { text: 'Обзор и настройка', link: '/plugins/' },
+              { text: 'tls-issuer', link: '/plugins/tls-issuer' },
               { text: 'forms-db', link: '/plugins/forms-db' },
               { text: 'captcha', link: '/plugins/captcha' }
             ]

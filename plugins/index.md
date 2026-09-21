@@ -58,9 +58,18 @@ Supervisor запускает процесс на loopback IPC, проверяе
 маршрутизацию. `GET /api/plugins` показывает состояние, health, limits и
 capabilities; logs проходят redaction и доступны через endpoint instance.
 
+## Control-plane plugins
+
+Некоторые capabilities обслуживают инфраструктуру Gateway, а не публичный
+route. Они всё равно объявлены в YAML и не получают произвольных прав. Например,
+`tls-issuer` вызывается именованным `tlsIssuer`; Gateway передаёт ему ACME
+задание и scoped storage/secret grants, но сам записывает ключи и сертификаты,
+публикует TLS snapshot и ведёт audit.
+
 ## Существующие плагины
 
 <div class="cards">
+  <a class="card" href="/plugins/tls-issuer"><h3>tls-issuer</h3><p>ACME HTTP-01/DNS-01 и безопасное обновление TLS/mTLS материалов.</p></a>
   <a class="card" href="/plugins/forms-db"><h3>forms-db</h3><p>Сохранение и управление отправками форм.</p></a>
   <a class="card" href="/plugins/captcha"><h3>captcha</h3><p>Проверка challenge провайдеров.</p></a>
 </div>

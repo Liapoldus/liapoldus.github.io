@@ -35,11 +35,11 @@ cases. Нарушение направлений проверяет architecture
 | Конфигурация | `ConfigSource`, `IncludeResolver`, `SecretResolver`, `Compiler`, `CompiledGraph`, `Revision` |
 | Runtime | `RuntimeSnapshot`, `SnapshotStore`, `Listener`, `Connection`, `DatagramFlow` |
 | Маршрутизация | `Matcher`, `Condition`, `Route`, `Action`, `PolicyChain` |
-| TLS | `TLSProfile`, `CertificateProvider`, `ACMEIssuer`, `ClientIdentityVerifier` |
+| TLS | `TLSProfile`, `CertificateProvider`, `ACMEIssuer`, `CertificateStorage`, `ClientIdentityVerifier` |
 | Upstream | `Upstream`, `EndpointResolver`, `HealthChecker`, `LoadBalancer`, `ConnectionPool` |
 | Безопасность | `Authenticator`, `TokenVerifier`, `OIDCClient`, `WAFPolicy`, `RateLimiter` |
 | Registry | `Site`, `Release`, `PublicationStore`, `RollbackService` |
-| Plugins | `PluginInstance`, `Capability`, `PluginSession`, `PluginSupervisor` |
+| Plugins | `PluginInstance`, `Capability`, `PluginSession`, `PluginSupervisor`, `ScopedGrantBroker` |
 | Управление | `Actor`, `Authorizer`, `AuditLog`, `ConfigWriter` |
 | Наблюдаемость | `Telemetry`, `RequestContext`, `Redactor` |
 
@@ -50,6 +50,12 @@ cases. Нарушение направлений проверяет architecture
 `ResourceExhausted` и `ApplyFailed`. Presentation отображает их в YAML-path,
 HTTP status или CLI exit code; infrastructure не определяет публичные коды
 ответа.
+
+`CertificateStorage` принадлежит Gateway и работает с opaque certificate
+handles. `ScopedGrantBroker` создаёт краткоживущий grant только для названных
+storage objects, secret purpose и доменов; plugin не получает path, filesystem
+handle или доступ к неразрешённому secret. После завершения control-plane call
+grant отзывается независимо от результата ACME операции.
 
 Общая библиотека ограничена transport-neutral plugin IPC primitives. Модели
 конфигурации, auth и политик не выносятся в shared package: ядро остаётся

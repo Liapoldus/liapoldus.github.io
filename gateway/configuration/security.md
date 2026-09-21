@@ -7,11 +7,18 @@ WAF policy и rate limit. Все они именованы в корневом Y
 ## TLS
 
 ```yaml
+tlsIssuers:
+  public-acme:
+    plugin: { instance: tls-issuer, capability: tls.issue }
+    storage: tls-public
+    challenges:
+      http01: { listener: public-http }
+      dns01: { secret: cloudflareDnsToken }
 tlsProfiles:
   public:
     certificates:
       - domains: [example.com, www.example.com]
-        acme: { issuer: lets-encrypt, email: ops@example.com, storage: file:/var/lib/liapoldus/acme }
+        issuer: public-acme
     protocols: [http/1.1, h2, h3]
     securityHeaders:
       strictTransportSecurity: max-age=31536000; includeSubDomains
@@ -21,8 +28,9 @@ tlsProfiles:
     clientAuth: { mode: require, ca: file:/etc/liapoldus/clients-ca.pem }
 ```
 
-Сертификат выбирается по SNI. ACME обновляет сертификаты в указанном
-защищённом storage и добавляет их в следующий runtime snapshot. TCP listener
+Сертификат выбирается по SNI. `tls-issuer` получает ACME-задание, а Gateway
+сам хранит account key, приватный ключ и сертификат в защищённом storage,
+проверяет grants и добавляет результат в следующий runtime snapshot. TCP listener
 может завершать TLS (`terminate`) или передавать зашифрованный поток по SNI
 (`passthrough`). mTLS доступен только при termination.
 

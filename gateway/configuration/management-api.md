@@ -31,6 +31,9 @@ Management API — control plane Gateway. Он доступен только н�
 | `GET` | `/api/plugins` | instances, capabilities, limits и health |
 | `POST` | `/api/plugins/{id}/restart` | graceful restart instance |
 | `GET` | `/api/plugins/{id}/logs` | redacted ring buffer plugin logs |
+| `GET` | `/api/tls` | TLS profiles, certificate metadata и renewal state |
+| `POST` | `/api/tls/{issuer}/renew` | запросить renewal через назначенный tls-issuer |
+| `POST` | `/api/tls/{issuer}/revoke` | отозвать certificate с audit trail |
 
 ## Наблюдаемость
 
