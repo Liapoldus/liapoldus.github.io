@@ -1,4 +1,4 @@
-# Plugin protocol v2
+# Plugin protocol
 
 Transport и wire-формат взаимодействия gateway с plugin-процессами. Это
 единственный способ IPC: **никакого HTTP/gRPC для plugin-протокола** и никакого
@@ -28,7 +28,6 @@ flowchart LR
         MSG["protobuf Frame{...}"]
     end
     subgraph msg["Frame (plugin.proto)"]
-        V["version: uint32"]
         K["kind: FRAME_KIND_CALL|CALL_RESULT|STREAM_OPEN|STREAM_DATA|STREAM_CLOSE|CANCEL|EVENT|ERROR"]
         RID["request_id: uint64"]
         SID["stream_id: uint64"]
@@ -86,11 +85,11 @@ message Error {
 - `payload` бизнес-методов — JSON (gateway-проксирование возвращает его как
   есть).
 
-## Методы протокола (ProtocolV2 = `liapoldus.plugin/v2`)
+## Методы протокола
 
 | Метод | Тип | Назначение |
 | --- | --- | --- |
-| `manifest` | unary | self-description: имя, версия, protocol, capabilities |
+| `manifest` | unary | self-description: имя и capabilities |
 | `health` | unary | `{ready: true}` — готовность |
 | `config.schema` | unary | YAML-схема конфига плагина |
 | `config.apply` | unary | применить runtime-конфиг (payload — содержимое файла) |

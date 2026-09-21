@@ -19,7 +19,7 @@ binary; gateway сам запускает instance и передаёт порт 
 
 | Метод | Куда | Назначение |
 | --- | --- | --- |
-| `manifest` | gateway → plugin | имя, версия, protocol, capabilities |
+| `manifest` | gateway → plugin | имя и capabilities |
 | `health` | gateway → plugin | `{ready: true}` |
 | `config.schema` | gateway → plugin | YAML-схема конфигурации |
 | `config.apply` | gateway → plugin | применить runtime-конфиг (payload — содержимое файла) |
@@ -89,6 +89,6 @@ gateway приостанавливает отправку, если плагин
 | --- | --- |
 | Открыть сокет на `127.0.0.1:<port>` | до истечения `startTimeout` |
 | Ответить на `health` / `manifest` | там же |
-| Manifest совпадает с декларацией `gateway.yaml` | name, protocol, capabilities |
+| Manifest совпадает с декларацией `gateway.yaml` | name, capabilities |
 | `config.apply` → `{"applied": true}` | при старте |
 | Завершение по `shutdown` / `SIGTERM` | корректное |

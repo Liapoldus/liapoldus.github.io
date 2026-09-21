@@ -21,7 +21,6 @@ allowAnyHost: false
 plugins:
   captcha:
     manifest:
-      protocol: liapoldus.plugin/v2
       name: captcha
       capabilities: [captcha.verify]
     enabled: true

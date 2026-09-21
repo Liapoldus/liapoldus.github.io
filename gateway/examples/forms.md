@@ -20,7 +20,6 @@ tablePrefix: form_
 plugins:
   forms-db:
     manifest:
-      protocol: liapoldus.plugin/v2
       name: forms-db
       capabilities: [forms.submit, forms.list, forms.delete]
     enabled: true

@@ -8,7 +8,7 @@ export default withMermaid(
   defineConfig({
     title: 'Liapoldus',
     description:
-      'Liapoldus — набор компонентов для публикации сайтов: gateway, плагины, документация.',
+      'Целевая документация Liapoldus — платформы публикации публичных сайтов.',
     lang: 'ru-RU',
     base,
     cleanUrls: true,
@@ -26,7 +26,9 @@ export default withMermaid(
     themeConfig: {
       nav: [
         { text: 'Главная', link: '/' },
+        { text: 'О продукте', link: '/product/' },
         { component: 'GatewayNav' },
+        { text: 'Архитектура', link: '/gateway/architecture/' },
         { text: 'Плагины', link: '/plugins/' }
       ],
 
@@ -55,10 +57,24 @@ export default withMermaid(
       },
 
       sidebar: {
+        '/product/': [
+          {
+            text: 'О продукте',
+            items: [
+              { text: 'Обзор', link: '/product/' },
+              { text: 'Пользователи и UX', link: '/product/user-experience' }
+            ]
+          }
+        ],
         '/gateway/': [
           {
-            text: 'Gateway',
-            items: [{ text: 'Обзор', link: '/gateway/' }]
+            text: 'Начало работы',
+            items: [
+              { text: 'Gateway: обзор', link: '/gateway/' },
+              { text: 'Первый сайт', link: '/gateway/configuration/' },
+              { text: 'Практические сценарии', link: '/gateway/examples/' },
+              { text: 'Развёртывание', link: '/gateway/deploy/' }
+            ]
           }
         ],
         '/gateway/examples/': [
@@ -76,7 +92,7 @@ export default withMermaid(
         ],
         '/gateway/configuration/': [
           {
-            text: 'Configuration',
+            text: 'Конфигурация',
             items: [
               { text: 'Обзор и быстрый старт', link: '/gateway/configuration/' },
               { text: 'Корневая схема', link: '/gateway/configuration/root-schema' },
@@ -90,7 +106,7 @@ export default withMermaid(
         ],
         '/gateway/cli/': [
           {
-            text: 'CLI',
+            text: 'CLI и операции',
             items: [
               { text: 'Обзор', link: '/gateway/cli/' },
               { text: 'serve', link: '/gateway/cli/serve' },
@@ -102,7 +118,7 @@ export default withMermaid(
         ],
         '/gateway/deploy/': [
           {
-            text: 'Deploy',
+            text: 'Развёртывание',
             items: [{ text: 'Развёртывание', link: '/gateway/deploy/' }]
           }
         ],
@@ -111,6 +127,7 @@ export default withMermaid(
             text: 'Архитектура',
             items: [
               { text: 'Обзор', link: '/gateway/architecture/' },
+              { text: 'Границы и решения', link: '/gateway/architecture/target' },
               { text: 'Структура проектов', link: '/gateway/architecture/structure' },
               { text: 'Gateway: data/control plane', link: '/gateway/architecture/gateway' },
               { text: 'Plugin protocol', link: '/gateway/architecture/protocol' },

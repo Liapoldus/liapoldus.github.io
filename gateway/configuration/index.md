@@ -1,5 +1,10 @@
 # Конфигурация
 
+::: info Контракт конфигурации
+Эта страница — справочник публичного формата `gateway.yaml`. Gateway валидирует
+конфигурацию целиком до запуска и сообщает путь YAML при ошибке.
+:::
+
 Единый `gateway.yaml` («микро-nginx»). Весь источник состояния — на диске;
 БД у gateway нет. Путь задаётся `--config`, env `LIAPOLDUS_GATEWAY_CONFIG`
 либо default.
@@ -18,11 +23,10 @@
 
 ## Быстрый старт
 
-### 1. Соберите gateway
+### 1. Проверьте доступность gateway
 
 ```bash
-cd gateway/core
-go build ./cmd/gateway     # появится ./bin/gateway (или задайте -o)
+gateway help
 ```
 
 ### 2. Создайте конфиг
@@ -38,25 +42,19 @@ management:                # порт управления
   token: ""                # пусто = только loopback
 ```
 
-### 3. Опубликуйте простой сайт
+### 3. Подготовьте простой сайт
 
 ```bash
-mkdir -p data/registry/sites/example/current
-echo '<h1>Hello, Liapoldus</h1>' > data/registry/sites/example/current/index.html
-
-cat > data/registry/sites/example/config.yaml <<'YAML'
-slug: example
-hosts: [example.localhost, localhost]
-languages: [ru]
-defaultLang: ru
-loginRequired: false
-YAML
+data/registry/
+└── sites/example/
+    ├── current/index.html
+    └── config.yaml
 ```
 
 ### 4. Запустите и проверьте
 
 ```bash
-./bin/gateway serve
+gateway serve --config gateway.yaml
 curl -H 'Host: example.localhost' http://localhost:18080/   # -> <h1>Hello, Liapoldus</h1>
 curl http://localhost:18090/healthz                          # -> {"status":"ok",...}
 ```

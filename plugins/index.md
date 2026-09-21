@@ -21,7 +21,6 @@ TCP/protobuf и вызывает объявленные **capabilities**.
 plugins:
   forms-db:                      # id == ключ
     manifest:                    # ожидаемый контракт instance (обязательно)
-      protocol: liapoldus.plugin/v2
       name: forms-db
       capabilities: [forms.submit, forms.list, forms.delete]
     enabled: true                # запускать при старте gateway
@@ -41,7 +40,6 @@ plugins:
 | --- | --- | --- |
 | `plugins.<id>` | декларация instance; `id` — ключ секции | — |
 | `.manifest` | ожидаемый контракт instance | **обязательно** |
-| `.manifest.protocol` | версия протокола | `liapoldus.plugin/v2` |
 | `.manifest.name` | имя (должно совпадать с `id`) | — |
 | `.manifest.capabilities` | список capability | `[]` |
 | `.enabled` | запускать при старте gateway | `false` |
@@ -59,7 +57,6 @@ plugins:
 сверяет её с self-description запущенного плагина:
 
 - `name` запущенного плагина должен совпадать с id;
-- `protocol` должен совпадать;
 - каждая задекларированная capability обязана фактически рекламироваться
   плагином. Никакие capabilities не зашиты в ядро gateway.
 

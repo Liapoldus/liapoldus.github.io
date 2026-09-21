@@ -52,8 +52,6 @@ import (
     "liapoldus.local/pkg/pluginprotocol"
 )
 
-var version = "dev"
-
 func main() {
     port := flag.Int("port", 0, "localhost TCP port for plugin protocol")
     cfgPath := flag.String("config", "", "plugin YAML config")
@@ -96,16 +94,13 @@ Manifest — self-description плагина; gateway сверяет его с �
 ```go
 func manifest() pluginprotocol.Manifest {
     return pluginprotocol.Manifest{
-        Protocol:     pluginprotocol.ProtocolV2,
         Name:         "<name>",
-        Version:      version,
         Capabilities: []string{"<prefix>.<verb>"},
     }
 }
 
 func schema() pluginprotocol.ConfigSchema {
     return pluginprotocol.ConfigSchema{
-        Version: "v1",
         Fields: []pluginprotocol.ConfigField{
             {Name: "timeout", Type: "duration", Required: true, Default: "5s"},
             {Name: "mode", Type: "string", Options: []pluginprotocol.ConfigOption{{Value: "a"}, {Value: "b"}}},

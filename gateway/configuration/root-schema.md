@@ -55,7 +55,6 @@ server:                          # серверные блоки (см. server-b
 plugins:                         # внешние плагины (см. «Плагины»)
   forms-db:
     manifest:
-      protocol: liapoldus.plugin/v2
       capabilities: [forms.submit, forms.list, forms.delete]
     enabled: true
     binary: ./bin/forms-db
