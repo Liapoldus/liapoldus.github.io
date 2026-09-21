@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { basename, extname, join, resolve } from 'node:path'
 import type { Plugin } from 'vite'
 
 const sourceDirectory = resolve(process.cwd(), 'diagrams')
 const outputDirectory = resolve(process.cwd(), 'public/diagrams')
+const puppeteerConfig = join(process.cwd(), '.vitepress/plugins/puppeteer-config.json')
 const cliPath = join(
   process.cwd(),
   'node_modules/.bin',
@@ -17,17 +18,33 @@ function outputPath(source: string) {
 }
 
 function renderDiagram(source: string) {
-  execFileSync(cliPath, ['-i', source, '-o', outputPath(source), '-b', 'transparent', '-t', 'neutral'], {
-    cwd: process.cwd(),
-    stdio: 'inherit'
-  })
+  execFileSync(
+    cliPath,
+    ['-i', source, '-o', outputPath(source), '-b', 'transparent', '-t', 'neutral', '-p', puppeteerConfig],
+    {
+      cwd: process.cwd(),
+      stdio: 'inherit'
+    }
+  )
 }
 
 function renderAllDiagrams() {
   if (!existsSync(sourceDirectory)) return
   mkdirSync(outputDirectory, { recursive: true })
   for (const file of readdirSync(sourceDirectory).filter((file) => extname(file) === '.mmd')) {
-    renderDiagram(join(sourceDirectory, file))
+    const source = join(sourceDirectory, file)
+    // В CI (GitHub Actions) headless-браузер недоступен: не роняем сборку,
+    // а используем уже закоммиченные SVG в public/diagrams.
+    try {
+      renderDiagram(source)
+    } catch (error) {
+      const output = outputPath(source)
+      if (!existsSync(output)) throw error
+      console.warn(
+        `[liapoldus-static-diagrams] Не удалось перегенерировать схему ${file};` +
+          ` используется существующий ${output}: ${String(error)}`
+      )
+    }
   }
 }
 
