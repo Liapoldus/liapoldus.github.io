@@ -1,84 +1,60 @@
 # Liapoldus: архитектура
 
-Архитектура задаёт состав системы, её внешние контракты и границы
-ответственности. Детальные страницы фиксируют поведение продукта и правила,
-которым следует реализация.
+Архитектура фиксирует то, что обязана сохранить любая реализация: владельцев
+состояния, границы доверия, жизненный цикл изменения и публичные контракты.
+Она не предписывает внутренние классы или конкретную инфраструктурную
+технологию.
 
-Liapoldus состоит из:
-
-1. **Gateway** — самостоятельный multi-tenant web server и reverse proxy.
-   Он принимает HTTP(S), TCP и UDP, компилирует YAML в immutable runtime
-   snapshots, управляет TLS, upstream и внешними plugin-процессами.
-2. **Plugins** — отдельные кроссплатформенные процессы, которые gateway
-   запускает и вызывает только из YAML-rule через plugin protocol. Плагин не
-   создаёт публичный listener и не управляет маршрутизацией gateway.
-
-Gateway — единственная обязательная часть; plugins подключаются по мере
-надобности.
+Liapoldus состоит из обязательного **Gateway** и опциональных **plugins**.
+Gateway владеет публичным трафиком, конфигурацией, runtime-снимком и
+безопасностью. Плагин выполняет только явно выданную capability; он не создаёт
+публичные маршруты и не становится владельцем состояния Gateway.
 
 ## Общая схема
 
 ```mermaid
 flowchart LR
-    subgraph client["Клиент (браузер)"]
-        HTTP[HTTP/HTTPS-запрос]
+    O[Оператор / CI] -->|YAML, CLI, API| CP
+    V[Посетитель] -->|HTTP(S), TCP, UDP| DP
+
+    subgraph G[Gateway]
+        CP[Local control plane<br/>validate · apply · audit]
+        SS[Active immutable snapshot]
+        DP[Data plane<br/>listen · route · policy]
+        PS[Plugin supervisor]
+        CP -->|атомарно активирует| SS
+        SS --> DP
+        SS --> PS
     end
 
-    subgraph gateway["gateway (процесс)"]
-        LISTEN[Публичный рантайм<br/>listen + SNI/TLS + h2c]
-        MGMT[Management-порт<br/>контроль и наблюдение]
-        SNAP[Immutable snapshot<br/>server-блоки из registry]
-        SUP[Супервизор плагинов]
-    end
-
-    subgraph registry["registry (volume на диске)"]
-        SITES[sites/&lt;slug&gt;/ ... версии]
-    end
-
-    subgraph plugins["plugin-процессы"]
-        P1[forms-db]
-        P2[captcha]
-        P3[прочие]
-    end
-
-    HTTP --> LISTEN
-    LISTEN --> SNAP
-    SNAP -->|файлы сайтов| SITES
-    LISTEN -->|capability call через loopback TCP| SUP
-    SUP --> P1
-    SUP --> P2
-    SUP --> P3
-    MGMT --> SNAP
-    MGMT --> SUP
+    R[(Файлы: config, registry,<br/>certificates)] --> CP
+    DP -->|static release| R
+    DP -->|явный target| U[Upstream]
+    DP -->|разрешённая capability| PS
+    PS -->|loopback IPC| P[Plugin instance]
+    G -->|logs · metrics · traces| M[Наблюдаемость]
 ```
 
-## Компоненты
+## Четыре правила реализации
 
-| Часть | Назначение | Зависимости |
-| --- | --- | --- |
-| **gateway** | публичный рантайм, раздача сайтов, плагины | без БД; читает файлы конфигов и registry |
-| **plugins** | отдельные binary: формы, капча и т.д. | TCP loopback + protobuf протокол |
-
-## Принципы
-
-| Принцип | Что это даёт |
-| --- | --- |
-| **Gateway без БД** | конфиги и версии сайтов — файлы на диске (registry); runtime — производная величина от файлов |
-| **Один процесс** | data plane и управление в едином process; нет отдельных сервисов |
-| **Plugins — отдельные процессы** | gateway запускает инстансы; несколько инстансов одного binary с разными конфигами |
-| **Явный plugin target** | route или L4-rule назначает capability; плагин не добавляет скрытые endpoint’ы |
-| **DDD-слои** | единая структура всех Go-проектов и общая библиотека `pkg` через `go.work` |
+1. **Файлы первичны.** Runtime — производная от валидных файлов; Gateway не
+   требует собственной БД для восстановления конфигурации и релизов.
+2. **Снимок целостен.** Новый runtime подготавливается полностью и только
+   затем атомарно становится активным. Ошибка не меняет обслуживаемый снимок.
+3. **Публичный сокет принадлежит Gateway.** Даже при proxy и плагинах именно
+   Gateway применяет маршрутизацию, TLS, авторизацию, лимиты и телеметрию.
+4. **Расширение выдаётся явно.** Instance плагина и capability проверяются при
+   компиляции конфигурации; IPC ограничен loopback и контрактом протокола.
 
 ## Документы
 
 | Файл | Содержание |
 | --- | --- |
-| [target.md](target.md) | Системный контекст, архитектурные решения и инварианты. |
-| [structure.md](structure.md) | Структура репозиториев, обязательные DDD-слои, правила зависимостей, общая библиотека `pkg`. |
-| [gateway.md](gateway.md) | Data plane и control plane gateway, путь запроса, immutable snapshot, управление и метрики. |
-| [protocol.md](protocol.md) | Transport: TCP loopback, protobuf, length-prefixed frames, multiplexing, методы, streams, ошибки → 5xx. |
-| [contract.md](contract.md) | Контракт протокола для авторов плагинов: методы, фреймы, streams, ошибки. |
-| [guide.md](guide.md) | Гайд создания плагина на Go с `pkg/pluginprotocol`. |
+| [Границы и решения](target.md) | Что входит в систему, инварианты и последствия архитектурных решений. |
+| [Компоненты runtime](gateway.md) | Владение компонентами, применение конфигурации и пути трафика. |
+| [Кодовая архитектура](structure.md) | Направление зависимостей и доменные порты реализации. |
+| [Plugin protocol](protocol.md) | Единственная wire-спецификация IPC: фреймы, методы, потоки и ошибки. |
+| [Гайд создания плагина](guide.md) | Практический контракт автора plugin binary. |
 
 Документация по декларации, супервизору и жизненному циклу плагинов —
 в разделе «[Плагины](/plugins/)».

@@ -6,23 +6,24 @@ YAML, registry и защищённое certificate storage.
 
 ```mermaid
 flowchart LR
-  C[Клиенты HTTP / TCP / UDP] --> LM[Listener Manager]
-  LM --> PD[Protocol Dispatcher]
-  PD --> HE[HTTP Engine]
-  PD --> LE[L4 Engine]
-  HE --> PE[Policy Engine]
+  C[Клиенты] --> LM[Listener manager]
+  LM --> PD[Protocol dispatcher]
+  PD --> HE[HTTP engine]
+  PD --> LE[L4 engine]
+  HE --> PE[Policy engine]
   LE --> PE
-  PE --> UP[Upstream Resolver / Pool]
-  PE --> PS[Plugin Supervisor]
-  HE --> SR[Site Registry]
-  CC[Config Compiler] --> SS[Snapshot Store]
-  SS --> LM
-  SS --> TM[TLS Manager]
+  PE --> SR[Site registry]
+  PE --> UP[Upstream pool]
+  PE --> PS[Plugin supervisor]
+
+  CP[Control plane] --> CC[Config compiler]
+  CC --> SS[Snapshot store]
+  SS -->|active snapshot| LM
+  SS --> TM[TLS manager]
   TM --> LM
-  CP[Control Plane] --> CC
-  O[Observability] <-->|logs metrics traces| LM
-  O <--> HE
-  O <--> LE
+  O[Observability] <-. события .-> LM
+  O <-. события .-> HE
+  O <-. события .-> LE
 ```
 
 ## Границы компонентов
@@ -55,16 +56,21 @@ sequenceDiagram
   C->>C: include, secrets, validation, regex compile
   C->>S: compiled resource graph
   S->>R: prepare listeners, TLS, pools, plugins
-  R-->>S: ready
-  S->>S: atomic active snapshot swap
-  S->>R: drain old snapshot
-  S-->>O: revision + digest + audit event
+  alt подготовка успешна
+    R-->>S: ready
+    S->>S: atomic active snapshot swap
+    S->>R: drain old snapshot
+    S-->>O: revision + digest + audit event
+  else подготовка неуспешна
+    R-->>S: typed error
+    S-->>O: error; active snapshot unchanged
+  end
 ```
 
 ## Пути трафика
 
 HTTP: listener → TLS termination при необходимости → dispatcher → route →
-policy chain → site/upstream/plugin → response telemetry.
+policy chain → site/upstream/plugin → response + telemetry.
 
 TCP: listener → optional ClientHello inspection or TLS termination → L4 rule →
 policy chain → bidirectional upstream/plugin session.

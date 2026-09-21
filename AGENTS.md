@@ -95,6 +95,8 @@ index.md                     # корневая страница (layout: home)
 ## Полезные ссылки в контенте
 
 - Канон конфигурации — `gateway/configuration/*`; CLI — `gateway/cli/*`;
-  декларация плагина — `plugins/index.md`; wire-канон — `architecture/protocol.md`,
-  его выжимка для авторов — `architecture/contract.md`.
+  декларация плагина — `plugins/index.md`; wire-канон и единственный контракт
+  IPC — `gateway/architecture/protocol.md`; практическая реализация —
+  `gateway/architecture/guide.md`. Страница `architecture/contract.md` сохранена
+  только как короткий совместимый указатель.
 - Решения по структуре/стилю сессии документируются в этом файле и в коммитах.

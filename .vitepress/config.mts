@@ -136,7 +136,6 @@ export default withMermaid(
               { text: 'Компоненты runtime', link: '/gateway/architecture/gateway' },
               { text: 'Кодовая архитектура', link: '/gateway/architecture/structure' },
               { text: 'Plugin protocol', link: '/gateway/architecture/protocol' },
-              { text: 'Контракт протокола', link: '/gateway/architecture/contract' },
               { text: 'Гайд: создание плагина', link: '/gateway/architecture/guide' }
             ]
           }
