@@ -1,48 +1,71 @@
 # Management API
 
-Management API — control plane Gateway. Он доступен только на отдельном
-`management.address`, использует service account и возвращает JSON. `/healthz`
-не требует авторизации; все остальные endpoints требуют `Authorization: Bearer`.
+Management API — local control plane на `management.address`. `/healthz` не
+требует авторизации; остальное требует `Authorization: Bearer <service-key>`.
+В v1 существует только роль `platform-admin`.
+
+## Общий контракт
+
+Все JSON-ответы несут `requestId`. Изменяющие операции пишут audit record.
+Ошибки имеют `Content-Type: application/problem+json`:
+
+```json
+{
+  "type": "https://liapoldus.dev/problems/validation",
+  "title": "Configuration is invalid",
+  "status": 422,
+  "code": "config_invalid",
+  "detail": "unknown field \"hosts\"",
+  "instance": "/api/config",
+  "requestId": "req_01J...",
+  "path": "listeners.web.routes[0]",
+  "diagnostics": [{"path":"…","code":"unknown_field","message":"…"}]
+}
+```
+
+`type`, `title`, `status`, `code`, `detail`, `instance` и `requestId` обязательны;
+`path`/`diagnostics` добавляются только для validation. `401`, `403`, `404`,
+`409`, `413`, `422`, `429`, `500`, `502`, `503` и `504` используют тот же формат.
 
 ## Конфигурация и runtime
 
-| Метод | Путь | Назначение |
+| Method / path | Request | Success | Failure |
+| --- | --- | --- | --- |
+| `GET /api/status` | — | `200` runtime, listeners, snapshot, health | `401` |
+| `GET /api/config` | — | `200 {yaml,revision,digest,requestId}`; secrets redacted | `401` |
+| `PUT /api/config` | YAML body, `If-Match` required | `200 {revision,digest,requestId}` | `409 digest_conflict`, `422 config_invalid` |
+| `POST /api/config/validate` | YAML body | `200 {valid:true,digest,requestId}` | `422 config_invalid` |
+| `POST /api/reload` | — | `200 {revision,digest,requestId}` | `409 restart_required`, `422 config_invalid` |
+| `GET /api/audit` | `cursor`, `limit` 1–100 (default 50) | `200 {items,nextCursor,requestId}` | `400 invalid_cursor` |
+
+`If-Match` принимает ровно digest active snapshot. Не совпавший digest ничего не
+перезаписывает и возвращает актуальные `revision` и `digest` в problem details.
+
+## Ресурсы и публикация
+
+| Method / path | Request | Success | Failure |
+| --- | --- | --- | --- |
+| `GET /api/sites` | `cursor`, `limit` | `200 {items,nextCursor,requestId}` | `400 invalid_cursor` |
+| `POST /api/sites/{slug}/publish` | `{source, idempotencyKey}` | `201 {site,revision,previousRevision,requestId}` | `409 publish_in_progress`, `422 release_invalid` |
+| `POST /api/sites/{slug}/rollback` | `{idempotencyKey}` | `200 {site,revision,previousRevision,requestId}` | `404 no_previous_release` |
+| `GET /api/listeners` | — | `200 {items,requestId}` | `401` |
+| `GET /api/upstreams` | — | `200 {items,requestId}` | `401` |
+| `GET /api/plugins` | — | `200 {items,requestId}` | `401` |
+| `POST /api/plugins/{id}/restart` | — | `202 {operationId,requestId}` | `404 plugin_not_found` |
+| `GET /api/plugins/{id}/logs` | `cursor`, `limit` 1–200 (default 100) | `200 {items,nextCursor,requestId}` | `404 plugin_not_found` |
+| `GET /api/tls` | — | `200 {items,requestId}` | `401` |
+| `POST /api/tls/{issuer}/renew` | `{domains?,idempotencyKey}` | `202 {operationId,requestId}` | `404 issuer_not_found` |
+| `POST /api/tls/{issuer}/revoke` | `{serial,idempotencyKey}` | `202 {operationId,requestId}` | `404 certificate_not_found` |
+
+`source` — absolute local path, доступный Gateway; body и каталог не принимаются
+по сети. `idempotencyKey` — 16–128 printable ASCII bytes; одинаковый ключ и
+маршрут повторяют сохранённый terminal response 24 часа. Параллельный publish
+одного `slug` возвращает `409`; другие сайты не блокируются.
+
+## Health и диагностика
+
+| Path | Auth | Response |
 | --- | --- | --- |
-| `GET` | `/api/status` | listeners, snapshots, upstream health, plugins и revision |
-| `GET` | `/api/config` | redacted YAML, revision и digest |
-| `PUT` | `/api/config` | записывает и применяет YAML с `If-Match` |
-| `POST` | `/api/config/validate` | компилирует переданный YAML без записи |
-| `POST` | `/api/reload` | перечитывает файловое дерево конфигурации |
-| `GET` | `/api/audit` | история применений и попыток изменений |
-
-`PUT /api/config` принимает `Content-Type: application/yaml` и обязательный
-`If-Match` с digest активного snapshot. При конфликте возвращает `409` с
-актуальными `revision` и `digest`; при validation error — `422` с YAML-path,
-без раскрытия секретов.
-
-## Управление ресурсами
-
-| Метод | Путь | Назначение |
-| --- | --- | --- |
-| `GET` | `/api/listeners` | listeners и состояние bind/drain |
-| `GET` | `/api/upstreams` | targets, DNS discovery и health |
-| `GET` | `/api/sites` | опубликованные сайты и active/previous release |
-| `POST` | `/api/sites/{slug}/rollback` | атомарный rollback сайта |
-| `GET` | `/api/plugins` | instances, capabilities, limits и health |
-| `POST` | `/api/plugins/{id}/restart` | graceful restart instance |
-| `GET` | `/api/plugins/{id}/logs` | redacted ring buffer plugin logs |
-| `GET` | `/api/tls` | TLS profiles, certificate metadata и renewal state |
-| `POST` | `/api/tls/{issuer}/renew` | запросить renewal через назначенный tls-issuer |
-| `POST` | `/api/tls/{issuer}/revoke` | отозвать certificate с audit trail |
-
-## Наблюдаемость
-
-| Путь | Назначение |
-| --- | --- |
-| `GET /healthz` | liveness и readiness |
-| `GET /metrics` | Prometheus metrics |
-| `GET /api/traces/{requestId}` | trace-link и диагностический контекст при наличии OTLP |
-
-Роли service account: `platform-admin` управляет всей конфигурацией,
-`tenant-admin` видит и изменяет только назначенные sites/resources,
-`observer` имеет read-only доступ к status, metrics и audit.
+| `GET /healthz` | no | `200 {"status":"ok","requestId":…}` либо `503` problem details |
+| `GET /metrics` | yes | Prometheus exposition из [наблюдаемости](observability) |
+| `GET /api/traces/{requestId}` | yes | `200 {traceId,traceUrl,requestId}` или `404 trace_not_found` |

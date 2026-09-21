@@ -1,34 +1,27 @@
 # Диагностика
 
-Чтение состояния сайтов и registry без запущенного runtime — пригодится при
-подозрении на «битый» диск или реестр.
+Команды читают registry без работающего runtime и не меняют состояние.
 
 ```bash
-gateway config  <slug>  # персональный конфиг сайта (unified schema, YAML)
-gateway routes  <slug>  # маршруты (matcher → target) и редиректы
-gateway status          # состояние всех сайтов на диске
-gateway health          # проверка здоровья registry (автономно)
+gateway config  <slug>
+gateway routes  <slug>
+gateway status
+gateway health
 ```
 
-| Подкоманда | Назначение |
+| Подкоманда | Результат |
 | --- | --- |
-| `config` | выводит `sites/<slug>/config.yaml` — единый источник для CLI, management API и runtime |
-| `routes` | маршруты и редиректы сайта (в виде, в котором их использует маршрутизация) |
-| `status` | сводка по всем сайтам: активные/резервные версии, найденные проблемы |
-| `health` | самостоятельная проверка целостности registry (без работающего gateway) |
-
-Схема конфига сайта — [unified schema](/gateway/configuration/site-config).
-
-## Пример
+| `config` | канонический `sites/<slug>/site.yaml` |
+| `routes` | route bindings и site redirects |
+| `status` | release, current/previous и найденные проблемы |
+| `health` | целостность registry; exit `3` при invalid release |
 
 ```bash
 gateway config blog
 # slug: blog
-# hosts: [blog.localhost]
-# languages: [ru, en]
-# defaultLang: ru
+# locales: [ru, en]
+# defaultLocale: ru
 
 gateway routes blog
-# /api/* -> https://backend.example
 # /old -> /new (301)
 ```

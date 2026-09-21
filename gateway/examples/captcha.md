@@ -1,9 +1,8 @@
 # Капча на сайте: плагин captcha
 
 Плагин **captcha** — stateless-проверка токенов Cloudflare, Google reCAPTCHA и
-hCaptcha. Каждый вызов `captcha.verify` получает `verifyUrl` и `secret`
-провайдера в параметрах запроса, а не из конфига — плагин не хранит секретов, и
-секреты разных сайтов не смешиваются.
+hCaptcha. Клиент передаёт только token; Gateway выбирает именованный provider
+и выдаёт plugin scoped verify URL/secret на один вызов.
 
 ## 1. Конфиг плагина
 
@@ -24,6 +23,11 @@ plugins:
     config: ./conf/captcha.yaml
     capabilities: [captcha.verify]
     restart: { enabled: true, backoff: 1s }
+captchaProviders:
+  public:
+    plugin: { instance: captcha, capability: captcha.verify }
+    verifyUrl: https://www.google.com/recaptcha/api/siteverify
+    secret: ${recaptchaSecret}
 listeners:
   web:
     type: http
@@ -33,16 +37,14 @@ listeners:
         then: { plugin: { instance: captcha, capability: captcha.verify } }
 ```
 
-## 3. Провайдер: параметры в вызове
+## 3. Вызов
 
-Конфиг не зависит от провайдера: `verifyUrl` и `secret` приходят в каждом
-запросе (заголовки/тело). Например, для reCAPTCHA:
+Route ссылается на `captchaProviders.public`; request не может выбрать provider
+или передать secret:
 
 ```http
 POST /api/captcha/verify HTTP/1.1
 Host: site.localhost
-X-Verify-Url: https://www.google.com/recaptcha/api/siteverify
-X-Verify-Secret: <site-key>
 Content-Type: application/json
 
 {"token": "<client-response>"}
@@ -55,8 +57,6 @@ Content-Type: application/json
 
 curl -H 'Host: site.localhost' \
   -X POST http://localhost:18080/api/captcha/verify \
-  -H 'X-Verify-Url: https://www.google.com/recaptcha/api/siteverify' \
-  -H 'X-Verify-Secret: <site-key>' \
   -H 'Content-Type: application/json' \
   -d '{"token":"03A..."}'
 # -> результат верификации провайдера (success/hostname/score...)

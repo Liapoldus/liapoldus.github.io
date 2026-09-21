@@ -30,3 +30,9 @@ flowchart LR
 если ОС позволяет bind. Иначе API возвращает `409 restart-required` и точно
 называет конфликтующее поле. Каждая попытка изменения записывается в audit log
 с actor, временем, digest до/после и результатом.
+
+Snapshot preparation включает listeners, TLS profiles, upstream pools и plugin
+instances. До atomic swap новый snapshot изолирован; при любой ошибке Gateway
+останавливает подготовленные ресурсы, возвращает problem details и продолжает
+обслуживать старый snapshot. Graceful drain старого snapshot длится максимум
+10 s, затем оставшиеся соединения отменяются.

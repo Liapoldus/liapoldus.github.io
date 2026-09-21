@@ -14,6 +14,43 @@ MySQL. Эталонный пример плагина для [гайда по с
 | `forms.list` | unary | список отправок |
 | `forms.delete` | unary | удалить отправку |
 
+## Business contract
+
+Gateway вызывает capability с JSON payload. `site` берётся из route target, а
+не от клиента; `schemaName` соответствует `[a-z][a-z0-9_-]{0,63}`. Любой
+неизвестный ключ даёт typed error `validation_failed`.
+
+### `forms.submit`
+
+```json
+{"site":"portal","schemaName":"contact","data":{"name":"Аня","email":"a@example.com"}}
+```
+
+`data` — JSON object глубиной до 8, размером до 1 MiB; его schema валидирует
+плагин. Успех: `{"id":"frm_…","createdAt":"RFC3339","data":{…}}`.
+Ошибки: `validation_failed`, `duplicate`, `storage_unavailable` (`retryable`)
+и `resource_exhausted`.
+
+### `forms.list`
+
+```json
+{"site":"portal","schemaName":"contact","cursor":"optional","limit":50,"filter":{"field":"email","equals":"a@example.com"}}
+```
+
+`limit` — 1–100, default 50. Успех:
+`{"items":[{"id":"frm_…","createdAt":"RFC3339","data":{…}}],"nextCursor":"…"}`.
+Cursor opaque; filter поддерживает только equality по полю, разрешённому schema.
+
+### `forms.delete`
+
+```json
+{"site":"portal","schemaName":"contact","id":"frm_…"}
+```
+
+Успех: `{"deleted":true,"id":"frm_…"}`. Повторное удаление возвращает
+`not_found`; Gateway преобразует его в `404`, а остальные plugin typed errors —
+по правилам [Plugin protocol](/gateway/architecture/protocol).
+
 ## Конфиг instance
 
 Пример DSN по каждой поддерживаемой СУБД:

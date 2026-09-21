@@ -4,7 +4,7 @@
 использования ключей — в [Безопасности](/gateway/configuration/security).
 
 ```bash
-gateway accounts create <id> --role=platform-admin[:|tenant-admin] [--tenant=<id>]
+gateway accounts create <id> --role=platform-admin
 gateway accounts rotate <id>
 gateway accounts revoke <id>
 ```
@@ -12,15 +12,12 @@ gateway accounts revoke <id>
 | Флаг | Назначение |
 | --- | --- |
 | `--config <gateway.yaml>` | обязателен: уровень администрирования — низкий, ключи пишутся в конфиг процесса |
-| `--role` | `platform-admin` или `tenant-admin` |
-| `--tenant` | обязателен для `tenant-admin` |
+| `--role` | обязательное значение `platform-admin` |
 
 ## Как это работает
 
 - `create`/`rotate` печатают секрет **один раз**: `lpgw_<id>_<hex>`. В файл
   пишется только bcrypt-хеш (`keyHash`) — сам секрет восстановить нельзя.
-- `tenant-admin` привязан к своему тенанту и допускается только к
-  `/api/tenants/<id>`.
 - Запись атомарная: файл валидируется заново перед переименованием.
 
 ## Пример

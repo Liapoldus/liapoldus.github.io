@@ -1,8 +1,9 @@
 # Конфиг сайта в registry
 
-Каждый опубликованный сайт содержит `site.yaml` рядом с release-артефактами.
-Он описывает сам сайт, но не открывает listener и не назначает публичный домен:
-это делает route в главном `gateway.yaml`.
+`site.yaml` — единственный контракт поведения опубликованного сайта. Он лежит
+в `sites/<slug>/site.yaml`, а неизменяемые артефакты — в
+`sites/<slug>/releases/<revision>/`. В `site.yaml` запрещены домены, listener,
+upstream и credentials: публичное назначение делает route в `gateway.yaml`.
 
 ```yaml
 # data/registry/sites/blog/site.yaml
@@ -20,14 +21,35 @@ cache:
   static: { visibility: public, maxAge: 1h }
 ```
 
-| Поле | Назначение |
-| --- | --- |
-| `slug` | идентификатор, совпадающий с именем site resource |
-| `index`, `spa` | entry file и fallback для client-side routing |
-| `locales`, `defaultLocale` | доступные локали и default |
-| `redirects` | редиректы внутри сайта |
-| `headers`, `cache` | дефолтные response headers и cache-политика статики |
+| Путь | Тип | Required / default | Ограничение и семантика |
+| --- | --- | --- | --- |
+| `slug` | string | required | `[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?`; совпадает с именем site resource и каталога |
+| `index` | relative path | `index.html` | файл внутри release; `/`, `..` и абсолютный путь запрещены |
+| `spa` | boolean | `false` | при `true` только HTML navigation miss возвращает `index` по правилам [HTTP runtime](http-runtime) |
+| `locales` | string[] | `[]` | уникальные BCP 47 language tags |
+| `defaultLocale` | string | absent | обязательно один из `locales`, если `locales` задан |
+| `redirects[]` | object | `[]` | `from` — exact path, `to` — absolute path, `status` — `301`, `302`, `307` или `308` |
+| `headers.response` | header actions | absent | response transforms сайта; route может только дополнить их |
+| `cache.static` | cache policy | absent | `visibility: public|private|no-store`, `maxAge: duration` |
 
-Главный route может дополнить site policy, но не меняет файлы release. При
-публикации Gateway сначала валидирует полный release и `site.yaml`, затем
-атомарно переключает `current`; `prev` остаётся доступен для rollback.
+Неизвестный ключ, некорректный тип, несуществующий `index` или путь за
+пределами release дают `site_invalid` с YAML path; release не публикуется.
+
+## Публикация и rollback
+
+`gateway site publish <slug> <source>` и `POST /api/sites/{slug}/publish`
+создают `releases/<revision>` из полного подготовленного каталога. Revision
+формата `release-YYYY-MM-DDTHH-mm-ssZ-<12-hex>` генерирует Gateway. Операции
+одного `slug` сериализуются lock-файлом `.publish.lock`.
+
+1. Gateway копирует source во временный каталог в том же filesystem.
+2. Валидирует `site.yaml`, путь `index` и все release-файлы.
+3. Переименовывает каталог в `releases/<revision>`, заменяет `previous` на
+   прежний `current`, затем атомарно заменяет `current` на новый release.
+4. Пишет audit record и возвращает active/previous revision.
+
+При любой ошибке до последнего шага `current` и `previous` не меняются.
+`gateway rollback <slug>` и `POST /api/sites/{slug}/rollback` атомарно меняют
+ссылки местами; удаление release не входит в эти операции.
+
+Главный route может дополнить policy, но не меняет файлы release.

@@ -27,7 +27,7 @@ listeners:
       - when: { host: app.example.com, path: { prefix: /api/ } }
         then: { proxy: api, auth: users, waf: public, rateLimit: api }
       - when: { host: app.example.com }
-        then: { site: portal, spa: true }
+        then: { site: portal }
 ```
 
 `proxy` сохраняет метод, путь и query. При отсутствии healthy target Gateway

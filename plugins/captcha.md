@@ -1,8 +1,9 @@
 # captcha
 
 Stateless-плагин проверки капчи: верифицирует токены Cloudflare,
-Google reCAPTCHA и hCaptcha. Каждый вызов `captcha.verify` получает
-`verifyUrl` и `secret` из `gateway.yaml` — плагин не хранит секреты провайдеров.
+Google reCAPTCHA и hCaptcha. `captchaProviders` в `gateway.yaml` выбирает URL
+и secret; capability получает их только как scoped grant от Gateway, а клиент
+передаёт только token.
 
 Репозиторий: **отдельный git-репозиторий** плагина — свой Go-модуль,
 не в репозитории ядра gateway. Бинарник собирается из этого репозитория.
@@ -32,7 +33,6 @@ allowAnyHost: false
 Декларация плагина и привязка capability к маршруту — общий синтаксис
 [«Обзор и настройка»](/plugins/).
 
-Параметры провайдера (`verifyUrl`, `secret`) плагин получает в параметрах
-**каждого** вызова (тело/заголовки HTTP-запроса, проброшенные gateway как
-payload/metadata), а не из своего конфига — так плагин остаётся stateless, а
-секреты разных сайтов не смешиваются.
+Параметры провайдера (`verifyUrl`, `secret`) приходят только из
+`captchaProviders` как временный scoped grant и не могут быть заданы в HTTP
+body/header. Плагин не хранит секреты, а секреты разных сайтов не смешиваются.

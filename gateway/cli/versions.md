@@ -1,34 +1,29 @@
-# Версии и откат
+# Версии, publish и rollback
 
-Работа с версиями сайта в registry. Схема каталогов (`current` / `prev` /
-публичный `/__prev/`) — на странице [Конфиг сайта](/gateway/configuration/site-config).
+Registry хранит immutable release в `releases/<revision>/`; `current` и
+`previous` — symlink. Они не являются публичными URL и не содержат копии
+файлов. Полная файловая процедура — [Конфиг сайта](/gateway/configuration/site-config).
 
 ```bash
-gateway versions <slug>   # список версий на диске
-gateway current  <slug>   # активная версия
-gateway prev     <slug>   # предыдущая версия (резерв для отката)
-gateway rollback <slug>   # prev становится current
+gateway site publish <slug> <source>
+gateway versions <slug>
+gateway current <slug>
+gateway previous <slug>
+gateway rollback <slug>
 ```
 
-| Подкоманда | Что показывает / делает |
+| Command | Exit / result |
 | --- | --- |
-| `versions` | каталоги `current/`, `prev/` и сохранённые версии |
-| `current` | путь активной версии |
-| `prev` | путь резервной версии |
-| `rollback` | мгновенная перестановка каталогов `current` ↔ `prev` |
-
-## rollback
-
-- Перестановка каталогов в registry через `.rollback-tmp` (атомарно);
-- без перезапуска процесса и без БД;
-- откатывает на одну версию назад — для следующего шага нужна новая публикация.
-
-## Пример
+| `site publish` | `0` и active/previous revision; `3` release invalid; `4` publish in progress |
+| `versions` | все immutable revision и ссылки current/previous |
+| `current`, `previous` | revision ссылки; `5` если ссылка отсутствует |
+| `rollback` | атомарно меняет ссылки; `5` если `previous` отсутствует |
 
 ```bash
 gateway versions blog
-# current: release-2026-01-15 … prev: release-2026-01-10
+# current: release-2026-09-21T10-00-00Z-a1b2c3d4e5f6
+# previous: release-2026-09-20T10-00-00Z-f6e5d4c3b2a1
 
-gateway rollback blog   # release-2026-01-10 снова current
-gateway current blog    # …/sites/blog/current -> release-2026-01-10
+gateway rollback blog
+# current: release-2026-09-20T10-00-00Z-f6e5d4c3b2a1
 ```

@@ -27,13 +27,12 @@ cd gateway/core && go run ./cmd/gateway serve --config ../../gateway.yaml
 Стек: gateway (публичный рантайм + mgmt).
 
 ```bash
-export LIAPOLDUS_MGMT_TOKEN=my-secret-token   # токен обязателен, см. ниже
 docker compose up -d --build
 ```
 
 - `liapoldus-gateway` — публичный рантайм (`18080`); management-порт наружу
-  доступен **только на loopback хоста** (`127.0.0.1:18090`), доступ — по токену
-  (`LIAPOLDUS_MGMT_TOKEN` → `LIAPOLDUS_GATEWAY_MGMT_TOKEN`, см. ниже).
+  доступен **только на loopback хоста** (`127.0.0.1:18090`), доступ — по
+  service-account key из `gateway.yaml`/secret mount.
 - Volume `appdata` — registry (`/app/data/registry`); контейнеры `read_only`
   с `no-new-privileges`.
 
@@ -45,8 +44,9 @@ GOOS=linux go build -o bin/gateway ./cmd/gateway
 ./bin/gateway serve --config /etc/liapoldus/gateway.yaml
 ```
 
-`Dockerfile` собирает образ gateway; `docker-entrypoint.sh` выбирает процесс по
-`LIAPOLDUS_MODE` (`single` / `gateway`).
+`Dockerfile` собирает один образ gateway; `docker-entrypoint.sh` запускает
+только `gateway serve`. `LIAPOLDUS_MODE=gateway` допустим исключительно для
+совместимости и не меняет запускаемый процесс.
 :::
 
 ### Рантайм-флаги и завершение
@@ -59,8 +59,7 @@ GOOS=linux go build -o bin/gateway ./cmd/gateway
 | --- | --- |
 | `LIAPOLDUS_GATEWAY_CONFIG` | путь к конфигу процесса (аналог `--config`) |
 | `LIAPOLDUS_GATEWAY_REGISTRY` | переопределяет корневой `registry` |
-| `LIAPOLDUS_GATEWAY_MGMT_TOKEN` | токен mgmt-порта для control-plane клиентов; в Compose подставляется из `LIAPOLDUS_MGMT_TOKEN` |
-| `LIAPOLDUS_MODE` | `single` / `gateway` (выбор процесса в entrypoint) |
+| `LIAPOLDUS_MODE` | `gateway`; `single` — устаревшее значение и не поддерживается target-spec |
 
 ## Проверка здоровья
 

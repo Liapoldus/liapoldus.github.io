@@ -8,7 +8,7 @@ tlsProfiles:
   public:
     certificates:
       - domains: [app.example.com]
-        acme: { issuer: lets-encrypt, email: ops@example.com, storage: file:/var/lib/liapoldus/acme }
+        issuer: public-acme
     protocols: [http/1.1, h2, h3]
   services:
     certificates: [{ cert: file:/etc/liapoldus/services.crt, key: file:/etc/liapoldus/services.key }]
@@ -25,6 +25,10 @@ listeners:
     tls: services
     routes: [{ when: { path: { prefix: / } }, then: { proxy: internal-api } }]
 ```
+
+`public-acme` объявляется в `tlsIssuers` и использует внешний `tls-issuer`
+plugin; inline `acme` у certificate не существует. HTTP/3 открывает UDP/QUIC и
+TCP на `:443` с тем же TLS profile.
 
 ACME certificate renewal не меняет правила маршрутизации: TLS Manager готовит
 новый snapshot и безопасно заменяет сертификат для новых соединений.

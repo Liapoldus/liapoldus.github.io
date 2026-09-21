@@ -53,9 +53,16 @@ authPolicies:
     mtls: { identities: { subject: { regex: '^CN=service-' } } }
 ```
 
-OIDC выполняет browser redirect-flow, JWT проверяется по JWKS и claims, mTLS
-проверяет клиентский сертификат. Gateway не хранит учётные записи, пароли или
-сессии identity provider.
+OIDC browser flow: неаутентифицированный browser получает `302` на issuer;
+Gateway сохраняет short-lived signed `state` и `nonce` в `HttpOnly; Secure;
+SameSite=Lax` cookie, принимает callback только на `redirectUri`, сверяет
+state/nonce и создаёт encrypted session cookie. Logout удаляет cookie и делает
+issuer end-session redirect, если endpoint объявлен. Gateway не хранит пароли.
+
+JWT берётся только из `Authorization: Bearer`; проверяются signature, `iss`,
+`aud`, expiry и `requiredClaims`. mTLS проверяет client certificate после TLS
+termination. Identity не проксируется неявно: route должен объявить allow-list
+headers для upstream или `plugin.context.identity` для plugin.
 
 ## WAF и ограничения
 
@@ -75,3 +82,19 @@ WAF condition использует тот же язык `when`, что и route.
 `allow`, `deny`, `challenge` и `limit`. Geo/ASN проверка требует явно
 объявленного data provider; при его недоступности rule не становится silently
 allow — применяется заданный `onError`.
+
+## Captcha providers
+
+```yaml
+captchaProviders:
+  public:
+    plugin: { instance: captcha, capability: captcha.verify }
+    verifyUrl: https://www.google.com/recaptcha/api/siteverify
+    secret: ${recaptchaSecret}
+    allowedHosts: [www.google.com]
+```
+
+`challenge: { provider: public }` и captcha route ссылаются только на имя
+provider. Клиент передаёт исключительно token. Gateway выдаёт captcha plugin
+verify URL и scoped secret в `plugin.context.secrets` для одного вызова; URL и
+секрет из request headers/body запрещены.

@@ -17,6 +17,7 @@ plugins:
     capabilities: [forms.submit, forms.list, forms.delete]
     limits: { calls: 100, timeout: 5s, memory: 256MiB }
     restart: { enabled: true, backoff: 1s, maxBackoff: 30s }
+    grants: { storage: [], secrets: [] }
 ```
 
 | Поле | Назначение |
@@ -24,7 +25,16 @@ plugins:
 | `binary`, `config`, `args`, `env` | запуск отдельного процесса и его изолированный конфиг |
 | `capabilities` | единственный список допустимых вызовов |
 | `limits` | concurrency, deadline, payload/flow и ресурсные пределы |
-| `restart` | политика восстановления после failure |
+| `restart` | политика восстановления после failure; default `enabled: true`, `backoff: 1s`, `maxBackoff: 30s` |
+| `grants` | scoped storage и secrets; отсутствующий grant означает отсутствие доступа |
+
+Supervisor выбирает свободный `127.0.0.1` TCP port, передаёт его через `--port`
+и не публикует этот порт. Он проверяет `manifest`, `health` и `config.apply`
+за 10 s. Проверка health идёт раз в 5 s; после трёх последовательных failures
+instance становится unhealthy и перезапускается с bounded exponential backoff.
+`limits.calls` ограничивает параллельные calls, `limits.memory` — process RSS,
+`limits.timeout` (default 5 s) — call deadline. stdout/stderr проходит
+redaction и хранится в кольцевом буфере 200 строк.
 
 ## Назначение plugin target
 
@@ -49,6 +59,32 @@ capability получает request context и тело в заданных ли
 получает двунаправленную session; UDP capability — datagram flow. Плагин не
 получает секреты, заголовки или client identity, если правило не разрешает их
 в `plugin.context`.
+
+### `plugin.context`
+
+```yaml
+then:
+  plugin:
+    instance: forms
+    capability: forms.submit
+    context:
+      request: { method: true, path: false, query: false }
+      headers: [content-type, x-requested-with]
+      identity: { subject: true, claims: [email] }
+      body: json
+      secrets: []
+```
+
+| Field | Type / default | Meaning |
+| --- | --- | --- |
+| `request` | object / `{method:true,path:false,query:false}` | allow-list basic request fields |
+| `headers` | lowercase string[] / `[]` | only forwarded headers |
+| `identity` | object / absent | requires successful auth; only listed claims are forwarded |
+| `body` | `none|json|bytes`, default `none` | body encoding in payload; max 10 MiB |
+| `secrets` | secret-name[] / `[]` | Gateway resolves only named scoped grants; values are never client-controlled |
+
+Gateway serializes allowed values into capability JSON payload; it never forwards
+raw HTTP, `Authorization`, cookies or all identity claims by default.
 
 ## Жизненный цикл и наблюдаемость
 

@@ -49,6 +49,12 @@ wafPolicies:
 rateLimits:
   public-api: { key: source-ip, requests: 120, per: 1m, burst: 30 }
 
+captchaProviders:
+  public:
+    plugin: { instance: captcha, capability: captcha.verify }
+    verifyUrl: https://www.google.com/recaptcha/api/siteverify
+    secret: ${recaptchaSecret}
+
 plugins:
   forms:
     binary: ./bin/forms-db
@@ -123,9 +129,15 @@ tracing: { otlp: { endpoint: https://otel.example.com }, sampling: parent-based 
 | `registry`, `sites` | опубликованные артефакты и их site YAML |
 | `listeners` | HTTP, TCP и UDP точки входа с маршрутами/правилами |
 | `upstreams` | discovery, health checks, балансировка и retry |
-| `tlsProfiles`, `tlsIssuers`, `authPolicies`, `wafPolicies`, `rateLimits` | именованные политики, issuer’ы и правила |
+| `tlsProfiles`, `tlsIssuers`, `authPolicies`, `wafPolicies`, `rateLimits`, `captchaProviders` | именованные политики, issuer’ы и правила |
 | `plugins` | процессы и разрешённые capabilities |
 | `management`, `logging`, `metrics`, `tracing` | управление и наблюдаемость |
+
+Все верхнеуровневые ключи имеют тип `object` (кроме `includes: string[]`);
+неизвестный ключ запрещён. Имена ресурсов — `[a-z][a-z0-9-]{0,62}`. Отсутствие
+ссылочного ресурса, неправильный тип и неразрешённый secret дают `422
+config_invalid` с точным YAML path. Конкретные вложенные поля определяют
+канонические тематические страницы; пример на этой странице не расширяет схему.
 
 Семантика include, переменных и секретов описана в [Секреты и переменные](secrets).
 Маршрутизация — в [Маршруты и условия](server-blocks).

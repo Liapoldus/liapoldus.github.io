@@ -26,7 +26,7 @@ listeners:
         else:
           deny: { status: 404 }
       - when: { path: { prefix: / } }
-        then: { site: blog, spa: true }
+        then: { site: blog }
 ```
 
 ## Условия `when`
@@ -54,7 +54,7 @@ listeners:
 | `plugin` | передаёт разрешённый запрос в capability plugin instance |
 | `deny`, `challenge` | прекращает запрос или запускает policy challenge |
 | `auth`, `waf`, `rateLimit` | применяет именованную политику до основного действия |
-| `headers`, `cache`, `compression`, `rewrite` | меняет обработку HTTP в пределах правила |
+| `headers`, `cache`, `compression`, `rewrite` | меняет обработку HTTP в пределах правила; `spa` задаётся только в `site.yaml` |
 
 В одном действии допустим ровно один terminal target: `site`, `proxy`,
 `redirect`, `plugin` или `deny`. Политики и преобразования дополняют target,

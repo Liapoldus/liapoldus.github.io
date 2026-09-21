@@ -5,7 +5,7 @@
 подкоманды работают офлайн и не требуют запущенного `serve`.
 
 ```bash
-gateway serve [--config <gateway.yaml>] [--no-management] [--management-token <token>]
+gateway serve [--config <gateway.yaml>] [--no-management]
 ```
 
 ## Флаги
@@ -14,7 +14,6 @@ gateway serve [--config <gateway.yaml>] [--no-management] [--management-token <t
 | --- | --- |
 | `--config PATH` | путь к конфигу процесса |
 | `--no-management` | выключить management-порт |
-| `--management-token TOKEN` | переопределить `management.token` |
 
 Порядок выбора конфига: `--config` → env `LIAPOLDUS_GATEWAY_CONFIG` →
 встроенный default.

@@ -5,14 +5,15 @@
 
 ```text
 data/registry/sites/blog/
-├── current/index.html
-├── prev/
-└── site.yaml
+├── site.yaml
+├── releases/release-2026-09-21/index.html
+├── current -> releases/release-2026-09-21
+└── previous -> releases/release-2026-09-20
 ```
 
 ```yaml
 # data/registry/sites/blog/site.yaml
-hosts: [blog.example.com]
+slug: blog
 index: index.html
 redirects: [{ from: /start, to: /, status: 308 }]
 ```
@@ -30,5 +31,6 @@ listeners:
         then: { site: blog, cache: { static: public, maxAge: 1h }, compression: [br, gzip] }
 ```
 
-Публикация создаёт новый полный release, проверяет site YAML и только затем
-атомарно меняет `current`. `prev` остаётся доступен для rollback.
+Публикация создаёт immutable release, проверяет `site.yaml` и только затем
+атомарно меняет symlink `current`; прежняя ссылка становится `previous`.
+Точный контракт — [Конфиг сайта](/gateway/configuration/site-config).

@@ -61,9 +61,35 @@ flowchart LR
 | 7 | `EVENT` | protocol log / event (не RPC) |
 | 8 | `ERROR` | реджект на старте stream |
 
-## Envelope и Error
+## Нормативные сообщения
+
+Ниже — полный wire-контракт v1; имена и номера полей не меняются. Payload
+бизнес-вызова кодируется JSON согласно capability contract. Один unary payload
+не превышает 10 MiB; frame не превышает 1 MiB, поэтому большие stream payload
+делятся на `STREAM_DATA` фрагменты.
 
 ```proto
+syntax = "proto3";
+
+enum FrameKind {
+  FRAME_KIND_UNSPECIFIED = 0;
+  CALL = 1;
+  CALL_RESULT = 2;
+  STREAM_OPEN = 3;
+  STREAM_DATA = 4;
+  STREAM_CLOSE = 5;
+  CANCEL = 6;
+  EVENT = 7;
+  ERROR = 8;
+}
+
+message Frame {
+  FrameKind kind = 1;
+  uint64 request_id = 2;
+  uint64 stream_id = 3;
+  bytes payload = 4;
+}
+
 message Envelope {
   string         method     = 1;
   string         capability = 2;
@@ -77,13 +103,19 @@ message Error {
   string message   = 2;
   bool   retryable = 3;
 }
+
+message Event {
+  string level = 1;
+  string message = 2;
+  map<string,string> fields = 3;
+}
 ```
 
 - `Error` внутри Envelope — typed error: машиночитаемый `code`, человеческий
   `message`, флаг `retryable` (например `db_error: retryable`, `not_found`,
   `bad_request`, `validation_failed`, `unknown_method`, `invalid_stream_method`).
-- `payload` бизнес-методов — JSON (gateway-проксирование возвращает его как
-  есть).
+- `Frame.payload` для `CALL`, `CALL_RESULT`, `STREAM_OPEN`, `STREAM_DATA` и
+  `ERROR` — сериализованный `Envelope`; для `EVENT` — `Event`.
 
 ## Методы протокола
 
@@ -157,8 +189,9 @@ sequenceDiagram
   bidirectional).
 - `STREAM_CLOSE` с одной стороны — сигнал `io.EOF` получателю.
 - `CANCEL` — отмена (по таймауту/запросу); не считается штатным завершением.
-- Backpressure: сессия имеет буферизованные каналы на stream + TCP flow control;
-  это гарантирует целостность потока и отсутствие потерь.
+- Backpressure: сессия имеет конечный буфер в 1 MiB на stream + TCP flow
+  control. Запись блокируется до освобождения буфера или context cancellation;
+  бесконечная буферизация запрещена.
 
 ## L4 sessions и UDP flows
 
@@ -174,7 +207,8 @@ contract.
 
 ## Cancellation и deadlines
 
-- У каждой операции есть `context.Context`; при истечении deadline gateway шлёт
+- У каждой операции есть `context.Context`; default call deadline 5 s; при
+  истечении deadline gateway шлёт
   `CANCEL` и возвращает `ctx.Err()`.
 - `CANCEL` удаляет stream/request из таблиц мультиплексера.
 - Session `Close()` рассылает `ErrSessionClosed` всем pending/stream каналам,

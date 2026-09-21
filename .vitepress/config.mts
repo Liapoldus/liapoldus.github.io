@@ -103,8 +103,10 @@ export default withMermaid(
               { text: 'Upstream и балансировка', link: '/gateway/configuration/upstreams' },
               { text: 'TLS, auth и WAF', link: '/gateway/configuration/security' },
               { text: 'Конфиг сайта', link: '/gateway/configuration/site-config' },
+              { text: 'HTTP runtime', link: '/gateway/configuration/http-runtime' },
               { text: 'Reload и конфликты', link: '/gateway/configuration/tls-reload' },
               { text: 'Management API', link: '/gateway/configuration/management-api' },
+              { text: 'Наблюдаемость', link: '/gateway/configuration/observability' },
               { text: 'Секреты и переменные', link: '/gateway/configuration/secrets' }
             ]
           }
