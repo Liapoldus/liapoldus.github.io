@@ -1,24 +1,30 @@
 # Кодовая архитектура
 
-Каждый Go-проект использует направленную архитектуру. Domain описывает
-инварианты и порты; application реализует use cases; infrastructure подключает
-внешний мир; presentation принимает YAML, CLI и HTTP. `cmd` — единственный
-composition root.
+Gateway использует направленную архитектуру. Domain содержит только модели,
+интерфейсы портов и typed domain errors; допустимы конструкторы, которые
+проверяют инварианты и возвращают ошибку. Domain не содержит use cases,
+adapter-кода, IO или transport logic. Application реализует use cases одним
+плоским Go package; infrastructure подключает внешний мир; presentation
+содержит только CLI и Management API. `cmd` — единственный composition root.
 
 ```text
 cmd/gateway/                 composition root
 internal/domain/             models, policies, ports, domain errors
-internal/application/        compile, apply, route, publish, rollback use cases
-internal/infrastructure/     network, DNS, filesystem, ACME, IPC, OTLP adapters
-internal/presentation/       YAML DTO, CLI, Management API, HTTP/L4 adapters
+internal/application/        один flat package: compile/apply/publish/rollback use cases
+internal/infrastructure/     config/ network/ security/ storage/ plugins/ observability/
+internal/presentation/       api/ и cli/
+assets/                      статические schemas и contract files без Go-кода
 ```
 
 ![Направление зависимостей](/diagrams/code-layers.svg)
 
 `domain` не импортирует transport, YAML, SQL, filesystem, DNS, TLS/ACME,
 protobuf или observability SDK. `application` зависит только от domain ports.
-`presentation` не создаёт concrete adapters, а `infrastructure` не знает use
-cases. Нарушение направлений проверяет architecture lint в CI.
+`infrastructure` группирует config compiler/YAML validation, HTTP/TCP/UDP
+listeners, DNS, filesystem registry, TLS/auth, plugin IPC и telemetry. Public
+HTTP/L4 adapters не живут в presentation. `presentation` не создаёт concrete
+adapters; оно вызывает application use cases через API или CLI. Нарушение
+направлений проверяет architecture lint в CI.
 
 ## Доменные абстракции
 
