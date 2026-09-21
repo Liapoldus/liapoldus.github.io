@@ -1,11 +1,8 @@
 # Кодовая архитектура
 
-Gateway использует направленную архитектуру. Domain содержит только модели,
-интерфейсы портов и typed domain errors; допустимы конструкторы, которые
-проверяют инварианты и возвращают ошибку. Domain не содержит use cases,
-adapter-кода, IO или transport logic. Application реализует use cases одним
-плоским Go package; infrastructure подключает внешний мир; presentation
-содержит только CLI и Management API. `cmd` — единственный composition root.
+Gateway использует направленную архитектуру. `cmd` — единственный composition
+root. Контрактные string values, defaults, schemas и diagnostics хранятся в
+static assets, а не в Go source.
 
 ```text
 cmd/gateway/                 composition root
@@ -17,15 +14,29 @@ internal/presentation/       api/ и cli/
 assets/                      статические schemas и contract files без Go-кода
 ```
 
+## Правила слоёв
+
+- `internal/domain` содержит ровно `models/` и `interfaces/`. В нём допустимы
+  только модели, typed domain errors, validating constructors и ports. Один
+  model, error или interface занимает ровно один файл. Domain не содержит use
+  cases, adapter-код, IO или transport logic.
+- `internal/application` — один flat Go package без вложенных директорий. Он
+  реализует use cases и зависит только от domain ports/models.
+- `internal/infrastructure` содержит concrete adapters, сгруппированные в
+  `config/`, `network/`, `security/`, `storage/`, `plugins/` и
+  `observability/`. Здесь находятся YAML compiler/validation, HTTP/TCP/UDP,
+  DNS, filesystem registry, TLS/auth, plugin IPC и telemetry.
+- `internal/presentation` содержит только `api/` и `cli/`; HTTP/L4 transport
+  adapters относятся к `infrastructure/network`.
+- `assets/` находится в корне, содержит только static schemas и contract files
+  без Go code. Любые contract string values загружаются оттуда.
+
 ![Направление зависимостей](/diagrams/code-layers.svg)
 
 `domain` не импортирует transport, YAML, SQL, filesystem, DNS, TLS/ACME,
-protobuf или observability SDK. `application` зависит только от domain ports.
-`infrastructure` группирует config compiler/YAML validation, HTTP/TCP/UDP
-listeners, DNS, filesystem registry, TLS/auth, plugin IPC и telemetry. Public
-HTTP/L4 adapters не живут в presentation. `presentation` не создаёт concrete
-adapters; оно вызывает application use cases через API или CLI. Нарушение
-направлений проверяет architecture lint в CI.
+protobuf или observability SDK. Presentation не создаёт concrete adapters; оно
+вызывает application use cases через API или CLI. Нарушение направлений и
+структуры проверяет architecture lint в CI.
 
 ## Доменные абстракции
 
