@@ -4,9 +4,11 @@ Transport и wire-формат взаимодействия gateway с plugin-п
 единственный способ IPC: **никакого HTTP/gRPC для plugin-протокола** и никакого
 UDP (UDP не гарантирует доставку, порядок, целостность stream и backpressure).
 
-Реализация — общая библиотека `pkg/pluginprotocol` (модуль
-`liapoldus.local/pkg/pluginprotocol`), импортируемая и gateway (клиент), и
-каждым плагином (сервер).
+Реализация — общая библиотека
+[`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus/pluginprotocol),
+импортируемая gateway (клиентом) и каждым plugin (сервером). Её source split:
+`frame.proto`, `envelope.proto`, `control.proto`; framing, session и control
+API изолированы друг от друга. VitePress не хранит копию wire-файлов.
 
 ## Принципы транспорта
 
@@ -46,7 +48,7 @@ UDP (UDP не гарантирует доставку, порядок, цело�
 ## Нормативные сообщения
 
 Полный wire-контракт v1, включая field numbers, `Manifest`, `ConfigSchema` и
-`ConfigField`, находится в <a href="/spec/plugin.proto" target="_blank" rel="noopener">plugin.proto</a>. Payload
+`ConfigField`, находится в [репозитории protocol](https://github.com/Liapoldus/pluginprotocol/tree/main/proto/liapoldus/plugin/v1). Payload
 бизнес-вызова — JSON согласно capability contract; unary payload ограничен
 10 MiB, frame — 1 MiB, большие данные передаются `STREAM_DATA` фрагментами.
 

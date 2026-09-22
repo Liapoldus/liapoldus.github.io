@@ -1,7 +1,7 @@
 # Гайд: создание плагина
 
 Пошаговый сценарий создания плагина на Go с общей библиотекой
-`pkg/pluginprotocol`. Эталонные примеры — плагины [forms-db](/plugins/forms-db)
+`github.com/Liapoldus/pluginprotocol`. Эталонные примеры — плагины [forms-db](/plugins/forms-db)
 и [captcha](/plugins/captcha): каждый — отдельный репозиторий со своей
 структурой каталога `<name>/`.
 
@@ -49,7 +49,7 @@ import (
     "os/signal"
     "syscall"
 
-    "liapoldus.local/pkg/pluginprotocol"
+    "github.com/Liapoldus/pluginprotocol"
 )
 
 func main() {

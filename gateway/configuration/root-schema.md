@@ -34,7 +34,7 @@ Include раскрываются до validation. Цикл, duplicate resource n
 | Поле | Назначение |
 | --- | --- |
 | `tlsProfiles`, `tlsIssuers` | server certificates и issuance |
-| `authPolicies` | OIDC, JWT, mTLS |
+| `authPolicies` | identity-plugin binding и mTLS |
 | `dataProviders`, `wafPolicies` | MMDB source и WAF decisions |
 | `rateLimits`, `captchaProviders` | token bucket и captcha verification |
 

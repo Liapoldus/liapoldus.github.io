@@ -25,7 +25,9 @@ switch `current` → prune old previous → audit. Directory source не про�
 
 `plugin`: spawned → handshake → ready → unhealthy → restarting/stopped.
 Handshake, grants, cancellation и streams определяет
-<a href="/spec/plugin.proto" target="_blank" rel="noopener">plugin.proto</a>.
+[versioned Plugin protocol](/gateway/architecture/protocol). Исходные `.proto`
+и identity contracts находятся в
+[`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus/pluginprotocol).
 
 `request`: accept → normalize → match → auth → WAF → rate limit → rewrite →
 terminal → transforms → response. Канонический порядок —

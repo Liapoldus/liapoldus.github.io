@@ -22,7 +22,7 @@ secrets:
 plugins:
   tls-issuer:
     binary: ./bin/tls-issuer
-    config: ./plugins/tls-issuer.yaml
+    settings: {}
     capabilities: [tls.issue, tls.renew, tls.revoke]
     grants:
       storage: [tls-public]

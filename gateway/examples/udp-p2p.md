@@ -8,7 +8,7 @@ Gateway защищает и маршрутизирует датаграммы, �
 plugins:
   peer-relay:
     binary: ./bin/peer-relay
-    config: ./plugins/peer-relay.yaml
+    settings: {}
     capabilities: [peer.datagrams]
 listeners:
   peers:

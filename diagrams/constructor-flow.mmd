@@ -1,0 +1,9 @@
+flowchart TD
+  G[Git revision] --> C[Constructor]
+  C --> S[Snapshot]
+  S --> V[Validation]
+  V --> B[Build]
+  B --> A[Static frontend artifact]
+  A -->|publish release| GW[Gateway]
+  C -->|configuration through Admin API| GW
+  GW --> P[Production]

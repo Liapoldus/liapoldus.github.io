@@ -20,7 +20,7 @@ tablePrefix: form_
 plugins:
   forms:
     binary: ./bin/forms-db
-    config: ./conf/forms-db.yaml
+    settings: {}
     capabilities: [forms.submit, forms.list, forms.delete]
     restart: { enabled: true, backoff: 1s }
 listeners:

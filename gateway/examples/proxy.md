@@ -1,4 +1,4 @@
-# HTTP reverse proxy с OIDC и WAF
+# HTTP reverse proxy с identity plugin и WAF
 
 Маршрут API применяет политики до передачи запроса в здоровый upstream. Полные
 справочники: [маршруты](/gateway/configuration/server-blocks),
@@ -12,7 +12,12 @@ upstreams:
     balance: least-connections
 authPolicies:
   users:
-    oidc: { issuer: https://id.example.com, clientId: portal, clientSecret: ${oidcClientSecret} }
+    plugin: { instance: identity, capability: identity.client.authenticate }
+plugins:
+  identity:
+    binary: ./bin/identity
+    capabilities: [identity.client.authenticate]
+    settings: { clients: {} }
 wafPolicies:
   public:
     rules: [{ when: { requestSize: { gt: 2MiB } }, then: { deny: { status: 413 } } }]

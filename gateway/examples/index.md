@@ -16,7 +16,7 @@
   </a>
   <a class="card" href="/gateway/examples/proxy">
     <h3>Reverse proxy</h3>
-    <p>Upstream, OIDC, WAF и SPA fallback.</p>
+    <p>Upstream, identity plugin, WAF и SPA fallback.</p>
   </a>
   <a class="card" href="/gateway/examples/tls">
     <h3>ACME TLS и mTLS</h3>

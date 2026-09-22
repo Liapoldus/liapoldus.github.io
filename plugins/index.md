@@ -14,7 +14,7 @@ Gateway при этом остаётся владельцем public socket, TLS
 plugins:
   forms:
     binary: ./bin/forms-db
-    config: ./plugins/forms.yaml
+    settings: {}
     args: []
     env: [DATABASE_URL=env:FORMS_DATABASE_URL]
     capabilities: [forms.submit, forms.list, forms.delete]
@@ -25,7 +25,7 @@ plugins:
 
 | Поле | Назначение |
 | --- | --- |
-| `binary`, `config`, `args`, `env` | запуск отдельного процесса и его изолированный конфиг |
+| `binary`, `settings`, `args`, `env` | запуск отдельного процесса и его конфиг в `gateway.yaml` |
 | `capabilities` | единственный список допустимых вызовов |
 | `limits` | concurrency, deadline, payload/flow и ресурсные пределы |
 | `restart` | политика восстановления после failure; default `enabled: true`, `backoff: 1s`, `maxBackoff: 30s` |

@@ -1,0 +1,11 @@
+flowchart LR
+  UI[Constructor web application] --> API[Constructor API]
+  API --> DB[(Operational metadata)]
+  API --> GIT[Git adapter]
+  API --> BUILD[Build worker]
+  API --> GA[Gateway API adapter]
+  GA --> GW[Gateway]
+  GW --> PA[Plugin admin contract]
+  PA --> UI
+  GIT --> REPO[(React repository)]
+  BUILD --> ART[Static artifact]

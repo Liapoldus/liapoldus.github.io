@@ -3,23 +3,23 @@ layout: home
 
 hero:
   name: Liapoldus
-  text: Масштабируемый Gateway и web server
+  text: Экосистема для публикации React-сайтов
   tagline: >-
-    HTTP(S), TCP, UDP, static delivery, маршрутизация,
-    сетевой control plane и изолированные plugins.
+    Gateway, plugin ecosystem и Git-native Constructor для разработки,
+    управления сайтами и сетевой инфраструктурой.
   actions:
     - theme: brand
-      text: Начать с первого сайта
-      link: /gateway/configuration/
+      text: Обзор экосистемы
+      link: /architecture/
     - theme: alt
-      text: О продукте и UX
-      link: /product/
+      text: Constructor
+      link: /constructor/
     - theme: alt
-      text: Архитектура
-      link: /gateway/architecture/
-    - theme: alt
-      text: Справочник Gateway
+      text: Gateway
       link: /gateway/
+    - theme: alt
+      text: Code Guidelines
+      link: /guidelines/
 
 features:
   - title: Gateway
@@ -34,16 +34,15 @@ features:
       TCP/UDP.
     link: /plugins/
     linkText: Существующие плагины
-  - title: Архитектура и UX
+  - title: Constructor
     details: >-
-      Границы продукта, UX операторов, системный контекст, принятые инварианты
-      и решения, которые нужно закрыть до разработки.
-    link: /gateway/architecture/
-    linkText: Изучить архитектуру
-  - title: Практические примеры
+      Git-native React IDE, визуальное управление содержимым сайта и control
+      plane для Gateway и plugins.
+    link: /constructor/
+    linkText: Спроектировать Constructor
+  - title: Архитектура экосистемы
     details: >-
-      Полные сценарии: статический сайт, reverse proxy, TLS/SNI, формы и капча
-      на сайте.
-    link: /gateway/examples/
-    linkText: Смотреть примеры
+      Границы владения, API и общий путь от Git до работающего сайта.
+    link: /architecture/
+    linkText: Посмотреть модель
 ---

@@ -25,8 +25,6 @@
     {"id":"header-limit","input":{"headerBytes":32769,"limit":"32KiB"},"expected":{"status":431,"code":"header_too_large"}},
     {"id":"compression-qvalue","input":{"acceptEncoding":"gzip;q=1, br;q=0.5","bodyBytes":1024},"expected":{"contentEncoding":"gzip","varyContains":"Accept-Encoding"}},
     {"id":"cors-preflight","input":{"method":"OPTIONS","origin":"https://app.example","requestMethod":"POST","cors":{"origins":["https://app.example"],"methods":["POST"]}},"expected":{"status":204,"terminalCalled":false,"headers":{"Access-Control-Allow-Origin":"https://app.example"}}},
-    {"id":"oidc-callback-state-invalid","input":{"path":"/oauth/callback","state":"bad"},"expected":{"status":400,"code":"oidc_state_invalid","sessionCreated":false}},
-    {"id":"jwt-denial","input":{"authorization":"Bearer expired"},"expected":{"status":401,"code":"invalid_token","headers":{"WWW-Authenticate":"Bearer error=\"invalid_token\""}}},
     {"id":"mtls-required","input":{"clientCertificate":null,"mode":"require"},"expected":{"status":401,"code":"mtls_required"}},
     {"id":"geo-provider-failure-deny","input":{"dataProvider":"missing","onError":"deny"},"expected":{"status":403,"code":"waf_provider_unavailable"}},
     {"id":"waf-limit","input":{"action":{"limit":"api"},"bucket":"empty"},"expected":{"status":429,"code":"rate_limited"}},

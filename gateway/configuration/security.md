@@ -4,7 +4,7 @@
 WAF policy и rate limit. Все они именованы в корневом YAML и назначаются на
 конкретный route или L4-rule.
 
-Канонический lifecycle OIDC/JWT/mTLS, captcha, Geo/ASN и TLS находится в
+Канонический lifecycle mTLS, captcha, Geo/ASN и TLS находится в
 <a href="/spec/security-runtime.json" target="_blank" rel="noopener">security-runtime.json</a>.
 Эта страница содержит только конфигурационную навигацию и не расширяет contract.
 
@@ -51,46 +51,30 @@ certificate не прерывает трафик; после истечения 
 Значения переводятся соответственно в HSTS, CSP, X-Content-Type-Options,
 Referrer-Policy, Permissions-Policy и X-Frame-Options response headers.
 
-## Публичная аутентификация
+## Identity plugin и mTLS
 
 ```yaml
 authPolicies:
   users:
-    oidc:
-      issuer: https://id.example.com
-      clientId: liapoldus
-      clientSecret: ${oidcClientSecret}
-      redirectUri: https://app.example.com/oauth/callback
-      scopes: [openid, profile, email]
-    jwt:
-      jwksUrl: https://id.example.com/keys
-      issuers: [https://id.example.com]
-      audiences: [public-api]
-      requiredClaims: { tenant: acme }
+    plugin: { instance: identity, capability: identity.client.authenticate }
     mtls: { identities: { subject: { regex: '^CN=service-' } } }
+plugins:
+  identity:
+    binary: ./bin/identity
+    capabilities: [identity.client.authenticate, identity.token.validate, identity.server.authorize, identity.server.token]
+    settings:
+      clients: {}
+      authorizationServers: {}
 ```
 
-OIDC browser flow: неаутентифицированный browser получает `302` на issuer;
-Gateway сохраняет short-lived signed `state` и `nonce` в `HttpOnly; Secure;
-SameSite=Lax` cookie, принимает callback только на `redirectUri`, сверяет
-state/nonce и создаёт encrypted session cookie. Logout удаляет cookie и делает
-issuer end-session redirect, если endpoint объявлен. Gateway не хранит пароли.
+OIDC/OAuth client, OAuth authorization server, browser sessions, PKCE, state,
+nonce, cookies и JWT/JWKS validation принадлежат identity-plugin. Gateway
+передаёт только разрешённый HTTP context, применяет типизированный plugin
+response и не получает ключи, cookie либо token lifecycle. Канонический
+контракт capabilities находится в
+[`pluginprotocol`](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts/identity/v1).
 
-`_lpgw_oidc_state` — AES-256-GCM signed/encrypted cookie, TTL 10 min;
-`_lpgw_session` — AES-256-GCM cookie, TTL 8 h. Оба `HttpOnly`, `Secure`,
-`SameSite=Lax`, `Path=/`; key берётся из named secret. Discovery разрешает
-только HTTPS issuer и его `end_session_endpoint`; callback path обязан точно
-совпадать с `redirectUri`.
-
-JWT берётся только из `Authorization: Bearer`; проверяются signature, `iss`,
-`aud`, expiry, `nbf` и `requiredClaims` с leeway 60 s. Ошибка даёт RFC 9457
-`401` и `WWW-Authenticate: Bearer error="invalid_token"`. mTLS проверяет
-client certificate после TLS termination. Identity не проксируется неявно:
-route обязан объявить allow-list в `proxy.requestHeaders` или
-`plugin.context.identity` для plugin.
-
-JWT допускает только `EdDSA`, `ES256` и `RS256`; JWKS обновляется каждые 15 min
-и однократно при unknown `kid`. `iss` и `aud` обязательны. mTLS `require`
+mTLS проверяет client certificate после TLS termination. mTLS `require`
 отклоняет отсутствие/invalid certificate, `optional` разрешает отсутствие, но
 проверяет представленный certificate; subject mapping использует RE2.
 

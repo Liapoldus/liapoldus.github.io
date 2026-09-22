@@ -1,8 +1,15 @@
-# Liapoldus
+# Liapoldus: экосистема
 
-Liapoldus — Gateway и web server для HTTP(S), TCP и UDP. Он принимает
-публичный трафик, раздаёт static sources, направляет потоки в upstream и
-plugins, а конфигурацию применяет как атомарный runtime snapshot.
+Liapoldus — экосистема из трёх самостоятельных продуктов. Вместе они
+покрывают путь от React-проекта в Git до безопасно опубликованного сайта.
+
+<img src="/diagrams/ecosystem.svg" alt="Constructor работает с Git, Gateway и Plugins; Gateway публикует статический frontend" />
+
+<div class="cards">
+  <a class="card" href="/gateway/"><h3>Gateway</h3><p>L7/L4 runtime, маршрутизация, TLS, static delivery и control API.</p></a>
+  <a class="card" href="/plugins/"><h3>Plugins</h3><p>Изолированные capability-процессы для прикладной и инфраструктурной логики.</p></a>
+  <a class="card" href="/constructor/"><h3>Constructor</h3><p>React IDE, site management и визуальный control plane Gateway.</p></a>
+</div>
 
 ## Какую проблему решаем
 
@@ -14,14 +21,17 @@ plugins, а конфигурацию применяет как атомарны�
 
 | Роль | Задача | Главная точка входа |
 | --- | --- | --- |
-| Оператор | настроить, проверить, применить и наблюдать | [Gateway](/gateway/) |
-| Интегратор | подключить upstream или plugin | [Плагины](/plugins/) |
-| Реализатор | создать совместимый Gateway или plugin | [Архитектура](/gateway/architecture/) |
+| Оператор | настроить, проверить, применить и наблюдать Gateway | [Gateway](/gateway/) |
+| Интегратор | подключить capability-процесс | [Плагины](/plugins/) |
+| Разработчик | создавать React-сайт и его модель | [Constructor](/constructor/) |
+| Реализатор | понять границы продуктов и API | [Архитектура](/architecture/) |
 
 ## Продуктовые границы
 
-**В продукт входят:** HTTP(S), TCP и UDP listeners; release и directory static
-sources; proxy, TLS, policies, CLI, защищённый API, observability и plugins.
+**Gateway** владеет listeners, TLS, сетевой маршрутизацией, runtime snapshot и
+своим Management API. **Plugins** владеют только capability-логикой.
+**Constructor** владеет проектной, редакторской и operational metadata, но не
+реализует Gateway повторно и не делает БД источником исходного кода.
 
 **Не входят в ядро:** CMS, CI/CD, identity provider, очереди и нативные
 transports сверх HTTP/TCP/UDP. Прикладной протокол реализуется upstream или
@@ -38,5 +48,5 @@ plugin поверх TCP/UDP.
 - **Расширение без проникновения в ядро.** Предметная логика живёт в плагинах;
   Gateway остаётся владельцем трафика, маршрутизации, политик и супервизии.
 
-Дальше: [пользователи и UX](/product/user-experience) или
-[архитектура](/gateway/architecture/).
+Дальше: [архитектура экосистемы](/architecture/), [правила кода](/guidelines/)
+или [Constructor](/constructor/).

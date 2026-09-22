@@ -27,11 +27,12 @@ export default defineConfig({
     themeConfig: {
       nav: [
         { text: 'Главная', link: '/' },
-        { text: 'О продукте', link: '/product/' },
+        { text: 'Обзор', link: '/product/' },
+        { text: 'Архитектура', link: '/architecture/' },
+        { text: 'Code Guidelines', link: '/guidelines/' },
         { component: 'GatewayNav' },
-        { text: 'Gateway API', link: '/gateway/api/' },
-        { text: 'Архитектура', link: '/gateway/architecture/' },
-        { text: 'Плагины', link: '/plugins/' }
+        { text: 'Плагины', link: '/plugins/' },
+        { text: 'Constructor', link: '/constructor/' }
       ],
 
       search: {
@@ -65,6 +66,36 @@ export default defineConfig({
             items: [
               { text: 'Обзор', link: '/product/' },
               { text: 'Пользователи и UX', link: '/product/user-experience' }
+            ]
+          }
+        ],
+        '/architecture/': [
+          {
+            text: 'Архитектура экосистемы',
+            items: [
+              { text: 'Обзор', link: '/architecture/' },
+              { text: 'Границы и инварианты', link: '/architecture/boundaries' },
+              { text: 'API-границы', link: '/architecture/api-boundaries' },
+              { text: 'Глоссарий', link: '/architecture/glossary' }
+            ]
+          }
+        ],
+        '/guidelines/': [
+          {
+            text: 'Code Guidelines',
+            items: [
+              { text: 'Обзор', link: '/guidelines/' },
+              { text: 'Структура проектов', link: '/guidelines/project-structure' },
+              { text: 'Именование', link: '/guidelines/naming' },
+              { text: 'Форматирование', link: '/guidelines/formatting' },
+              { text: 'Архитектурные правила', link: '/guidelines/architecture-rules' },
+              { text: 'Обработка ошибок', link: '/guidelines/errors' },
+              { text: 'Логирование', link: '/guidelines/logging' },
+              { text: 'Конфигурация', link: '/guidelines/configuration' },
+              { text: 'API Guidelines', link: '/guidelines/api-guidelines' },
+              { text: 'Git', link: '/guidelines/git' },
+              { text: 'Тестирование', link: '/guidelines/testing' },
+              { text: 'Документация', link: '/guidelines/documentation' }
             ]
           }
         ],
@@ -166,12 +197,37 @@ export default defineConfig({
         ],
         '/plugins/': [
           {
-            text: 'Интегратор · плагины',
+            text: 'Plugins',
             items: [
               { text: 'Обзор и настройка', link: '/plugins/' },
+              { text: 'Архитектура и lifecycle', link: '/plugins/architecture' },
+              { text: 'Manifest и capabilities', link: '/plugins/manifest' },
+              { text: 'Admin UI contract', link: '/plugins/admin-ui-contract' },
+              { text: 'Разработка плагина', link: '/plugins/development' },
+              { text: 'Существующие плагины', link: '/plugins/existing' },
               { text: 'tls-issuer', link: '/plugins/tls-issuer' },
               { text: 'forms-db', link: '/plugins/forms-db' },
               { text: 'captcha', link: '/plugins/captcha' }
+            ]
+          }
+        ],
+        '/constructor/': [
+          {
+            text: 'Constructor',
+            items: [
+              { text: 'Обзор', link: '/constructor/' },
+              { text: 'Концепции и модель проекта', link: '/constructor/concepts' },
+              { text: 'Архитектура', link: '/constructor/architecture' },
+              { text: 'Development Mode и IDE', link: '/constructor/development' },
+              { text: 'Site Management Mode', link: '/constructor/site-management' },
+              { text: 'Components, primitives и SDK', link: '/constructor/components' },
+              { text: 'State, scripts и infrastructure', link: '/constructor/application-model' },
+              { text: 'Routing и network canvas', link: '/constructor/routing' },
+              { text: 'Assets, themes и localization', link: '/constructor/content-assets' },
+              { text: 'Git, versions, snapshots и delivery', link: '/constructor/delivery' },
+              { text: 'Gateway и plugins', link: '/constructor/integrations' },
+              { text: 'Sites, auth и deployment', link: '/constructor/governance' },
+              { text: 'Validation, preview и UX', link: '/constructor/experience' }
             ]
           }
         ],

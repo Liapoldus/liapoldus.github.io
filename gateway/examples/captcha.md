@@ -20,7 +20,7 @@ allowAnyHost: false
 plugins:
   captcha:
     binary: ./bin/captcha
-    config: ./conf/captcha.yaml
+    settings: {}
     capabilities: [captcha.verify]
     restart: { enabled: true, backoff: 1s }
 captchaProviders:

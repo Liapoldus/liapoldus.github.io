@@ -1,0 +1,8 @@
+flowchart TD
+  GIT[(Git repository)] -->|source of truth| C[Constructor]
+  C -->|snapshot and build| A[Static frontend artifact]
+  C -->|Management API| GW[Gateway]
+  C -->|admin contract| P[Plugins]
+  A -->|release| GW
+  P -->|scoped capabilities| GW
+  GW --> R[Public runtime]

@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant U as Constructor UI
+  participant C as Constructor API
+  participant G as Gateway Admin API
+  participant P as Plugin
+  U->>C: edit visual model
+  C->>G: read/validate/apply permitted Gateway state
+  G-->>C: typed state or problem
+  C->>G: request plugin UI schema
+  G->>P: authorized control call
+  P-->>G: versioned schema, status
+  G-->>C: redacted contract
+  C-->>U: generated inspector
