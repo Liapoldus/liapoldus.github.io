@@ -98,7 +98,12 @@ dataProviders:
 `dataProviders` поддерживает только локальный MaxMind MMDB. Gateway читает
 новый файл во временный handle и атомарно заменяет active reader; failed reload
 сохраняет предыдущий reader. Если reader отсутствует/lookup failed, применяется
-`onError: allow|deny` (default `deny`).
+`onError: allow|deny`. Сначала используется `onError` соответствующего WAF-rule;
+если он не задан — `dataProviders.<name>.onError`; если не задано ни одно,
+используется `deny`. Отсутствующая запись для IP считается ошибкой lookup.
+`geo.country` сравнивается с ISO 3166-1 alpha-2 кодом, `geo.city` — с английским
+значением из `city.names.en`; `asn.in` и `asn.notIn` применяются одновременно,
+то есть запись должна входить в `in` (если он задан) и не входить в `notIn`.
 
 ## Captcha providers
 
