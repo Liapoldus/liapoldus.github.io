@@ -25,6 +25,15 @@ Publish, rollback, renew и revoke требуют `idempotencyKey` длиной 
 `{ "operationId", "requestId" }`. Статусы: `pending`, `running`, `succeeded`,
 `failed`; terminal объект содержит либо typed `result`, либо `problem`.
 
+## Plugin admin pages
+
+Gateway reserves `/api/plugins/{instance}/admin/*` for declarative plugin
+administration. It is not a direct plugin listener: Gateway validates the
+active surface, authorizes capability and actor, forwards bounded typed input,
+redacts output and audits mutations. Contract, lifecycle and fixed endpoints
+are in [Plugin Admin Pages](/plugins/admin-pages). This capability is required
+before Constructor can render a plugin-owned page.
+
 `GET /api/config` возвращает исходный YAML active snapshot, но secret values
 заменяет `***`; ссылки `env:` и `file:` сохраняются. API никогда не выдаёт
 secret, key hash, cookie, authorization header или private key.

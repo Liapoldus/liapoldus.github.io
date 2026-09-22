@@ -202,7 +202,9 @@ export default defineConfig({
               { text: 'Обзор и настройка', link: '/plugins/' },
               { text: 'Архитектура и lifecycle', link: '/plugins/architecture' },
               { text: 'Manifest и capabilities', link: '/plugins/manifest' },
+              { text: 'Identity plugin', link: '/plugins/identity' },
               { text: 'Admin UI contract', link: '/plugins/admin-ui-contract' },
+              { text: 'Admin pages', link: '/plugins/admin-pages' },
               { text: 'Разработка плагина', link: '/plugins/development' },
               { text: 'Существующие плагины', link: '/plugins/existing' },
               { text: 'tls-issuer', link: '/plugins/tls-issuer' },
@@ -217,7 +219,9 @@ export default defineConfig({
             items: [
               { text: 'Обзор', link: '/constructor/' },
               { text: 'Концепции и модель проекта', link: '/constructor/concepts' },
+              { text: 'Reference stack', link: '/constructor/reference-stack' },
               { text: 'Архитектура', link: '/constructor/architecture' },
+              { text: 'Git project format', link: '/constructor/project-format' },
               { text: 'Development Mode и IDE', link: '/constructor/development' },
               { text: 'Site Management Mode', link: '/constructor/site-management' },
               { text: 'Components, primitives и SDK', link: '/constructor/components' },
@@ -227,6 +231,9 @@ export default defineConfig({
               { text: 'Git, versions, snapshots и delivery', link: '/constructor/delivery' },
               { text: 'Gateway и plugins', link: '/constructor/integrations' },
               { text: 'Sites, auth и deployment', link: '/constructor/governance' },
+              { text: 'API и contracts', link: '/constructor/api' },
+              { text: 'Данные и ERD', link: '/constructor/data-model' },
+              { text: 'State machines', link: '/constructor/state-machines' },
               { text: 'Validation, preview и UX', link: '/constructor/experience' }
             ]
           }

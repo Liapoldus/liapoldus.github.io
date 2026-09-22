@@ -1,0 +1,9 @@
+flowchart LR
+  UI[React UI<br/>Zustand + shadcn/ui] --> API[Go Constructor API]
+  DESKTOP[Wails desktop shell] --> API
+  API --> DB[(PostgreSQL / SQLite)]
+  API --> GIT[Git adapter]
+  API --> WORKER[Node.js build worker]
+  WORKER --> ART[Artifact storage]
+  API --> GW[Gateway Admin API]
+  GW --> PLUGINS[Plugin control contracts]

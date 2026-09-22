@@ -6,5 +6,6 @@
 | [forms-db](/plugins/forms-db) | сохранение и управление отправками форм |
 | [captcha](/plugins/captcha) | verification challenge providers |
 
-Identity/OIDC/OAuth — не встроенная возможность Gateway: это будущий
-identity-plugin contract. Gateway по-прежнему владеет mTLS transport security.
+[Identity plugin](/plugins/identity) описан как versioned capability contract;
+его executable не поставляется в этом repository. Gateway по-прежнему владеет
+mTLS transport security.

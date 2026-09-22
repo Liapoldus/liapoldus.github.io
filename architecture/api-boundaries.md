@@ -19,7 +19,7 @@ idempotency semantics Gateway, не создавая их локальные а�
 | Возможность Constructor | Требуемая Gateway capability |
 | --- | --- |
 | network canvas с редактированием rules | typed read/write representation routes, upstreams, domains и plugin chain |
-| live plugin UI | list instances, per-instance status/health, redacted logs и metrics |
+| plugin admin pages | namespaced `admin/surface`, query and action dispatch with schema validation, redaction, audit and capability authorization |
 | установка/удаление plugin instance | explicit lifecycle operation и audit |
 | управление domains/TLS | typed domain inventory и operations, если не выражены config apply |
 

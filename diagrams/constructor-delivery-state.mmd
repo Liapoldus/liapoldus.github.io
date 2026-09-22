@@ -1,0 +1,13 @@
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Validating
+  Validating --> Ready
+  Validating --> SnapshotFailed
+  Ready --> Queued
+  Queued --> Running
+  Running --> BuildSucceeded
+  Running --> BuildFailed
+  BuildSucceeded --> Applying
+  Applying --> Active
+  Applying --> DeploymentFailed
+  Active --> Applying: rollback/promotion

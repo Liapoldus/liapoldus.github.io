@@ -1,15 +1,17 @@
 # Plugin Admin UI contract
 
-Constructor не вшивает UI конкретного plugin. Плагин публикует versioned Admin
-UI schema через его control contract; Gateway остаётся proxy/authorizer этого
-обмена. Schema описывает sections, fields, validation, actions, status,
-metrics, logs и health.
+Плагин публикует versioned declarative Admin Surface; Constructor не вшивает
+его UI, а Gateway не принимает plugin-owned HTTP handler. Полная жизненная
+модель, fixed internal API, cache, security и ownership находятся на
+[Plugin Admin Pages](/plugins/admin-pages).
 
 Поддерживаемые базовые fields: `string`, `number`, `boolean`, `select`,
 `multiselect`, `secret`, `file`, `directory`, `duration`, `size`, `code`,
 `keyValue`, `array`, `object`. `secret` — reference/write-only field, его
 значение никогда не возвращается UI.
 
-Конкретный endpoint пока не вводится: существующий Gateway API не описывает
-этот contract. Это явный [API gap](/architecture/api-boundaries), а не
-неофициальный URL.
+Канон source contract расположен в
+[`pluginprotocol/contracts/admin-ui/v1`](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts/admin-ui/v1).
+Это требуемое расширение Gateway API, указанное в
+[API boundaries](/architecture/api-boundaries); endpoint не является
+неофициальным direct-plugin URL.

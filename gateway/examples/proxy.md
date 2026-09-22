@@ -1,4 +1,4 @@
-# HTTP reverse proxy с identity plugin и WAF
+# HTTP reverse proxy с WAF
 
 Маршрут API применяет политики до передачи запроса в здоровый upstream. Полные
 справочники: [маршруты](/gateway/configuration/server-blocks),
@@ -10,14 +10,6 @@ upstreams:
     discovery: { dns: api.internal, interval: 30s }
     healthCheck: { path: /healthz, interval: 10s, timeout: 2s }
     balance: least-connections
-authPolicies:
-  users:
-    plugin: { instance: identity, capability: identity.client.authenticate }
-plugins:
-  identity:
-    binary: ./bin/identity
-    capabilities: [identity.client.authenticate]
-    settings: { clients: {} }
 wafPolicies:
   public:
     rules: [{ when: { requestSize: { gt: 2MiB } }, then: { deny: { status: 413 } } }]
@@ -30,7 +22,7 @@ listeners:
     tls: public
     routes:
       - when: { host: app.example.com, path: { prefix: /api/ } }
-        then: { proxy: api, auth: users, waf: public, rateLimit: api }
+        then: { proxy: api, waf: public, rateLimit: api }
       - when: { host: app.example.com }
         then: { site: portal }
 ```

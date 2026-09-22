@@ -1,0 +1,16 @@
+erDiagram
+  USERS ||--o{ USER_ROLES : has
+  ROLES ||--o{ USER_ROLES : grants
+  ROLES ||--o{ ROLE_PERMISSIONS : contains
+  PERMISSIONS ||--o{ ROLE_PERMISSIONS : maps
+  PROJECTS ||--o{ GIT_BINDINGS : has
+  PROJECTS ||--o{ SITES : owns
+  SITES ||--o{ ENVIRONMENTS : targets
+  SITES ||--o{ SNAPSHOTS : captures
+  SNAPSHOTS ||--o{ SNAPSHOT_ENTITIES : pins
+  SNAPSHOTS ||--o{ BUILDS : builds
+  BUILDS ||--o{ ARTIFACTS : emits
+  ENVIRONMENTS ||--o{ DEPLOYMENTS : receives
+  BUILDS ||--o{ DEPLOYMENTS : publishes
+  SITES ||--o{ ASSET_RECORDS : uses
+  ASSET_RECORDS ||--o{ ASSET_VARIANTS : generates

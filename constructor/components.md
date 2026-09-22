@@ -20,3 +20,25 @@ Image); Component публикует безопасную модель для pa
 `component`, `primitive`, `reactive`, `computed`, `action`, `content`, `image`,
 `asset`, `route`, `navigate`, `api`, `theme` и `locale`. Обычные React APIs,
 hooks и сторонние библиотеки остаются разрешённым escape hatch.
+
+## Component contract
+
+`schema.json` валидируется [Component schema](/spec/constructor-component.schema.json).
+Field key стабилен: он адресует Content, locale variant, version diff и test
+fixture, поэтому rename всегда требует migration.
+
+| Field type | Stored value | Editor boundary |
+| --- | --- | --- |
+| `text`, `rich-text` | string / sanitized document JSON | locale variant when `localized` |
+| `image`, `icon`, `file` | Asset ID | type/aspect/responsive requirement |
+| `select` | declared scalar | only `allowedValues` |
+| `reference` | typed entity ID | validated cross-reference |
+| `object`, `array` | nested schema JSON | bounded structured inspector |
+
+Slot допускает только declared component kinds. Event связывается с declared
+Script action, никогда с inline arbitrary code. Breaking Component change
+создаёт migration plan для каждого затронутого Content instance.
+
+SDK читает generated content/theme/locale/route/asset artifacts и не соединяется
+с Constructor API в production browser. Каждый SDK API имеет declarations,
+детерминированное preview behavior и fixture.

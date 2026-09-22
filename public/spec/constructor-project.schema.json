@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liapoldus.github.io/spec/constructor-project.schema.json",
+  "title": "Liapoldus Constructor project manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "name", "react"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "format": "uuid" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "react": { "type": "object", "additionalProperties": false, "required": ["entry"], "properties": { "entry": { "type": "string", "pattern": "^src/[^\\\\]+" } } },
+    "sites": { "type": "array", "uniqueItems": true, "items": { "type": "string", "format": "uuid" } },
+    "defaultBranch": { "type": "string", "minLength": 1 },
+    "assetStorage": { "enum": ["filesystem", "s3", "custom"] }
+  }
+}

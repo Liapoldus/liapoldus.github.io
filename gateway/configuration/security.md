@@ -51,28 +51,19 @@ certificate не прерывает трафик; после истечения 
 Значения переводятся соответственно в HSTS, CSP, X-Content-Type-Options,
 Referrer-Policy, Permissions-Policy и X-Frame-Options response headers.
 
-## Identity plugin и mTLS
+## mTLS и plugin binding
 
 ```yaml
 authPolicies:
-  users:
-    plugin: { instance: identity, capability: identity.client.authenticate }
+  protected:
+    plugin: { instance: access-policy, capability: access.authorize }
     mtls: { identities: { subject: { regex: '^CN=service-' } } }
-plugins:
-  identity:
-    binary: ./bin/identity
-    capabilities: [identity.client.authenticate, identity.token.validate, identity.server.authorize, identity.server.token]
-    settings:
-      clients: {}
-      authorizationServers: {}
 ```
 
-OIDC/OAuth client, OAuth authorization server, browser sessions, PKCE, state,
-nonce, cookies и JWT/JWKS validation принадлежат identity-plugin. Gateway
-передаёт только разрешённый HTTP context, применяет типизированный plugin
-response и не получает ключи, cookie либо token lifecycle. Канонический
-контракт capabilities находится в
-[`pluginprotocol`](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts/identity/v1).
+Прикладная authentication/authorization логика живёт в plugin capability.
+Gateway видит только generic policy binding, передаёт ограниченный HTTP context
+и применяет schema-validated response actions. Полный ownership identity
+capability — в [Identity plugin](/plugins/identity).
 
 mTLS проверяет client certificate после TLS termination. mTLS `require`
 отклоняет отсутствие/invalid certificate, `optional` разрешает отсутствие, но

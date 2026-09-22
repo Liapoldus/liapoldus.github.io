@@ -8,14 +8,13 @@ Site. Это server-side invariant, не косметическое ограни
 
 ## Authentication и permissions
 
-Constructor поддерживает IdentityProvider `OIDC`, `JWT` или `None`. В local
-single-user режиме defaults — `auth = none`, `user = admin`, `permissions = *`;
-Roles UI можно не показывать. Web mode поддерживает multiple users, custom
-roles и permissions (`code.*`, `content.*`, `assets.*`, `gateway.*`,
-`plugins.*`, `snapshots.*`, `build.execute`, `deploy.execute`).
-
-OIDC/JWT здесь относятся к аутентификации Constructor, а не к встроенной
-auth-policy Gateway: в Gateway identity flows принадлежат identity plugin.
+Constructor использует внешний Identity Provider через выделенный identity
+adapter; его конкретный protocol и session lifecycle принадлежат
+[Identity plugin](/plugins/identity), а не Constructor или Gateway core. В
+local single-user режиме defaults — `auth = none`, `user = admin`,
+`permissions = *`; Roles UI можно не показывать. Web mode поддерживает
+multiple users, custom roles и permissions (`code.*`, `content.*`, `assets.*`,
+`gateway.*`, `plugins.*`, `snapshots.*`, `build.execute`, `deploy.execute`).
 
 ## Local и web
 

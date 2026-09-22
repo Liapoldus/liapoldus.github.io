@@ -72,7 +72,7 @@ pipeline определяют <a href="/spec/gateway.schema.json" target="_blank
 
 Gateway встроенно поддерживает static files, SPA fallback, reverse proxy,
 WebSocket upgrade, redirects/rewrites, headers, CORS, compression, cache,
-health checks, балансировку, WAF, mTLS и access logs. Identity/OIDC/JWT
+health checks, балансировку, WAF, mTLS и access logs. Identity
 выполняется plugin capability. Прикладная
 операция, например запись формы или обработка peer-протокола, выполняется
 плагином через `plugin` target.

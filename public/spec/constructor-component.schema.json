@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liapoldus.github.io/spec/constructor-component.schema.json",
+  "title": "Liapoldus Constructor component schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "kind", "source", "fields"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,61}$" },
+    "kind": { "enum": ["component", "primitive"] },
+    "source": { "type": "string", "pattern": "^src/" },
+    "fields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
+    "slots": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "events": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+  },
+  "$defs": {
+    "field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["key", "type", "label"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$" },
+        "type": { "enum": ["text", "rich-text", "number", "boolean", "select", "image", "icon", "file", "reference", "object", "array"] },
+        "label": { "type": "string" }, "description": { "type": "string" },
+        "required": { "type": "boolean", "default": false },
+        "localized": { "type": "boolean", "default": false },
+        "default": {}, "allowedValues": { "type": "array" },
+        "asset": { "type": "object", "additionalProperties": false, "properties": { "aspectRatio": { "type": "string" }, "responsive": { "type": "boolean" } } },
+        "visibility": { "type": "string" }, "group": { "type": "string" }
+      }
+    }
+  }
+}

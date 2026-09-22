@@ -16,3 +16,13 @@ Slash palette с поиском вставляет `/component`, `/primitive`, `
 `/image`, `/form`, `/state`, `/reactive`, `/computed`, `/action`, `/script`,
 `/event`, `/shortcut`, `/api`, `/route`, `/gateway`, `/stack`, `/grid` и
 `/container`. Вставка создаёт структурированную модель, а не неявный текст.
+
+## Execution and diagnostics
+
+`Run` запускает Node dev worker в disposable worktree с redacted binding map.
+`Build` требует ready Snapshot и не переиспользует Run process. Terminal
+работает только внутри project worktree, имеет cancellation and redacted output.
+
+Problems объединяет TypeScript, JSON schema, route graph, Gateway validation,
+plugin settings, assets и localization. Problem содержит stable code, severity,
+source location, entity ID and safe fix action when one exists.

@@ -13,6 +13,7 @@ MySQL. Эталонный пример плагина для [гайда по с
 | `forms.submit` | unary | сохранить отправку формы |
 | `forms.list` | unary | список отправок |
 | `forms.delete` | unary | удалить отправку |
+| `admin.surface.get` | control | декларация страниц forms-db в Constructor |
 
 ## Business contract
 
@@ -86,3 +87,35 @@ repository-контрактом плагина: различия не проте
 
 Декларация плагина и привязка capability к маршруту — общий синтаксис
 [«Обзор и настройка»](/plugins/).
+
+## Страницы в Constructor
+
+forms-db публикует две declarative admin pages через общий
+[Plugin Admin Pages](/plugins/admin-pages) contract. Он не поставляет React
+код и не открывает отдельный endpoint.
+
+### Form submissions
+
+Страница видна при `plugins.forms-db.read`. Верхняя filter form выбирает `site`
+и `schemaName`, а также optional `field`/`equals`. Table вызывает `forms.list`
+через Gateway `POST /api/plugins/{instance}/admin/pages/submissions/query`;
+она показывает только `id`, `createdAt`, `data`, использует opaque cursor и
+limit не выше 100. Значения `data` экранируются Constructor и never rendered
+as HTML.
+
+`Delete submission` вызывает `forms.delete` только для выбранной записи,
+требует `plugins.forms-db.write`, dangerous-confirmation token и idempotency
+key. Gateway создаёт audit record с actor, instance, site, schemaName, record
+ID и outcome; plugin получает минимальный typed input.
+
+### Storage configuration
+
+Страница видна при `plugins.forms-db.write` и рендерит уже существующую
+`config.schema`: `driver`, `dsn`, `tablePrefix`. `dsn` является `secret`
+write-only field. Save отправляет новый `plugins.<instance>.settings` через
+стандартный Gateway config apply с active digest; forms-db не изменяет YAML
+напрямую. После успешного apply Gateway invalidates surface cache and
+Constructor refreshes schema/status.
+
+Reference surface fixture —
+[`forms-db/v1/admin-surface.json`](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts/forms-db/v1).
