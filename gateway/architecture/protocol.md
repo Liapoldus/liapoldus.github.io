@@ -53,6 +53,10 @@ API изолированы друг от друга. VitePress не хранит
 10 MiB, frame — 1 MiB, большие данные передаются `STREAM_DATA` фрагментами.
 
 Gateway-контракты v1 публикуются в [`core/contracts/v1`](https://github.com/Liapoldus/core/tree/main/contracts/v1).
+Для воспроизводимой интеграции используйте зафиксированный релиз
+[`gateway-v1.0.1`](https://github.com/Liapoldus/core/releases/tag/gateway-v1.0.1)
+и его архив
+[`liapoldus-gateway-contracts-v1.0.1.tar.gz`](https://github.com/Liapoldus/core/releases/download/gateway-v1.0.1/liapoldus-gateway-contracts-v1.0.1.tar.gz).
 `manifest.json` содержит версию `liapoldus.gateway.v1` и SHA-256 каждого
 JSON/OpenAPI-файла; документация не дублирует эти схемы.
 
