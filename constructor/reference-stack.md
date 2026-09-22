@@ -1,4 +1,4 @@
-# Reference stack
+# Эталонный стек
 
 Эта страница фиксирует reference implementation. Замена технологии допустима
 только при сохранении каждого публичного contract и observable behavior.
@@ -15,7 +15,7 @@
 | Local persistence | SQLite | те же таблицы и migrations для single-user mode |
 | Project source | Git repository | React source, schemas, content, routes и generated artifacts |
 
-## Process topology
+## Топология процессов
 
 <img src="/diagrams/constructor-processes.svg" alt="Процессы Constructor: React UI, Go API, Node build worker, Git и Gateway" />
 
@@ -24,7 +24,7 @@ Worker получает immutable worktree по commit SHA, не рабочую 
 пользователя. Desktop запускает Wails shell, но использует тот же React bundle,
 Go API contracts и Node worker protocol: отдельного desktop frontend нет.
 
-## UI composition
+## Состав UI
 
 shadcn/ui используется как source-owned UI kit: primitives копируются в
 `apps/constructor-ui/src/components/ui`, versioned вместе с проектом и

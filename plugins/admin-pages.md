@@ -1,4 +1,4 @@
-# Plugin Admin Pages
+# Административные страницы Plugin
 
 Plugin может добавить в workspace Constructor собственные административные
 страницы. Это extension control plane, а не расширение public data plane:
@@ -28,7 +28,7 @@ Gateway. Установка plugin instance не создаёт page сама п
 сначала получает и валидирует `admin.surface.get`, затем Constructor показывает
 только страницы, которые capability объявляет для данного healthy instance.
 
-## Declarative page model
+## Декларативная модель страницы
 
 ```text
 AdminSurface
@@ -56,10 +56,10 @@ namespaced API path but never becomes a public Gateway route. A plugin release
 may add page/field/action compatibly; removal or field type change requires a
 new surface version and migration notice.
 
-## Namespaced Gateway API
+## Пространство имён Gateway API
 
-Only Gateway exposes the internal endpoints below. Constructor never connects
-to plugin process directly.
+Только Gateway предоставляет указанные ниже внутренние endpoints. Constructor
+никогда не подключается к процессу plugin напрямую.
 
 | Endpoint | Capability dispatch | Semantics |
 | --- | --- | --- |
@@ -68,18 +68,18 @@ to plugin process directly.
 | `POST /api/plugins/{instance}/admin/pages/{page}/actions/{action}` | action capability | validates input, requires confirmation/idempotency for mutation, returns operation/result |
 | `GET /api/plugins/{instance}/admin/pages/{page}/health` | `health` projection | bounded status, no raw logs/secrets |
 
-All routes require a Gateway management principal and plugin-specific
-permission. Gateway validates `{instance,page,action}` against the active
-surface; it forwards only declared input fields, attaches actor/request ID and
-scoped grant handles, applies deadline/concurrency/payload limits, redacts
-response, writes audit, and maps typed plugin errors to Problem Details.
+Все маршруты требуют management principal Gateway и permission конкретного
+plugin. Gateway проверяет `{instance,page,action}` по активному Surface,
+передаёт только объявленные входные поля, добавляет actor/request ID и scoped
+grant handles, применяет лимиты deadline/concurrency/payload, выполняет
+redaction, пишет audit и отображает typed plugin errors в Problem Details.
 
 `query` is read-only and cursor based. An `action` marked `dangerous` requires
 the Constructor confirmation token bound to `(actor, instance, page, action,
 input digest)` and expires after five minutes. Plugin never receives a raw
 Constructor access token, secret value, management bearer key or database path.
 
-## Lifecycle and cache
+## Жизненный цикл и кэш
 
 1. Gateway starts instance, validates manifest/health/settings.
 2. It requests `admin.surface.get`, validates against versioned contract and
@@ -90,9 +90,9 @@ Constructor access token, secret value, management bearer key or database path.
 5. Every query/action checks current surface digest; stale UI receives `409
    plugin_surface_changed` and reloads schema.
 
-Invalid surface is a plugin protocol failure, not a partially rendered UI.
-Gateway marks admin surface unavailable but does not stop unrelated public
-capabilities unless their own health contract fails.
+Некорректный Surface — ошибка protocol plugin, а не частично отображённый UI.
+Gateway помечает административный Surface недоступным, но не останавливает
+несвязанные public capabilities, если их собственный health contract успешен.
 
 ## Security invariants
 
@@ -107,7 +107,7 @@ capabilities unless their own health contract fails.
 - Configuration write remains `config.apply`; an admin page cannot mutate
   `gateway.yaml` outside its instance settings.
 
-## Contract ownership
+## Владение контрактом
 
 The protocol source of truth is
 [`pluginprotocol/contracts/admin-ui/v1`](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts/admin-ui/v1).

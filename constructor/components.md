@@ -21,13 +21,13 @@ Image); Component публикует безопасную модель для pa
 `asset`, `route`, `navigate`, `api`, `theme` и `locale`. Обычные React APIs,
 hooks и сторонние библиотеки остаются разрешённым escape hatch.
 
-## Component contract
+## Контракт Component
 
 `schema.json` валидируется [Component schema](/spec/constructor-component.schema.json).
 Field key стабилен: он адресует Content, locale variant, version diff и test
 fixture, поэтому rename всегда требует migration.
 
-| Field type | Stored value | Editor boundary |
+| Тип поля | Хранимое значение | Граница редактора |
 | --- | --- | --- |
 | `text`, `rich-text` | string / sanitized document JSON | locale variant when `localized` |
 | `image`, `icon`, `file` | Asset ID | type/aspect/responsive requirement |

@@ -1,4 +1,4 @@
-# Site Management Mode
+# Режим управления сайтом
 
 Режим предназначен для designer, content manager и moderator. Основные
 разделы: Pages, Navigation, Content, Localization, Assets, Theme, Preview и
@@ -16,7 +16,7 @@ Navigation canvas представляет Page как node, а navigation/actio
 Inspector связывает edge с конкретным элементом, например `Hero.button →
 /products`. Это позволяет найти broken link до Build.
 
-## Editing protocol
+## Протокол редактирования
 
 Canvas selection загружает только schema-visible fields Component instance.
 Inspector отправляет patch with revision; API validates type, locale, asset

@@ -17,7 +17,7 @@ Slash palette с поиском вставляет `/component`, `/primitive`, `
 `/event`, `/shortcut`, `/api`, `/route`, `/gateway`, `/stack`, `/grid` и
 `/container`. Вставка создаёт структурированную модель, а не неявный текст.
 
-## Execution and diagnostics
+## Выполнение и диагностика
 
 `Run` запускает Node dev worker в disposable worktree с redacted binding map.
 `Build` требует ready Snapshot и не переиспользует Run process. Terminal

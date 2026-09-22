@@ -1,4 +1,4 @@
-# Git project format
+# Формат Git-проекта
 
 Project является нормальным monorepo React-приложения. Следующее дерево —
 канонический формат v1; это не внутренний формат БД.
@@ -37,7 +37,7 @@ Project является нормальным monorepo React-приложени�
   public/assets/               # filesystem asset storage in local mode
 ```
 
-## Ownership and generated files
+## Владение и генерируемые файлы
 
 | Path | Writer | Rule |
 | --- | --- | --- |
@@ -50,7 +50,7 @@ Every structured file contains `{ "schemaVersion": 1, "id": "..." }`.
 Unknown fields fail validation; migration is explicit `vN → vN+1`, committed
 with the transformed file. Secret-valued fields contain only `secret://` refs.
 
-## Write transaction
+## Транзакция записи
 
 1. UI loads a file with its Git blob SHA.
 2. API validates request schema and permissions.

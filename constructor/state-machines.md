@@ -1,4 +1,4 @@
-# State machines
+# Конечные автоматы
 
 ## Snapshot, build and deployment
 
