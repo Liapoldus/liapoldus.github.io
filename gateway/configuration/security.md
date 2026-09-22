@@ -62,8 +62,7 @@ authPolicies:
 
 Прикладная authentication/authorization логика живёт в plugin capability.
 Gateway видит только generic policy binding, передаёт ограниченный HTTP context
-и применяет schema-validated response actions. Полный ownership identity
-capability — в [Identity plugin](/plugins/identity).
+и применяет schema-validated response actions.
 
 mTLS проверяет client certificate после TLS termination. mTLS `require`
 отклоняет отсутствие/invalid certificate, `optional` разрешает отсутствие, но

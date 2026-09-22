@@ -15,7 +15,7 @@ target-spec: если будущая реализация расходится �
 | Возможность | Описание |
 | --- | --- |
 | **Сайты из registry** | immutable release в `sites/<slug>/releases/<revision>/`; `current` и `previous` — symlink для publish/rollback |
-| **HTTP(S)** | static, proxy, WebSocket, redirects, cache, compression, TLS, mTLS, WAF и identity plugins |
+| **HTTP(S)** | static, proxy, WebSocket, redirects, cache, compression, TLS, mTLS, WAF и auth capabilities |
 | **TCP, UDP и P2P** | listener’ы, TLS termination/passthrough, relay, ограничения и plugin targets |
 | **Upstream** | DNS discovery, health checks, балансировка, retry и connection pools |
 | **Управление** | CLI, Management API, audit, revision/digest и optimistic lock |
@@ -46,7 +46,7 @@ target-spec: если будущая реализация расходится �
 | [Upstream и балансировка](upstreams) | targets, DNS, health checks, балансировка и retry |
 | [Конфиг сайта](site-config) | `site.yaml`, immutable release, `current`/`previous` и rollback |
 | [HTTP runtime](http-runtime) | точный порядок HTTP-обработки, static, SPA, cache, headers и WebSocket |
-| [TLS, auth и WAF](security) | ACME, mTLS, identity plugins, политики и ограничения |
+| [TLS, auth и WAF](security) | ACME, mTLS, auth capabilities, политики и ограничения |
 | [Reload и конфликты](tls-reload) | snapshots, validation, digest и atomic apply |
 | [Gateway API](/gateway/api/) | аутентификация, ресурсы, operations и OpenAPI |
 | [Логи и наблюдаемость](/gateway/deploy/observability) | deployment, audit, Prometheus и OTLP |

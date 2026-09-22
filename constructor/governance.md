@@ -8,9 +8,9 @@ Site. Это server-side invariant, не косметическое ограни
 
 ## Authentication и permissions
 
-Constructor использует внешний Identity Provider через выделенный identity
-adapter; его конкретный protocol и session lifecycle принадлежат
-[Identity plugin](/plugins/identity), а не Constructor или Gateway core. В
+Constructor использует внешний authentication provider через выделенный
+adapter; его конкретный protocol и session lifecycle принадлежат plugin
+capability, а не Constructor или Gateway core. В
 local single-user режиме defaults — `auth = none`, `user = admin`,
 `permissions = *`; Roles UI можно не показывать. Web mode поддерживает
 multiple users, custom roles и permissions (`code.*`, `content.*`, `assets.*`,
