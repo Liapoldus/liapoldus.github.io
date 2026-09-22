@@ -44,17 +44,17 @@ AdminSurface
         └── actions[]: id, capability, input schema, confirmation, danger flag
 ```
 
-Supported field types are `string`, `number`, `boolean`, `select`,
+Поддерживаемые типы полей: `string`, `number`, `boolean`, `select`,
 `multiselect`, `secret`, `file`, `directory`, `duration`, `size`, `code`,
 `keyValue`, `array`, `object`. Constructor must reject an unknown section,
 field or action type rather than interpret it. Labels/descriptions are plain
 text; HTML, CSS, JavaScript/module URL, browser route and arbitrary endpoint
 fields are forbidden by schema.
 
-Page ID is stable, lowercase and instance-local. It becomes part of a
-namespaced API path but never becomes a public Gateway route. A plugin release
-may add page/field/action compatibly; removal or field type change requires a
-new surface version and migration notice.
+ID страницы стабилен, задаётся в нижнем регистре и локален для instance. Он
+становится частью namespaced API path, но не public Gateway route. Релиз plugin
+может совместимо добавить page/field/action; удаление или смена типа поля
+требует новой версии Surface и уведомления о migration.
 
 ## Пространство имён Gateway API
 
@@ -74,21 +74,22 @@ plugin. Gateway проверяет `{instance,page,action}` по активно�
 grant handles, применяет лимиты deadline/concurrency/payload, выполняет
 redaction, пишет audit и отображает typed plugin errors в Problem Details.
 
-`query` is read-only and cursor based. An `action` marked `dangerous` requires
-the Constructor confirmation token bound to `(actor, instance, page, action,
-input digest)` and expires after five minutes. Plugin never receives a raw
-Constructor access token, secret value, management bearer key or database path.
+`query` доступен только для чтения и использует cursor. `action` с признаком
+`dangerous` требует Constructor confirmation token, привязанный к `(actor,
+instance, page, action, input digest)`, и действует пять минут. Plugin никогда
+не получает raw Constructor access token, secret value, management bearer key
+или database path.
 
 ## Жизненный цикл и кэш
 
-1. Gateway starts instance, validates manifest/health/settings.
-2. It requests `admin.surface.get`, validates against versioned contract and
-   stores `(instance, manifest version, surface digest)`.
-3. Constructor reads surface through Gateway and renders permitted pages.
-4. Config apply, restart, manifest version change or unhealthy state invalidates
-   cache; Constructor removes pages until a healthy valid surface returns.
-5. Every query/action checks current surface digest; stale UI receives `409
-   plugin_surface_changed` and reloads schema.
+1. Gateway запускает instance и проверяет manifest/health/settings.
+2. Gateway запрашивает `admin.surface.get`, сверяет versioned contract и
+   сохраняет `(instance, manifest version, surface digest)`.
+3. Constructor читает Surface через Gateway и отображает разрешённые страницы.
+4. Config apply, restart, смена manifest version или unhealthy state сбрасывают
+   cache; Constructor скрывает страницы до получения healthy valid Surface.
+5. Каждый query/action проверяет current surface digest; устаревший UI получает
+   `409 plugin_surface_changed` и перезагружает schema.
 
 Некорректный Surface — ошибка protocol plugin, а не частично отображённый UI.
 Gateway помечает административный Surface недоступным, но не останавливает
@@ -109,8 +110,8 @@ Gateway помечает административный Surface недосту
 
 ## Владение контрактом
 
-The protocol source of truth is
+Единственный источник правды для protocol находится в
 [`pluginprotocol/contracts/admin-ui/v1`](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts/admin-ui/v1).
-The Gateway implementation owns endpoint authorization and dispatch. The
-Constructor owns generated UI behavior. This page is canonical architecture;
-the protocol schema and code must follow it exactly.
+Gateway implementation владеет endpoint authorization и dispatch. Constructor
+владеет поведением generated UI. Эта страница — каноническая архитектура;
+protocol schema и code обязаны точно ей соответствовать.
