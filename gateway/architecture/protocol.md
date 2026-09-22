@@ -52,6 +52,10 @@ API изолированы друг от друга. VitePress не хранит
 бизнес-вызова — JSON согласно capability contract; unary payload ограничен
 10 MiB, frame — 1 MiB, большие данные передаются `STREAM_DATA` фрагментами.
 
+Gateway-контракты v1 публикуются в [`core/contracts/v1`](https://github.com/Liapoldus/core/tree/main/contracts/v1).
+`manifest.json` содержит версию `liapoldus.gateway.v1` и SHA-256 каждого
+JSON/OpenAPI-файла; документация не дублирует эти схемы.
+
 ## Методы протокола
 
 | Метод | Тип | Назначение |
