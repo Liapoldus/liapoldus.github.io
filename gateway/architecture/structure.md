@@ -9,7 +9,7 @@ cmd/gateway/                 composition root
 internal/domain/models/      models, typed errors и validating constructors
 internal/domain/interfaces/  domain ports
 internal/application/        один flat package: compile/apply/publish/rollback use cases
-internal/infrastructure/     config/ network/ security/ storage/ plugins/ observability/
+internal/infrastructure/     accounts/ config/ network/ security/ storage/ plugins/ observability/
 internal/presentation/       api/ и cli/
 assets/                      статические schemas и contract files без Go-кода
 ```
@@ -23,9 +23,11 @@ assets/                      статические schemas и contract files б
 - `internal/application` — один flat Go package без вложенных директорий. Он
   реализует use cases и зависит только от domain ports/models.
 - `internal/infrastructure` содержит concrete adapters, сгруппированные в
-  `config/`, `network/`, `security/`, `storage/`, `plugins/` и
+  `accounts/`, `config/`, `network/`, `security/`, `storage/`, `plugins/` и
   `observability/`. Здесь находятся YAML compiler/validation, HTTP/TCP/UDP,
   DNS, filesystem registry, TLS/auth, plugin IPC и telemetry.
+- `accounts/` владеет bcrypt-хранилищем service accounts и lifecycle ключей;
+  пакет не изменяет YAML-конфигурацию.
 - `internal/presentation` содержит только `api/` и `cli/`; HTTP/L4 transport
   adapters относятся к `infrastructure/network`.
 - `assets/` находится в корне, содержит только static schemas и contract files
