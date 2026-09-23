@@ -22,7 +22,8 @@ Gateway владеет публичным трафиком, конфигурац
 3. **Публичный сокет принадлежит Gateway.** Даже при proxy и плагинах именно
    Gateway применяет маршрутизацию, TLS, авторизацию, лимиты и телеметрию.
 4. **Расширение выдаётся явно.** Instance плагина и capability проверяются при
-   компиляции конфигурации; IPC ограничен loopback и контрактом протокола.
+   компиляции конфигурации; IPC ограничен выбранным transport contract. Сейчас
+   доступен только local loopback; remote TLS/mTLS mode ещё планируется.
 
 ## Документы
 
@@ -32,7 +33,9 @@ Gateway владеет публичным трафиком, конфигурац
 | [Компоненты runtime](gateway.md) | Владение компонентами, применение конфигурации и пути трафика. |
 | [Blueprint реализации](implementation.md) | process boundaries, state machines, concurrency и trust boundaries. |
 | [Кодовая архитектура](structure.md) | Направление зависимостей и доменные порты реализации. |
-| [Plugin protocol](protocol.md) | Единственная wire-спецификация IPC: фреймы, методы, потоки и ошибки. |
+| [Plugin protocol](protocol.md) | Единственная wire-спецификация IPC: gRPC методы, потоки и ошибки. |
+| [Cookie-контракт](cookies.md) | Текущая поддержка cookie и целевая безопасная передача в plugin capability. |
+| [Режимы подключения plugin](plugin-deployment.md) | Текущий local-supervised и целевой remote deployment. |
 | [Гайд создания плагина](guide.md) | Практический контракт автора plugin binary. |
 
 Документация по декларации, супервизору и жизненному циклу плагинов —

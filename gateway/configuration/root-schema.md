@@ -33,10 +33,10 @@ Include раскрываются до validation. Цикл, duplicate resource n
 
 | Поле | Назначение |
 | --- | --- |
-| `tlsProfiles`, `tlsIssuers` | server certificates и issuance |
-| `authPolicies` | identity-plugin binding и mTLS |
-| `dataProviders`, `wafPolicies` | MMDB source и WAF decisions |
-| `rateLimits`, `captchaProviders` | token bucket и captcha verification |
+| `tlsProfiles` | server certificates и mTLS |
+| `authPolicies` | route policy → подключённая plugin capability |
+| `dataProviders`, `wafPolicies` | MMDB source, WAF rules и generic capability dispatch |
+| `rateLimits` | token bucket |
 
 Все security resources именованные: объявление само по себе не защищает
 трафик, пока route не укажет `auth`, `waf` или `rateLimit`.

@@ -1,5 +1,25 @@
 # Routing и network canvas
 
+React route document v1 хранится в `liapoldus/routes/{environment}.json` и
+читается/сохраняется через `/api/v1/project/routes`. Save использует
+ETag/`If-Match` и проверяет schema version, уникальность route ID/path, leading
+slash, page reference и chunk policy до записи.
+
+Build regenerates `src/generated/routes.tsx`: exact routes precede parameterized
+routes, which precede catch-all routes. Static routes use static page imports;
+lazy and separate chunk policies use dynamic imports. Route IDs in `layouts`
+refer to `src/layouts/{id}.layout.tsx`; each default React component receives
+its child page through `children`, and the array is composed from outermost to
+innermost layout. The legacy singular `layout` field remains accepted and, if
+combined with `layouts`, is treated as the outermost wrapper.
+
+An `access` value is a kebab-case policy ID passed to the generated
+`createRoutes(canAccess)` resolver. Generated protected routes render Access
+denied unless the host supplies an auth-backed resolver. The scaffold defaults
+to deny. This is frontend visibility; API and data access still require
+server-side authorization. Route metadata, layout, access and preload references
+are also carried in React Router `handle` metadata.
+
 Constructor ведёт две разные, но сопоставленные модели: React routes и Gateway
 routes. Route graph для React содержит path, page/component, layout, access,
 chunk, lazy loading, preload и metadata. Constructor генерирует стандартную

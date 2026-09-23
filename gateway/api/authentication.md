@@ -33,8 +33,9 @@ management:
 Loopback listener не требует TLS. Для non-loopback `tlsProfile` обязателен и
 должен иметь `clientAuth.mode: require`; после TLS handshake Bearer key всё
 равно обязателен. Нет TLS profile — `422 management_tls_required`; нет required
-client auth — `422 management_mtls_required`; нет client certificate — `401
-mtls_required`.
+client auth — `422 management_mtls_required`; отсутствует client certificate —
+`401 mtls_required`. Предъявленный недействительный сертификат отвергается во
+время TLS-handshake до HTTP parsing и не получает HTTP-ответ.
 
 ## Локальный статический токен
 

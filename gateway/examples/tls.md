@@ -1,14 +1,14 @@
-# ACME TLS, HTTP/3 и mTLS
+# TLS, HTTP/3 и mTLS
 
-Профиль `public` выпускает и обновляет сертификаты через ACME. Отдельный
-профиль требует сертификат клиента для service-to-service маршрута.
+Gateway использует явно предоставленные TLS material. Отдельный профиль требует
+сертификат клиента для service-to-service маршрута.
 
 ```yaml
 tlsProfiles:
   public:
     certificates:
-      - domains: [app.example.com]
-        issuer: public-acme
+      - cert: file:/etc/liapoldus/app.crt
+        key: file:/etc/liapoldus/app.key
     protocols: [http/1.1, h2, h3]
   services:
     certificates: [{ cert: file:/etc/liapoldus/services.crt, key: file:/etc/liapoldus/services.key }]
@@ -26,9 +26,6 @@ listeners:
     routes: [{ when: { path: { prefix: / } }, then: { proxy: internal-api } }]
 ```
 
-`public-acme` объявляется в `tlsIssuers` и использует внешний `tls-issuer`
-plugin; inline `acme` у certificate не существует. HTTP/3 открывает UDP/QUIC и
-TCP на `:443` с тем же TLS profile.
-
-ACME certificate renewal не меняет правила маршрутизации: TLS Manager готовит
-новый snapshot и безопасно заменяет сертификат для новых соединений.
+HTTP/3 открывает UDP/QUIC и TCP на `:443` с тем же TLS profile. Gateway не
+содержит ACME workflow или привязки к конкретному issuer plugin. Внешняя
+интеграция issuance пока не включена в текущую конфигурационную поверхность.

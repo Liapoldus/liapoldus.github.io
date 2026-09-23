@@ -1,5 +1,9 @@
 # Identity plugin
 
+> **Статус:** runnable skeleton. Все объявленные capability names проходят
+> handshake и локальный dispatch; реальный OAuth/OIDC provider, session, cookie
+> и token lifecycle ещё не реализованы.
+
 Identity plugin — самостоятельный capability-процесс. Он является единственным
 местом, где живут browser identity flows, провайдерские протоколы и lifecycle
 токенов. Gateway не реализует их и не хранит identity session.
@@ -40,3 +44,15 @@ generic `authPolicies.<name>.plugin { instance, capability }`, а не встр�
 
 Не создавайте identity-plugin executable в Gateway repository: protocol,
 fixtures и реализация принадлежат plugin ecosystem.
+
+## Локальная проверка
+
+```bash
+go build ./...
+go vet ./...
+go test ./...
+LIAPOLDUS_CORE_ROOT="../../core" ./tests/gateway_smoke.sh
+```
+
+Проверка запускает отдельный identity process через текущий Gateway и использует
+deterministic provider без внешнего IdP и секретов.

@@ -18,7 +18,7 @@ plugins:
     args: []
     env: [DATABASE_URL=env:FORMS_DATABASE_URL]
     capabilities: [forms.submit, forms.list, forms.delete]
-    limits: { calls: 100, timeout: 5s, memory: 256MiB }
+    limits: { calls: 100, startTimeout: 10s, timeout: 5s, memory: 256MiB }
     restart: { enabled: true, backoff: 1s, maxBackoff: 30s }
     grants: { storage: [], secrets: [] }
 ```
@@ -27,17 +27,35 @@ plugins:
 | --- | --- |
 | `binary`, `settings`, `args`, `env` | запуск отдельного процесса и его конфиг в `gateway.yaml` |
 | `capabilities` | единственный список допустимых вызовов |
-| `limits` | concurrency, deadline, payload/flow и ресурсные пределы |
+| `limits` | startup handshake, concurrency, call deadline, payload/flow и ресурсные пределы |
 | `restart` | политика восстановления после failure; default `enabled: true`, `backoff: 1s`, `maxBackoff: 30s` |
 | `grants` | scoped storage и secrets; отсутствующий grant означает отсутствие доступа |
 
-Supervisor выбирает свободный `127.0.0.1` TCP port, передаёт его через `--port`
-и не публикует этот порт. Он проверяет `manifest`, `health` и `config.apply`
-за 10 s. Проверка health идёт раз в 5 s; после трёх последовательных failures
-instance становится unhealthy и перезапускается с bounded exponential backoff.
-`limits.calls` ограничивает параллельные calls, `limits.memory` — process RSS,
-`limits.timeout` (default 5 s) — call deadline. stdout/stderr проходит
+Supervisor выбирает свободный `127.0.0.1` TCP port, передаёт полный endpoint
+через `LIAPOLDUS_PLUGIN_ENDPOINT` согласно [launch contract protocol v1](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/launch.json)
+и не публикует этот порт. Scoped-secret grants используют отдельный loopback
+endpoint, переданный через `LIAPOLDUS_GRANT_BROKER_ENDPOINT`; Gateway
+обслуживает на нём typed `GrantBroker.RedeemGrant`. Startup выполняет gRPC handshake: `Manifest`,
+standard `grpc.health.v1`, `ConfigSchema`, затем `ConfigApply`. Периодический
+health probe идёт раз в 5 s; после трёх последовательных failures instance
+становится unhealthy и перезапускается с bounded exponential backoff.
+`limits.startTimeout` (default `10s`) ограничивает единым deadline создание
+gRPC-соединения и полный startup handshake (`Manifest`, health, `ConfigSchema`,
+`ConfigApply`). Пока handshake не завершён, instance недоступен для dispatch;
+при истечении deadline Gateway прекращает запуск и завершает child process.
+`limits.calls` ограничивает параллельные calls, `limits.memory` — максимальный
+resident set size процесса (default `256MiB`), `limits.timeout` (default 5 s) —
+отдельный call deadline; он не заменяет `startTimeout`. При timeout Gateway отменяет RPC и возвращает HTTP Problem
+`504 plugin_timeout`. Gateway проверяет RSS раз в секунду и после capability Call;
+если вызов превысил лимит, текущий HTTP-запрос получает `503 resource_exhausted`.
+При превышении Gateway завершает
+процесс, а при `restart.enabled: true` запускает его заново с настроенным
+bounded backoff. При отключённом restart превышение всё равно останавливает
+процесс, но автоматического запуска не будет. stdout/stderr проходит
 redaction и хранится в кольцевом буфере 200 строк.
+Если достигнут предел `limits.calls`, запрос ждёт свободный слот; `limits.timeout`
+ограничивает и ожидание, и сам RPC. Число одновременно исполняемых calls не
+превышает настройку instance.
 
 ## Назначение plugin target
 
@@ -60,8 +78,8 @@ listeners:
 Gateway проверяет существование instance и capability при compile. HTTP
 capability получает request context и тело в заданных лимитах; TCP capability
 получает двунаправленную session; UDP capability — datagram flow. Плагин не
-получает секреты, заголовки или client identity, если правило не разрешает их
-в `plugin.context`.
+получает socket handle, filesystem path, raw Gateway secret,
+`Authorization`, `Cookie`, `Proxy-Authorization` или identity claims.
 
 ### `plugin.context`
 
@@ -73,7 +91,6 @@ then:
     context:
       request: { method: true, path: false, query: false }
       headers: [content-type, x-requested-with]
-      identity: { subject: true, claims: [email] }
       body: json
       secrets: []
 ```
@@ -82,12 +99,15 @@ then:
 | --- | --- | --- |
 | `request` | object / `{method:true,path:false,query:false}` | allow-list basic request fields |
 | `headers` | lowercase string[] / `[]` | only forwarded headers |
-| `identity` | object / absent | requires successful auth; only listed claims are forwarded |
 | `body` | `none|json|bytes`, default `none` | body encoding in payload; max 10 MiB |
-| `secrets` | secret-name[] / `[]` | Gateway resolves only named scoped grants; values are never client-controlled |
+| `secrets` | secret-name[] / `[]` | запрашиваемые named grants; Gateway прикладывает к `Call` только opaque handles, а значение выдаёт отдельным typed redemption RPC |
 
-Gateway serializes allowed values into capability JSON payload; it never forwards
-raw HTTP, `Authorization`, cookies or all identity claims by default.
+Secret bytes никогда не сериализуются в capability JSON и не пересылаются как
+обычные IPC metadata. Gateway выдаёт handle только если secret name разрешён
+в `plugins.<instance>.grants.secrets`; handle связывает конкретный plugin,
+capability-вызов, purpose и domain scope и отзывается по окончании этого вызова.
+Gateway также не передаёт raw HTTP, `Authorization`, cookies или все identity
+claims по умолчанию.
 
 ## Жизненный цикл и наблюдаемость
 
@@ -97,13 +117,14 @@ Supervisor запускает процесс на loopback IPC, проверяе
 маршрутизацию. `GET /api/plugins` показывает состояние, health, limits и
 capabilities; logs проходят redaction и доступны через endpoint instance.
 
-## Control-plane plugins
+## Control-plane capabilities
 
-Некоторые capabilities обслуживают инфраструктуру Gateway, а не публичный
-route. Они всё равно объявлены в YAML и не получают произвольных прав. Например,
-`tls-issuer` вызывается именованным `tlsIssuer`; Gateway передаёт ему ACME
-задание и scoped storage/secret grants, но сам записывает ключи и сертификаты,
-публикует TLS snapshot и ведёт audit.
+Plugin capabilities могут обслуживать control-plane flow, а не публичный
+route. Gateway не резервирует для них продуктовые имена, resource types или
+специальные provider registries: подключённый plugin объявляет свою capability,
+а вызывающий адаптер связывает её через общий runtime и grants. Любой будущий
+TLS-issuance adapter должен отдельно определить эту binding boundary и её
+versioned contract; текущий Gateway принимает TLS profile с явными `cert`/`key`.
 
 ## Существующие плагины
 

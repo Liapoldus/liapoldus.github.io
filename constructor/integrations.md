@@ -22,6 +22,44 @@ Constructor умеет перечислять instance, показывать sta
 с fields/actions/status/metrics/logs/health. Gateway контролирует доступ,
 redaction и lifecycle; Plugin не передаёт UI произвольный executable code.
 
+### Transport boundary
+
+The accepted Plugin Protocol migration replaces the old framing with gRPC over
+loopback HTTP/2. Gateway supervises each plugin and invokes its `PluginService`
+control RPCs plus generic `Call` and bidirectional `Stream`; capability
+payloads stay versioned JSON contracts. The current sibling `core` checkout has
+migrated its plugin adapter to `pluginprotocol v1.1.0` through a local module
+replacement; the release has not yet been published. Remaining Gateway
+acceptance gates, including resource limits and scoped grants, are tracked in
+the core repository.
+The latest protocol client change preserves gRPC `Canceled` and
+`DeadlineExceeded` as Go context cancellation/deadline errors. The current
+sibling Gateway adapter preserves deadlines, but its in-flight `CallJSON` path
+still maps explicit cancellation to `ErrPluginUnavailable`; preserving that
+cancellation through Gateway's operation/API boundary is a tracked core
+follow-up. Constructor remains outside that transport and does not duplicate
+its error policy.
+Constructor does not import `pluginprotocol`, connect to plugin loopback, or
+implement a second plugin transport. The REST control plane and plugin IPC are
+separate boundaries.
+
+For declarative Admin UI, Constructor consumes only Gateway's fixed internal
+REST API: `GET /api/plugins/{instance}/admin/surface`, query, and action routes.
+Those endpoints are owned and authorized by Gateway; the Admin Surface schema
+and page lifecycle are canonical at [Plugin Admin Pages](/plugins/admin-pages)
+and [Plugin Admin UI contract](/plugins/admin-ui-contract). Constructor renders
+known schema elements and never accepts plugin-provided URLs or executable UI.
+The web bundle uses the same-origin Constructor bridge for those exact routes;
+the local Go host forwards only the fixed Admin API path/method allowlist and
+the required digest/idempotency/confirmation headers. `GATEWAY_TOKEN` remains
+server-side and is never returned to browser JavaScript. No generic URL proxy is
+exposed.
+
+This UI capability depends on Gateway's fixed internal REST API, not on direct
+plugin IPC. The old v1.0.0 length-prefixed plugin transport is incompatible;
+do not add a Constructor-side fallback or dual-stack path. Constructor remains
+unaware of plugin loopback endpoints and gRPC service details.
+
 ## Plugin pages in Constructor
 
 Plugin pages appear under `Gateway → Plugins → <instance>` only after Gateway
@@ -39,3 +77,17 @@ unavailable state, never raw JSON editor.
 
 The complete boundary is [Plugin Admin Pages](/plugins/admin-pages); forms-db
 is the detailed reference at [forms-db](/plugins/forms-db).
+
+Local Constructor enables the Gateway publish adapter only when `GATEWAY_URL` is
+configured. Publish uses `POST /api/sites/{slug}/publish` and sends the
+immutable build artifact directory as `source`, and sends the deployment ID as
+both `Idempotency-Key` and body `idempotencyKey`, plus the current
+`expectedCurrentRevision` CAS precondition. Constructor waits for a succeeded
+Gateway operation, stores its returned release revision, and only then records
+the Deployment active. Rollback uses the same revision precondition and its own
+stable idempotency key. At startup the local recovery worker replays an in-flight
+operation with the original idempotency key and compare-and-swap revision; an
+unconfirmed result keeps the target reserved instead of claiming success.
+Without `GATEWAY_URL`, deployment fails visibly instead of reporting a false
+success. Constructor never discovers plugin loopback URLs or calls plugins
+directly.

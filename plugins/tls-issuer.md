@@ -1,82 +1,47 @@
-# tls-issuer
+# Plugin управления TLS-сертификатами
 
-`tls-issuer` автоматически выпускает, продлевает и отзывает TLS/mTLS
-сертификаты через ACME. Он не имеет доступа к файловой системе Gateway,
-не открывает listener и не пишет сертификаты сам: все чувствительные операции
-выполняются Gateway через ограниченный control-plane interface.
+> **Статус:** runnable skeleton. Реальное ACME, DNS-01/HTTP-01, выдача и
+> сохранение certificate material, renewal/revoke orchestration и интеграция с
+> Gateway listener пока не реализованы.
 
-## Capabilities
+Этот plugin описывает возможную интеграцию поставщика TLS-сертификатов. Он не
+является частью Gateway core и не добавляет Gateway-корневой ресурс
+`tlsIssuers`. Конфигурация ACME directory, account, DNS provider, egress allowlist,
+renewal policy и секретов относится к versioned settings schema самого plugin.
 
-| Capability | Назначение |
-| --- | --- |
-| `tls.issue` | создать ACME order, пройти challenge и вернуть certificate material |
-| `tls.renew` | продлить certificate material перед истечением срока |
-| `tls.revoke` | отозвать certificate material по явной операции оператора |
+## Граница ответственности
 
-## Конфигурация
+Gateway остаётся владельцем TLS listener-а, handshake, SNI certificate
+selection, mTLS verification и активного TLS profile. Подключённый plugin
+может заявить capability-ы управления certificate lifecycle через manifest.
+Gateway не содержит специальных capability names, ACME state machine, DNS
+provider-ов или plugin-specific settings. До появления versioned integration
+contract TLS profiles используют явно заданные `cert` и `key`.
 
-```yaml
-secrets:
-  cloudflareDnsToken: env:CLOUDFLARE_DNS_TOKEN
+Если plugin получает grant, он должен быть ограничен конкретным вызовом,
+capability, purpose и domain scope. Raw secret не помещается в settings или
+capability JSON; filesystem path, private key и socket Gateway plugin-у не
+передаются. Gateway должен валидировать полученный material и атомарно менять
+активный TLS snapshot только после полной проверки.
 
-plugins:
-  tls-issuer:
-    binary: ./bin/tls-issuer
-    settings: {}
-    capabilities: [tls.issue, tls.renew, tls.revoke]
-    grants:
-      storage: [tls-public]
-      secrets:
-        - name: cloudflareDnsToken
-          purpose: acme-dns01
-          domains: [example.com, '*.example.com']
+## Требования к будущему контракту
 
-tlsIssuers:
-  public-acme:
-    plugin: { instance: tls-issuer, capability: tls.issue }
-    storage: tls-public
-    directory: https://acme-v02.api.letsencrypt.org/directory
-    account: { email: ops@example.com }
-    challenges:
-      http01: { listener: public-http }
-      dns01: { secret: cloudflareDnsToken }
-    renewal: { before: 30d, retry: { initial: 5m, max: 12h } }
-```
+До включения интеграции в Gateway v1 отдельный plugin contract должен определить:
 
-`http01.listener` назначает listener, на котором Gateway временно обслуживает
-ACME challenge path. Для DNS-01 Gateway выдаёт только временный scoped grant:
-плагин получает DNS-токен во время операции, исключительно для указанных
-доменов и purpose `acme-dns01`. Секрет не появляется в plugin config, логах,
-diagnostics или произвольном IPC metadata.
+- versioned issue/renew/revoke request и typed result без раскрытия private key
+  через обычные IPC metadata;
+- exact/wildcard SAN authorization и связь доменов с scoped grants;
+- владение ACME account state, challenge lifecycle и DNS credentials;
+- временные HTTP-01 routes либо другой challenge mechanism без передачи socket
+  и прав на изменение публичной routing table;
+- атомарную запись certificate material, rollback и reload TLS snapshot;
+- renewal deadline/retry policy, операции Management API и audit/telemetry без
+  секретов;
+- failure behavior, когда сертификат ещё валиден, истёк или новый material
+  некорректен;
+- тесты Linux/macOS с deterministic ACME test server, без реальных внешних
+  заказов и secrets.
 
-Gateway создаёт temporary route `/.well-known/acme-challenge/<token>` только на
-выбранном listener, выше обычных routes, и удаляет его после terminal result.
-DNS-01 grant имеет purpose `acme-dns01`, domains из issuer и TTL 10 min;
-Gateway отзывает grant после каждой issue/renew/revoke операции. Storage handle
-указывает на `${registry.path}/tls/<storage>` и никогда не раскрывает path
-plugin-процессу.
-
-## Контракт control-plane
-
-![Выпуск сертификата через tls-issuer](/diagrams/acme-issuance.svg)
-
-Плагин возвращает материал сертификата только по защищённому IPC. Gateway
-проверяет, что SAN входят в domains grant, ключ соответствует certificate,
-а issuer и storage разрешены. После записи Gateway обновляет TLS для новых
-соединений без прерывания активных, пишет audit event и публикует telemetry.
-
-## Хранение и отказоустойчивость
-
-`storage` — локальное защищённое файловое хранилище Gateway. Оно содержит
-ACME account key, private keys, certificate chain, метаданные order и время
-следующего renewal. Плагин оперирует opaque handles и не получает путь к файлу.
-
-Renewal запускается до `renewal.before`; неуспешная попытка повторяется с
-bounded backoff до `renewal.retry.max`. Пока существующий сертификат действителен,
-Gateway продолжает использовать его. Если срок истекает без успешного renewal,
-Gateway отправляет alert и помечает TLS profile как degraded.
-
-Issue/renew/revoke возвращают operation ID; статус читается через
-`GET /api/operations/{id}`. Успех и failure записывают audit с issuer/domain/
-serial, а `liapoldus_tls_certificate_expiry_seconds` отражает срок действующего
-certificate.
+Эти пункты — план, не описание уже работающего Gateway API. Общая граница
+plugin runtime и grants описана в [Plugin protocol](/gateway/architecture/protocol),
+а текущая TLS/mTLS-поверхность — в [конфигурации безопасности](/gateway/configuration/security).

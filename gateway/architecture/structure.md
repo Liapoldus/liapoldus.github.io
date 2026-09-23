@@ -49,7 +49,7 @@ protobuf или observability SDK. Presentation не создаёт concrete ada
 | Маршрутизация | `Matcher`, `Condition`, `Route`, `Action`, `PolicyChain` |
 | TLS | `TLSProfile`, `CertificateProvider`, `ACMEIssuer`, `CertificateStorage`, `ClientIdentityVerifier` |
 | Upstream | `Upstream`, `EndpointResolver`, `HealthChecker`, `LoadBalancer`, `ConnectionPool` |
-| Безопасность | `ClientIdentityVerifier`, `WAFPolicy`, `RateLimiter`; identity capability — внешний plugin |
+| Безопасность | `ClientIdentityVerifier`, `WAFPolicy`, `RateLimiter`; прикладные политики вызывают только подключённые generic capabilities |
 | Registry | `Site`, `Release`, `PublicationStore`, `RollbackService` |
 | Plugins | `PluginInstance`, `Capability`, `PluginSession`, `PluginSupervisor`, `ScopedGrantBroker` |
 | Управление | `Actor`, `Authorizer`, `AuditLog`, `ConfigWriter` |

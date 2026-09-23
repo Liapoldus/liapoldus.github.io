@@ -28,7 +28,7 @@
   </a>
   <a class="card" href="/gateway/examples/captcha">
     <h3>Капча на сайте</h3>
-    <p>Плагин captcha: проверка токена Cloudflare/reCAPTCHA/hCaptcha.</p>
+    <p>Пример общего WAF → capability boundary; проверка принадлежит plugin.</p>
   </a>
   <a class="card" href="/gateway/examples/tcp"><h3>TCP passthrough</h3><p>Маршрутизация TLS-потоков по SNI.</p></a>
   <a class="card" href="/gateway/examples/udp-p2p"><h3>UDP и P2P relay</h3><p>Защищённые datagram flows и plugin target.</p></a>

@@ -11,6 +11,12 @@
 | Gateway adapter | только Gateway Admin API, expected digest/idempotency semantics |
 | Plugin adapter | versioned Admin UI schema через Gateway-authorized contract |
 
+UI обращается к API только через typed `ConstructorBridge.request` boundary.
+Web runtime использует browser `fetch`; будущий Wails host устанавливает bridge
+и направляет тот же API-контракт в Go core. React UI не получает прямой доступ к
+filesystem или Git, а desktop lifecycle и native capabilities не меняют
+domain/API semantics.
+
 ## Production boundary
 
 Build worker генерирует React Router config, content, i18n JSON, theme,

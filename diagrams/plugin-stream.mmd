@@ -1,12 +1,10 @@
 sequenceDiagram
-    participant G as Gateway
-    participant P as Plugin
-    G->>P: STREAM_OPEN method, capability, payload
-    alt accept
-        P-->>G: STREAM_DATA response
-        G->>P: STREAM_DATA fragment
-        P-->>G: STREAM_DATA
-        G->>P: STREAM_CLOSE
-    else reject
-        P-->>G: ERROR envelope
-    end
+    participant G as Gateway gRPC client
+    participant P as Plugin gRPC server
+    G->>P: PluginService/Stream (HTTP/2)
+    G->>P: StreamMessage (context + payload)
+    P-->>G: StreamMessage (response/event)
+    G->>P: StreamMessage (next chunk/datagram)
+    P-->>G: StreamMessage (response/event)
+    Note over G,P: HTTP/2 flow control bounds backpressure
+    G-xP: context cancellation / deadline

@@ -32,16 +32,17 @@ Gateway. Установка plugin instance не создаёт page сама п
 
 ```text
 AdminSurface
-├── schemaVersion
-├── plugin / manifestVersion / surfaceDigest
+├── version (plugin protocol surface version)
+├── plugin / manifestVersion / surfaceDigest (Gateway metadata)
+├── requiredCapabilities[]
 └── pages[]
     ├── id, title, icon, required capability, permissions[]
     └── sections[]
-        ├── form: fields and validation
-        ├── table: columns, query capability, cursor policy
+        ├── form: typed fields, validation and option sources
+        ├── table: columns, query capability/input schema, cursor policy
         ├── detail: read-only structured result
         ├── metrics / log: bounded observation projection
-        └── actions[]: id, capability, input schema, confirmation, danger flag
+        └── actions[]: id, capability, input schema, row binding, confirmation, danger flag
 ```
 
 Поддерживаемые типы полей: `string`, `number`, `boolean`, `select`,
@@ -50,6 +51,32 @@ AdminSurface
 field or action type rather than interpret it. Labels/descriptions are plain
 text; HTML, CSS, JavaScript/module URL, browser route and arbitrary endpoint
 fields are forbidden by schema.
+
+Action объявляет `inputSchema` — ограниченную JSON Schema Draft 2020-12 для
+object-input (`type`, `properties`, `required`, `additionalProperties:false`,
+`minLength`/`maxLength`, `minimum`/`maximum` и `enum`; без `pattern` (чтобы
+не исполнять недоверенные регулярные выражения в browser), `$ref`, executable
+extensions и remote schema).
+Constructor строит форму только из этого schema и
+валидирует её перед запросом; Gateway повторно валидирует до dispatch. Surface
+без `inputSchema` можно показать, но action остаётся disabled с диагностикой;
+Constructor не изобретает payload. Для действия по выбранной строке
+необязательный `rowInput` явно сопоставляет input key с column key
+(`{"recordId":"id"}`); скрытое угадывание имён полей запрещено.
+
+У `select`/`multiselect` есть ровно один источник: статический `options` или
+`optionsSource` с объявленным Gateway capability, typed `inputSchema`,
+`valueField` и `labelField`. Динамические options запрашиваются через тот же
+fixed page `query` endpoint в режиме
+`{"mode":"options","field":"site","input":{...}}`; Gateway проверяет
+объявленный источник и передаёт plugin только typed operation/field/input.
+Обычная таблица использует `{"mode":"data","input":{...},"cursor":"…",
+"limit":50}` и `section.inputSchema`. Оба режима возвращают typed JSON;
+options response имеет форму `{items:[{value,label}],nextCursor?}`. Gateway
+сверяет поле/источник с активной Surface и `requiredCapabilities`, валидирует
+вложенный input schema, ограничивает результат 200 options и не принимает из
+браузера capability или endpoint. Отсутствующие/некорректные options делают
+поле недоступным; Constructor не подменяет его произвольным текстовым вводом.
 
 ID страницы стабилен, задаётся в нижнем регистре и локален для instance. Он
 становится частью namespaced API path, но не public Gateway route. Релиз plugin
@@ -63,9 +90,9 @@ ID страницы стабилен, задаётся в нижнем реги�
 
 | Endpoint | Capability dispatch | Semantics |
 | --- | --- | --- |
-| `GET /api/plugins/{instance}/admin/surface` | `admin.surface.get` | returns cached, schema-validated surface + digest |
-| `POST /api/plugins/{instance}/admin/pages/{page}/query` | page `dataCapability` | validates input schema; cursor/page limits; returns typed data only |
-| `POST /api/plugins/{instance}/admin/pages/{page}/actions/{action}` | action capability | validates input, requires confirmation/idempotency for mutation, returns operation/result |
+| `GET /api/plugins/{instance}/admin/surface` | `admin.surface.get` | returns cached, schema-validated protocol surface + Gateway metadata; `ETag` is the quoted `surfaceDigest` |
+| `POST /api/plugins/{instance}/admin/pages/{page}/query` | page-declared data or option capability | requires `If-Match: "<surfaceDigest>"`; validates mode-specific input schema and cursor/page limits; returns typed data/options only |
+| `POST /api/plugins/{instance}/admin/pages/{page}/actions/{action}` | action capability | requires `If-Match` and `Idempotency-Key`; validates action `inputSchema`; dangerous action uses the confirmation handshake below |
 | `GET /api/plugins/{instance}/admin/pages/{page}/health` | `health` projection | bounded status, no raw logs/secrets |
 
 Все маршруты требуют management principal Gateway и permission конкретного
@@ -74,11 +101,27 @@ plugin. Gateway проверяет `{instance,page,action}` по активно�
 grant handles, применяет лимиты deadline/concurrency/payload, выполняет
 redaction, пишет audit и отображает typed plugin errors в Problem Details.
 
-`query` доступен только для чтения и использует cursor. `action` с признаком
-`dangerous` требует Constructor confirmation token, привязанный к `(actor,
-instance, page, action, input digest)`, и действует пять минут. Plugin никогда
-не получает raw Constructor access token, secret value, management bearer key
-или database path.
+`query` доступен только для чтения, имеет два schema-bound режима (`data` и
+`options`) и использует cursor для данных. Все query/action
+передают digest текущей Surface в стандартном quoted entity-tag формате
+`If-Match: "<surfaceDigest>"`; устаревший digest возвращает
+`409 plugin_surface_changed` до dispatch.
+
+`action` с признаком `dangerous` выполняется в два запроса к тому же fixed
+endpoint. Первый запрос содержит тот же `If-Match`, `Idempotency-Key` и input,
+но не содержит `X-Admin-Confirmation`: Gateway ничего не dispatch-ит и
+возвращает `428 confirmation_required` с одноразовым непрозрачным
+`confirmationToken` и `expiresAt`. Constructor показывает confirmation UI с
+объявленным текстом. Только после явного подтверждения он повторяет неизменный
+input с теми же `If-Match` и `Idempotency-Key`, добавляя
+`X-Admin-Confirmation: <confirmationToken>`. Gateway исполняет действие только
+если токен не истёк и он привязан к `(actor, instance, page, action,
+surfaceDigest, input digest, idempotency key)`; срок — пять минут. Изменение
+input требует нового idempotency key и нового handshake. Токен одноразовый,
+не хранится в persistent browser storage и не попадает в logs/audit.
+
+Plugin никогда не получает raw Constructor access token, secret value,
+management bearer key или database path.
 
 ## Жизненный цикл и кэш
 
@@ -88,8 +131,10 @@ instance, page, action, input digest)`, и действует пять мину�
 3. Constructor читает Surface через Gateway и отображает разрешённые страницы.
 4. Config apply, restart, смена manifest version или unhealthy state сбрасывают
    cache; Constructor скрывает страницы до получения healthy valid Surface.
-5. Каждый query/action проверяет current surface digest; устаревший UI получает
-   `409 plugin_surface_changed` и перезагружает schema.
+5. Каждый query/action проверяет current surface digest из `If-Match`;
+   устаревший UI получает `409 plugin_surface_changed`, прекращает отправку,
+   перезагружает schema и сохраняет только соответствующие schema non-secret
+   draft values.
 
 Некорректный Surface — ошибка protocol plugin, а не частично отображённый UI.
 Gateway помечает административный Surface недоступным, но не останавливает
@@ -103,6 +148,9 @@ Gateway помечает административный Surface недосту
   output, trust HTML, or give plugin a DOM handle.
 - `secret` field is write-only. Query response can state `configured: true`,
   never return its value or a secret reference without permission.
+- Dangerous-action confirmation is a two-request handshake; a `428` challenge
+  never dispatches plugin code, and the one-time token is bound to the exact
+  action input and idempotency key.
 - Table data is subject to surface-declared columns, cursor limit and Gateway
   redaction. Export/download is a distinct declared action with audit.
 - Configuration write remains `config.apply`; an admin page cannot mutate

@@ -1,10 +1,9 @@
 sequenceDiagram
-    participant G as Gateway session
-    participant P as Plugin runtime
-    G->>G: next request id
-    G->>P: CALL envelope
+    participant G as Gateway gRPC client
+    participant P as Plugin gRPC server
+    G->>P: HTTP/2 PluginService/Call(capability, JSON)
     activate P
-    P->>P: dispatch по методу
-    P-->>G: CALL_RESULT payload or error
+    P->>P: validate capability and JSON schema
+    P-->>G: CallResponse(JSON payload or typed code/message)
     deactivate P
-    Note over G: timeout: CANCEL + deadline error
+    Note over G,P: context deadline or cancellation cancels this RPC

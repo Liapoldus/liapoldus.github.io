@@ -18,6 +18,13 @@ Publish, rollback, renew и revoke требуют `idempotencyKey` длиной 
 символов. Повтор ключа для того же actor и body возвращает сохранённый ответ;
 другой body даёт `409`. Запись живёт 24 часа.
 
+Для publish и rollback body дополнительно содержит `expectedCurrentRevision`:
+SHA-256 revision текущего release или `null` для ещё не публиковавшегося Site.
+Gateway проверяет значение атомарно с переключением release pointers. Stale
+значение возвращает `409 release_revision_conflict` с ожидаемой и фактической
+revision; состояние registry остаётся прежним. Поле входит в idempotency
+fingerprint.
+
 ## Списки и операции
 
 Списки используют `limit` (1–100, default 50) и opaque `cursor`; клиент

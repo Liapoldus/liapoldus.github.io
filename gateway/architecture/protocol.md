@@ -1,175 +1,165 @@
 # Plugin protocol
 
-Transport и wire-формат взаимодействия gateway с plugin-процессами. Это
-единственный способ IPC: **никакого HTTP/gRPC для plugin-протокола** и никакого
-UDP (UDP не гарантирует доставку, порядок, целостность stream и backpressure).
+Gateway и plugin process обмениваются сообщениями по **gRPC поверх HTTP/2 и
+TCP-loopback**. Gateway остаётся владельцем listener-ов, маршрутизации,
+transport security, process supervision и grants; plugin получает только
+типизированный capability-контекст.
 
-Реализация — общая библиотека
-[`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus/pluginprotocol),
-импортируемая gateway (клиентом) и каждым plugin (сервером). Её source split:
-`frame.proto`, `envelope.proto`, `control.proto`; framing, session и control
-API изолированы друг от друга. VitePress не хранит копию wire-файлов.
+Нормативный источник протокола — репозиторий
+[`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus/pluginprotocol):
+[protobuf API](https://github.com/Liapoldus/pluginprotocol/tree/main/proto/liapoldus/plugin/v1)
+и [versioned contracts](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts), включая
+[схему контекста L4 stream](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/stream-open-context.schema.json).
+Эта страница описывает архитектурные границы Gateway и ссылается на source of
+truth; определения сообщений и поля вручную здесь не копируются.
 
-## Принципы транспорта
+## Версии и совместимость
 
-- **localhost TCP**, bind только на loopback; порт заранее выбирает gateway и
-  передаёт плагину через `--port`.
-- **protobuf messages без gRPC**: frame — protobuf-сообщение, передаваемое
-  поверх TCP.
-- **length-prefixed binary frames**: 4 байта big-endian длина + payload
-  (поддерживает partial reads, потоковые ответы, multiplexing).
-- **request ID и stream ID** для мультиплексирования параллельных вызовов на
-  одном соединении.
-- **cancellation, deadlines, backpressure, graceful shutdown** — встроены в
-  сессию.
+Эта миграция входит в Gateway v1. Protobuf namespace, Go import path и
+`ProtocolVersion` остаются `liapoldus.plugin.v1` и
+`github.com/Liapoldus/pluginprotocol`. По прямому решению проекта breaking
+transport migration остаётся в ветке protocol v1; следующая запланированная
+публикация — `v1.1.0`.
+Это исключение из обычного ожидания semantic versioning, и потребители обязаны
+обновить plugin вместе с Gateway: старые TCP length-prefixed плагины не
+обслуживаются. Dual-stack, automatic fallback и угадывание версии по байтам
+сокета отсутствуют.
 
-![Кадр plugin protocol](/diagrams/plugin-frame.svg)
+## Транспорт и граница доверия
 
-Флоу чтения сессии разделяет кадры по `StreamID`/`RequestID`:
+Текущий запуск ограничен local-supervised endpoint на loopback. Планируемый
+remote mode с фиксированным TLS/mTLS endpoint и требованиями к GrantBroker
+описан в [архитектуре подключения plugin](/gateway/architecture/plugin-deployment);
+он не меняет protobuf API и пока не поддерживается runtime.
 
-- `StreamID != 0` → в канал соответствующего stream;
-- иначе → в `pending[RequestID]` для unary call;
-- `EVENT` кадры (protocol logs) → в колбэк onEvent (не смешиваются с вызовами).
+- Plugin поднимает gRPC server только на IPv4 loopback; удалённый/public bind
+  запрещён. Supervisor выбирает временный порт, передаёт адрес через
+  `LIAPOLDUS_PLUGIN_ENDPOINT`; нормативный launch contract находится в
+  [`pluginprotocol/contracts/protocol/v1/launch.json`](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/launch.json).
+- Plugin SDK открывает переданный адрес через `transport.ListenLoopback`, а
+  Gateway подключается с insecure gRPC credentials. Это локальный IPC, а не
+  публичный сетевой API. Unix socket не
+  используется по умолчанию, чтобы сохранить одинаковое поведение macOS и
+  Linux.
+- Для scoped-secret grants Gateway отдельно выдаёт plugin loopback endpoint
+  брокера `GrantBroker`; его переменная запуска зафиксирована в launch contract.
+  Это callback-поверхность plugin → Gateway, не публичный listener и не часть
+  REST control plane Constructor.
+- gRPC/HTTP/2 отвечает за framing, multiplexing, flow control и stream
+  cancellation. Самописные Frame, 4-byte length prefix, request/stream ID,
+  session multiplexer и их ошибки больше не являются частью транспорта.
+- Standard gRPC reflection включён на loopback endpoint для диагностики через
+  `grpcurl`; авторизация, лимиты и корректность handshake от reflection не
+  зависят. Reflection не передаёт конфигурацию, grants или capability payload.
+- Gateway не передаёт socket, filesystem path или raw secret. Остаются прежние
+  JSON boundary-типы `HTTPRequest`, `L4Request` и
+  `RequestContext`, их JSON Schemas, grants и редактирование секретов на
+  Gateway boundary.
 
-## FrameKind
+## RPC поверхность
 
-| Значение | Имя | Назначение |
-| --- | --- | --- |
-| 0 | `FRAME_KIND_UNSPECIFIED` | не используется |
-| 1 | `CALL` | unary вызов / начало stream `STREAM_OPEN` |
-| 2 | `CALL_RESULT` | ответ на unary call |
-| 3 | `STREAM_OPEN` | открытие stream |
-| 4 | `STREAM_DATA` | очередной фрагмент stream |
-| 5 | `STREAM_CLOSE` | завершение stream (клиент ↔ сервер) |
-| 6 | `CANCEL` | отмена (в т.ч. при таймауте) |
-| 7 | `EVENT` | protocol log / event (не RPC) |
-| 8 | `ERROR` | реджект на старте stream |
+| RPC | Тип | Кто вызывает | Назначение |
+| --- | --- | --- | --- |
+| `Manifest` | unary | Gateway → plugin | имя, protocol namespace и список capabilities |
+| `ConfigSchema` | unary | Gateway → plugin | декларативная схема plugin settings |
+| `ConfigApply` | unary | Gateway → plugin | атомарно принять проверенный runtime config |
+| `Shutdown` | unary | Gateway → plugin | штатное завершение процесса |
+| `Health/Check` | standard `grpc.health.v1` | Gateway/оператор → plugin | readiness; отдельный самодельный health RPC отсутствует |
+| `Call` | unary | Gateway → plugin | capability-вызов с versioned JSON payload |
+| `Stream` | bidirectional | Gateway ↔ plugin | L4 data flow и двунаправленные stream/event сообщения |
+| `GrantBroker.RedeemGrant` | unary | plugin → Gateway | выдать секрет только по непрозрачному handle текущего вызова и проверить purpose/domain |
 
-## Нормативные сообщения
+Control plane Constructor ↔ Gateway остаётся REST и этим изменением не
+затрагивается.
 
-Полный wire-контракт v1, включая field numbers, `Manifest`, `ConfigSchema` и
-`ConfigField`, находится в [репозитории protocol](https://github.com/Liapoldus/pluginprotocol/tree/main/proto/liapoldus/plugin/v1). Payload
-бизнес-вызова — JSON согласно capability contract; unary payload ограничен
-10 MiB, frame — 1 MiB, большие данные передаются `STREAM_DATA` фрагментами.
+## Handshake и lifecycle
 
-Gateway-контракты v1 публикуются в [`core/contracts/v1`](https://github.com/Liapoldus/core/tree/main/contracts/v1).
-Для воспроизводимой интеграции используйте зафиксированный релиз
-[`gateway-v1.0.1`](https://github.com/Liapoldus/core/releases/tag/gateway-v1.0.1)
-и его архив
-[`liapoldus-gateway-contracts-v1.0.1.tar.gz`](https://github.com/Liapoldus/core/releases/download/gateway-v1.0.1/liapoldus-gateway-contracts-v1.0.1.tar.gz).
-`manifest.json` содержит версию `liapoldus.gateway.v1` и SHA-256 каждого
-JSON/OpenAPI-файла; документация не дублирует эти схемы.
+Gateway запускает процесс через Supervisor, получает его loopback endpoint,
+создаёт gRPC connection и ограничивает dial вместе со всем handshake одним
+`plugins.<instance>.limits.startTimeout` (default `10s`). Это отдельный предел;
+`plugins.<instance>.limits.timeout` (default `5s`) применяется к последующим
+capability-вызовам и не продлевает startup. Порядок handshake:
 
-## Методы протокола
+1. `Manifest`: Gateway сверяет имя и объявленные capabilities с конфигурацией.
+2. `Health/Check`: plugin должен сообщить `SERVING`.
+3. `ConfigSchema`: Gateway получает декларативную settings schema.
+4. `ConfigApply`: plugin применяет текущую runtime-конфигурацию и подтверждает
+   успех.
+5. Только после успешного handshake instance становится доступным для dispatch.
 
-| Метод | Тип | Назначение |
-| --- | --- | --- |
-| `manifest` | unary | self-description: имя и capabilities |
-| `health` | unary | `{ready: true}` — готовность |
-| `config.schema` | unary | YAML-схема конфига плагина |
-| `config.apply` | unary | применить runtime-конфиг (payload — содержимое файла) |
-| `shutdown` | unary | graceful stop (`{closed: true}`) |
-| `*` (бизнес) | unary или stream | объявленные capabilities плагина |
+`Shutdown` используется при штатном stop; Supervisor сохраняет существующие
+restart/backoff, RSS/call limits и process ownership. Ошибка шага handshake не
+публикует частично готовый instance: Gateway классифицирует её как
+`plugin_unavailable` или `protocol_violation` по существующему каталогу ошибок.
+Каждый RPC получает bounded context deadline; отмена HTTP/L4 операции отменяет
+соответствующий gRPC call/stream.
 
-`manifest`, `health`, `config.schema`, `config.apply`, `shutdown` — только
-unary: попытка открыть по ним stream отклоняется `ERROR` с кодом
-`invalid_stream_method`. Runtime конфигурация плагина — часть `gateway.yaml`;
-при запуске/reload она передаётся плагину через `config.apply`.
+## Capability `Call`
 
-Protocol logs: плагин шлёт `EVENT`-кадры с payload `{"level","message",
-"fields"}` (уровни `debug|info|warn|error`); gateway видит их отдельными
-сообщениями и не путает с ответами на вызовы.
+`Call` — единая unary-точка входа. Запрос включает capability name и bytes,
+содержащие UTF-8 JSON по versioned capability schema. Ответ содержит JSON
+payload либо typed `code`/`message`; транспортабельные ошибки gRPC остаются
+transport errors и преобразуются Gateway в существующие `plugin_timeout`,
+`plugin_unavailable` или `protocol_violation`.
 
-## Startup handshake и grants
+Отдельные protobuf request/response types для каждой бизнес-capability не
+создаются: контракты capabilities, admin surface и settings
+остаются декларативными JSON schemas. В частности, transport migration не
+меняет версии и shape `HTTPRequest`, `L4Request`,
+`RequestContext`, HTTP response actions или admin surface.
 
-Gateway выбирает свободный loopback port, запускает plugin c `--port`, затем в
-рамках `startTimeout: 10s` строго вызывает `manifest`, `health`,
-`config.schema`, `config.apply`. Только после `{"applied":true}` instance
-становится ready. `manifest` обязан вернуть
-`{"name":"…","capabilities":["…"]}`; `health` — `{"ready":true}`;
-`config.schema` — `{"fields":[…]}`; `shutdown` — `{"closed":true}`.
-Name/capabilities, не совпадающие с `gateway.yaml`, invalid JSON, timeout или
-любая error response дают `protocol_violation`/`plugin_unavailable` и instance
-не получает трафик.
+### Scoped secret grants
 
-Grant передаётся только control-plane call как
-`{"id":"grant_…","kind":"storage|secret","purpose":"…","expiresAt":"RFC3339","handle":"opaque"}`.
-Gateway создаёт его для указанного instance/capability, отзываёт сразу после
-call независимо от результата и не передаёт filesystem path или raw secret в
-metadata. Memory limit измеряется RSS процесса каждые 1 s; превышение 256 MiB
-(или `limits.memory`) отменяет calls, завершает process и даёт
-`resource_exhausted`.
+Raw secret не помещается в capability JSON, plugin settings или обычные IPC
+metadata. Gateway прикладывает к `CallRequest` только opaque grant handle,
+`purpose`, разрешённые `domains` и capability-binding; binding включает plugin
+instance, конкретную capability, секрет и scope. Плагин получает endpoint брокера из
+versioned launch contract и может запросить значение отдельным typed RPC
+`RedeemGrant`. Gateway проверяет handle, активность исходного Call, purpose и
+совпадение capability, указанной при вызове и redemption, а также точное
+соответствие запрошенного domain allow-list; пустой domain допустим только для
+grant без ограничения по доменам.
 
-## Unary call
+Grant существует не дольше одного capability-вызова и отзывается при его
+успехе, ошибке, отмене либо истечении deadline. Secret bytes возвращаются
+только как typed response `RedeemGrantResponse`. Запрещено записывать secret
+или handle в logs, traces, audit, errors/events и следующий IPC вызов. Gateway
+остаётся владельцем разрешения, резолвинга и редактирования; plugin не получает
+пути к файлам или права запрашивать произвольный secret по имени. Обычные
+плагины без выданного handle не могут использовать брокер для доступа к
+секретам.
 
-![Unary call plugin protocol](/diagrams/plugin-unary-call.svg)
+## Bidirectional `Stream`
 
-Лимиты сессии: `MaxPayloadBytes` (ошибка `payload_too_large`),
-`CallTimeoutMillis` (авт. deadline через context), `MaxFrameBytes`
-(`frame_too_large`, проверяется при отправке).
+Каждый вызов `Stream` создаёт отдельный двунаправленный gRPC stream. L4 lifecycle
+состоит из typed open/data/close сообщений: TCP использует один gRPC stream на
+соединение, UDP — один stream на datagram. Data передаёт raw bytes и явное
+направление; TCP bytes не преобразуются в текст и UDP datagram не разбивается
+или не объединяется с соседними datagram. Ограниченный JSON-контекст открытия
+содержит только metadata соединения, не socket handle, filesystem path или
+секреты. Поля, enum-ы, правила валидации и примеры задаются только в
+`pluginprotocol` proto и versioned schema. gRPC flow control обеспечивает
+bounded backpressure, а context cancellation завершает stream с обеих сторон.
 
-## Streams
+Logs/metrics/live-operation events не смешиваются с capability response payload;
+их envelopes определяются отдельными stream message variants. Ни события, ни
+ошибки не должны содержать cookies, Authorization, service key, raw secret,
+private key или grant handle.
 
-Одно соединение мультиплексирует многоstream параллельно. Stream-ид
-присваивается gateway; все фреймы stream несут `StreamID`.
+## Payload, ошибки и conformance
 
-![Stream plugin protocol](/diagrams/plugin-stream.svg)
+gRPC message size ограничивается до decode; для unary capability сохраняется
+лимит payload v1 **10 MiB**, а для одного stream message — **1 MiB**. Эти лимиты
+применяются к protobuf message/payload, а не к удалённому custom frame. Точный
+field shape и JSON Schema публикуются из `pluginprotocol/contracts/`.
 
-- `STREAM_OPEN` → сервер сам решает: ответить данными или `ERROR` (rejected).
-- `STREAM_DATA` — фрагмент потока (client→server и server→client одновременно:
-  bidirectional).
-- `STREAM_CLOSE` с одной стороны — сигнал `io.EOF` получателю.
-- `CANCEL` — отмена (по таймауту/запросу); не считается штатным завершением.
-- Backpressure: сессия имеет конечный буфер в 1 MiB на stream + TCP flow
-  control. Запись блокируется до освобождения буфера или context cancellation;
-  бесконечная буферизация запрещена.
+Совместимость проверяется protobuf service/message descriptors и TypeScript
+conformance tests для JSON schemas и примеров capability payload. Golden-векторы
+сырого wire hex от framing v1 выводятся из эксплуатации: они не являются
+контрактом gRPC. Gateway v1 golden vectors остаются только для наблюдаемого
+поведения Gateway и не кодируют protobuf wire bytes.
 
-## L4 sessions и UDP flows
-
-После выбора YAML-rule Gateway открывает capability session для TCP либо
-datagram flow для UDP. Gateway остаётся владельцем публичного socket, лимитов,
-TLS и маршрутизации; plugin получает только поток/датаграммы и разрешённый
-контекст. Плагин не открывает listener и не определяет сетевую политику.
-
-TCP session использует bidirectional stream с lifecycle connect → data → close.
-UDP flow использует сообщения datagram → result до flow idle timeout. Отмена,
-backpressure, payload limits и typed errors соответствуют общему protocol
-contract.
-
-TCP `STREAM_OPEN` payload: `{"kind":"tcp","source":"ip:port",
-"destination":"ip:port","sni":"…","alpn":"…"}`. UDP `STREAM_OPEN`
-не содержит data; каждый `STREAM_DATA` несёт один raw datagram bytes. Payload не содержит HTTP headers,
-cookies, identity или secret, если route не выдал их явным context/grant.
-
-## Cancellation и deadlines
-
-- У каждой операции есть `context.Context`; default call deadline 5 s; при
-  истечении deadline gateway шлёт
-  `CANCEL` и возвращает `ctx.Err()`.
-- `CANCEL` удаляет stream/request из таблиц мультиплексера.
-- Session `Close()` рассылает `ErrSessionClosed` всем pending/stream каналам,
-  закрывает TCP и дожидается завершения readLoop (graceful teardown).
-
-## Ошибки → 5xx
-
-Gateway классифицирует сбои и выдаёт согласованные HTTP-ответы:
-
-| Ошибка | HTTP |
-| --- | --- |
-| failure запуска плагина | 502 / 503 |
-| startup timeout | 503 Service Unavailable |
-| connection refused / disconnect | 503 / 504 |
-| call timeout | 504 Gateway Timeout |
-| protocol violation / malformed frame | 502 Bad Gateway |
-| oversize frame/request/response | 502/503 по типу |
-| concurrency / resource limit | 503 |
-| plugin internal error (`Error{code}`) | 502 |
-
-Retryable-ошибки плагина могут повторяться собрано (gateway решает), но ответ
-клиенту всегда согласованный 5xx.
-
-## Требования к реализации
-
-Для протокола обязательны: race-тесты, fuzz/negative tests, malformed frames,
-oversized messages, concurrent calls, все направления stream, cancellation,
-restart и cross-platform compile checks (macOS/Windows/Linux).
+Реализацию проверяют через `go vet ./...`, `go build ./...`, `make check`,
+TypeScript suites, а также реальный child-process plugin в integration tests на
+macOS/Linux. `grpcurl` и reflection применяются для диагностики, а не вместо
+автоматических conformance-тестов.

@@ -11,7 +11,7 @@
 | Runtime snapshot | Gateway | immutable compiled graph, atomic replace |
 | Static source | Gateway | release pointer или read-only directory root |
 | Upstream | external service | TCP/UDP/HTTP traffic after policy decision |
-| Plugin | separate process | loopback framed IPC, declared capability and grants |
+| Plugin | отдельный процесс | gRPC/HTTP/2 по loopback, объявленные capabilities и grants |
 | Control plane | Gateway | CLI and Management API → application operations |
 
 ## Обязательные state machines
@@ -26,8 +26,9 @@ switch `current` → prune old previous → audit. Directory source не про�
 `plugin`: spawned → handshake → ready → unhealthy → restarting/stopped.
 Handshake, grants, cancellation и streams определяет
 [versioned Plugin protocol](/gateway/architecture/protocol). Исходные `.proto`
-и identity contracts находятся в
+находятся в
 [`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus/pluginprotocol).
+Schema capabilities и settings принадлежат подключённым plugin repositories.
 
 `request`: accept → normalize → match → auth → WAF → rate limit → rewrite →
 terminal → transforms → response. Канонический порядок —

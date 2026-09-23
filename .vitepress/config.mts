@@ -191,6 +191,8 @@ export default defineConfig({
               { text: 'Blueprint реализации', link: '/gateway/architecture/implementation' },
               { text: 'Кодовая архитектура', link: '/gateway/architecture/structure' },
               { text: 'Plugin protocol', link: '/gateway/architecture/protocol' },
+              { text: 'Cookie-контракт', link: '/gateway/architecture/cookies' },
+              { text: 'Режимы подключения plugin', link: '/gateway/architecture/plugin-deployment' },
               { text: 'Гайд: создание плагина', link: '/gateway/architecture/guide' }
             ]
           }
@@ -225,6 +227,7 @@ export default defineConfig({
               { text: 'Development Mode и IDE', link: '/constructor/development' },
               { text: 'Site Management Mode', link: '/constructor/site-management' },
               { text: 'Components, primitives и SDK', link: '/constructor/components' },
+              { text: 'React SDK v1', link: '/constructor/sdk-v1' },
               { text: 'State, scripts и infrastructure', link: '/constructor/application-model' },
               { text: 'Routing и network canvas', link: '/constructor/routing' },
               { text: 'Assets, themes и localization', link: '/constructor/content-assets' },

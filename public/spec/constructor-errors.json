@@ -1,13 +1,33 @@
 {
   "version": 1,
   "errors": {
+    "bad_request": { "status": 400, "retryable": false, "detail": "The request is malformed or contains an invalid project-relative path." },
+    "unauthorized": { "status": 401, "retryable": false, "detail": "Authentication is required." },
+    "forbidden": { "status": 403, "retryable": false, "detail": "The caller is not permitted to perform this operation." },
+    "browser_origin_forbidden": { "status": 403, "retryable": false, "detail": "The browser Origin is not a permitted local origin." },
+    "request_host_forbidden": { "status": 403, "retryable": false, "detail": "The request Host is not a loopback host." },
+    "not_found": { "status": 404, "retryable": false, "detail": "The requested resource does not exist." },
+    "method_not_allowed": { "status": 405, "retryable": false, "detail": "The HTTP method is not supported for this resource." },
     "revision_conflict": { "status": 409, "retryable": false, "detail": "The document changed since the supplied revision." },
+    "conflict": { "status": 409, "retryable": false, "detail": "The requested operation conflicts with current resource state." },
+    "precondition_failed": { "status": 412, "retryable": false, "detail": "The supplied request precondition was not satisfied." },
     "project_validation_failed": { "status": 422, "retryable": false, "detail": "The project model violates a schema or cross-reference invariant." },
+    "unprocessable_entity": { "status": 422, "retryable": false, "detail": "The request is well-formed but cannot be applied." },
+    "payload_too_large": { "status": 413, "retryable": false, "detail": "The request body exceeds the supported limit." },
+    "not_implemented": { "status": 501, "retryable": false, "detail": "The requested capability is not configured or implemented." },
+    "bad_gateway": { "status": 502, "retryable": true, "detail": "An upstream service returned an invalid response." },
+    "service_unavailable": { "status": 503, "retryable": true, "detail": "The service is temporarily unavailable." },
+    "internal_error": { "status": 500, "retryable": false, "detail": "An unexpected internal error occurred." },
     "snapshot_not_ready": { "status": 409, "retryable": false, "detail": "A build requires a ready validated snapshot." },
     "build_cancelled": { "status": 409, "retryable": false, "detail": "The build cannot be promoted after cancellation." },
     "deployment_conflict": { "status": 409, "retryable": true, "detail": "Another deployment holds the site and environment lock." },
     "gateway_capability_missing": { "status": 501, "retryable": false, "detail": "The selected Gateway binding does not expose the requested control capability." },
     "plugin_contract_invalid": { "status": 502, "retryable": false, "detail": "The plugin response does not satisfy its versioned Admin UI contract." },
-    "secret_reference_forbidden": { "status": 403, "retryable": false, "detail": "The caller cannot use or inspect this secret reference." }
+    "secret_reference_forbidden": { "status": 403, "retryable": false, "detail": "The caller cannot use or inspect this secret reference." },
+    "asset_upload_invalid": { "status": 422, "retryable": false, "detail": "The uploaded file is not a supported valid image or sanitizable SVG." },
+    "git_branch_invalid": { "status": 400, "retryable": false, "detail": "The requested local branch name is invalid." },
+    "git_branch_exists": { "status": 409, "retryable": false, "detail": "A local branch with this name already exists." },
+    "git_branch_not_found": { "status": 404, "retryable": false, "detail": "The requested local branch does not exist." },
+    "git_worktree_dirty": { "status": 409, "retryable": false, "detail": "Resolve working-tree changes before switching branches." }
   }
 }

@@ -15,9 +15,9 @@
 | `sites` | named static sources | `release` registry или `directory` local root |
 | `listeners` | публичные HTTP/TCP/UDP sockets | один name — один listener; конфликт address не применяется |
 | `upstreams` | target groups proxy | targets, discovery, health, balance и retry |
-| `tlsProfiles`, `tlsIssuers` | сертификаты и TLS | profile назначается listener, issuer выдаёт material |
+| `tlsProfiles` | сертификаты и TLS | profile назначается listener |
 | `authPolicies`, `wafPolicies`, `rateLimits` | политики | route ссылается по имени; порядок всегда auth → WAF → limit |
-| `dataProviders`, `captchaProviders` | внешние security resources | доступны только явно назначенной политике |
+| `dataProviders` | локальные WAF data sources | доступны только явно назначенной политике |
 | `plugins` | отдельные plugin processes | binary, capabilities, limits и grants |
 | `management` | control-plane listener | listener, accounts или local static token |
 | `logging`, `metrics`, `tracing` | export telemetry | runtime traffic не зависит от exporter |

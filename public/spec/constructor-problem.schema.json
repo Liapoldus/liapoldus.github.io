@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liapoldus.github.io/spec/constructor-problem.schema.json",
+  "title": "Liapoldus Constructor RFC 9457 problem detail",
+  "type": "object",
+  "required": ["type", "title", "status", "code"],
+  "properties": {
+    "type": { "type": "string", "format": "uri-reference" },
+    "title": { "type": "string" },
+    "status": { "type": "integer", "minimum": 100, "maximum": 599 },
+    "detail": { "type": "string" },
+    "instance": { "type": "string", "format": "uri-reference" },
+    "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "requestId": { "type": "string", "minLength": 1 },
+    "error": { "type": "string" },
+    "diagnostics": { "type": "array", "items": { "type": "object" } },
+    "conflict": { "type": "object" }
+  },
+  "additionalProperties": true
+}

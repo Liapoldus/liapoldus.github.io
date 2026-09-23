@@ -11,8 +11,7 @@
     "kind": { "enum": ["component", "primitive"] },
     "source": { "type": "string", "pattern": "^src/" },
     "fields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
-    "slots": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-    "events": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+    "themeTokens": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$" }, "uniqueItems": true }
   },
   "$defs": {
     "field": {
@@ -20,13 +19,12 @@
       "required": ["key", "type", "label"],
       "properties": {
         "key": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$" },
-        "type": { "enum": ["text", "rich-text", "number", "boolean", "select", "image", "icon", "file", "reference", "object", "array"] },
+        "type": { "enum": ["text", "rich-text", "select", "image", "icon", "file", "reference", "object", "array"] },
         "label": { "type": "string" }, "description": { "type": "string" },
         "required": { "type": "boolean", "default": false },
+        "nullable": { "type": "boolean", "default": false },
         "localized": { "type": "boolean", "default": false },
-        "default": {}, "allowedValues": { "type": "array" },
-        "asset": { "type": "object", "additionalProperties": false, "properties": { "aspectRatio": { "type": "string" }, "responsive": { "type": "boolean" } } },
-        "visibility": { "type": "string" }, "group": { "type": "string" }
+        "default": {}, "allowedValues": { "type": "array", "items": { "type": ["string", "number", "boolean"] } }
       }
     }
   }

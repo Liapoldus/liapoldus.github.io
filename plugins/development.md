@@ -1,9 +1,15 @@
 # Разработка plugin
 
-Начните с [гайда создания plugin](/gateway/architecture/guide) и единственного
-wire-канона `github.com/Liapoldus/pluginprotocol`. Business payload не
-добавляется в framing/session primitives: он принадлежит capability contract.
+Начните с [гайда создания plugin](/gateway/architecture/guide) и
+[архитектуры protocol](/gateway/architecture/protocol). Единственный источник
+protobuf и capability payload contracts — репозиторий
+[`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus/pluginprotocol).
+Не копируйте его `.proto` и JSON Schemas в Gateway docs или plugin repository.
 
-Автор обязан описать manifest, settings schema, typed errors, required grants,
-health behavior, bounded execution и tests malformed input/cancellation. Для
-Constructor дополнительно описывается Admin UI schema, не отдельный frontend.
+Транспорт Gateway v1 — gRPC/HTTP/2 поверх TCP-loopback. Он заменяет
+length-prefixed framing из pluginprotocol v1.0.0; старый transport
+несовместим, хотя migration по решению проекта остаётся внутри protocol v1.
+Business payload и административные контракты остаются версионированным JSON.
+Автор plugin обязан задекларировать manifest, settings schema, capabilities,
+typed errors, grants и bounded execution; для Constructor дополнительно
+описывается Admin UI schema, а не отдельный frontend.

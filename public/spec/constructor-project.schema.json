@@ -7,11 +7,13 @@
   "required": ["schemaVersion", "id", "name", "react"],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "id": { "type": "string", "format": "uuid" },
-    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
-    "react": { "type": "object", "additionalProperties": false, "required": ["entry"], "properties": { "entry": { "type": "string", "pattern": "^src/[^\\\\]+" } } },
-    "sites": { "type": "array", "uniqueItems": true, "items": { "type": "string", "format": "uuid" } },
-    "defaultBranch": { "type": "string", "minLength": 1 },
-    "assetStorage": { "enum": ["filesystem", "s3", "custom"] }
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$" },
+    "name": { "type": "string", "minLength": 1 },
+    "react": { "type": "object", "additionalProperties": false, "required": ["entry"], "properties": { "entry": { "type": "string", "pattern": "^src/" } } },
+    "pages": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/pageId" } },
+    "components": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]{1,61}$" } }
+  },
+  "$defs": {
+    "pageId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,62}$" }
   }
 }

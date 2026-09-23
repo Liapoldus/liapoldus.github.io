@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liapoldus.github.io/spec/constructor-routes.schema.json",
+  "title": "Liapoldus Constructor route document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "routes"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,62}$" },
+    "routes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/route" }
+    }
+  },
+  "$defs": {
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "page"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,62}$" },
+        "path": { "type": "string", "minLength": 1 },
+        "page": { "type": "string", "minLength": 1 },
+        "layout": { "type": "string" },
+        "layouts": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "access": { "type": "string" },
+        "chunk": { "enum": ["same", "separate", "lazy", "preload"] },
+        "lazy": { "type": "boolean" },
+        "preload": { "type": "array", "items": { "type": "string" } },
+        "metadata": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    }
+  }
+}

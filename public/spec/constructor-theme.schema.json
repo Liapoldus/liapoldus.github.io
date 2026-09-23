@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liapoldus.github.io/spec/constructor-theme.schema.json",
+  "title": "Liapoldus Constructor Theme document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "name", "tokens"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,62}$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "tokens": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$" },
+      "additionalProperties": { "$ref": "#/$defs/token" }
+    },
+    "variants": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "light": { "$ref": "#/$defs/variant" },
+        "dark": { "$ref": "#/$defs/variant" }
+      }
+    }
+  },
+  "$defs": {
+    "token": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "enum": ["color", "fontFamily", "fontSize", "fontWeight", "lineHeight", "length", "shadow", "duration", "easing"] },
+        "value": { "type": ["string", "number"] }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$" },
+      "additionalProperties": { "type": ["string", "number"] }
+    }
+  }
+}

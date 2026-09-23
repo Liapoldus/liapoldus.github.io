@@ -29,3 +29,7 @@ audit/snapshot/build records.
   row and records previous deployment for rollback.
 - `roles.system = true AND name = admin` cannot be deleted or lose any
   permission; local mode materializes one admin user without roles UI.
+
+Local-first deployment uses the same operational repository contract with SQLite
+(`CONSTRUCTOR_DB`); web deployment can replace this adapter with PostgreSQL
+without changing domain or application code.

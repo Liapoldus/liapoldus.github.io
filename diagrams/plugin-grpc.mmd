@@ -1,0 +1,7 @@
+sequenceDiagram
+    participant G as Gateway
+    participant P as Plugin gRPC server
+    G->>P: TCP loopback + HTTP/2 connection
+    Note over G,P: gRPC owns framing, multiplexing and flow control
+    G->>P: PluginService RPC
+    Note over G,P: No custom Frame or length-prefix layer
