@@ -1,16 +1,25 @@
-# Gateway API
+# Gateway Management API
 
-Control-plane API для автоматизации Gateway. Он не предназначен для
-браузерного трафика и по умолчанию слушает loopback `127.0.0.1:9090`.
-Удалённый listener — отдельный TLS+mTLS endpoint, а не public route.
+Management API управляет группами Caddyfile revisions, plugin instances,
+доступом, операциями и аудитом. Он не обслуживает пользовательский traffic и
+не принимает Gateway route DSL.
 
-| Задача | Раздел |
+Полный контракт: [`management.openapi.yaml`](/spec/management.openapi.yaml).
+Management API доступен только на отдельном listener. Web Constructor backend
+использует private HTTPS+mTLS и отдельный Bearer `platform-admin` token на
+каждую Gateway binding; desktop входит через ограниченный SSH tunnel к loopback
+API и использует Bearer token. Constructor roles остаются в Constructor; см.
+[каноническую модель доступа](authentication).
+
+| Раздел | Контракт |
 | --- | --- |
-| Подключить клиента | [Аутентификация](authentication) |
-| Читать и применять состояние | [Ресурсы и операции](operations) |
-| Смотреть точные request/response | [OpenAPI](openapi) |
-| Понять ошибку | [Каталог ошибок](/gateway/configuration/errors) |
+| [Аутентификация](authentication) | Web mTLS, desktop SSH bridge, Gateway service tokens и Constructor authorization boundary. |
+| [Group releases](groups) | Multipart Caddyfile/archive, revisions, idempotency и rollback. |
+| [Ресурсы и операции](operations) | Status, plugin instances, TLS, checkpoints, drift и operations. |
+| [Audit](audit) | Durable redacted audit semantics. |
+| [OpenAPI](openapi) | Нормативная API schema без дублирования endpoint таблиц. |
 
-Все успешные JSON-ответы содержат `requestId`. Ошибки имеют media type
-`application/problem+json` и формат RFC 9457. Долгие операции возвращают
-`202` и `operationId`; результат доступен 24 часа.
+Полный Caddy Admin API доступен только как аутентифицированный Gateway
+pass-through; underlying Admin listener остаётся loopback/local IPC. Каждая
+мутация создаёт checkpoint до передачи запроса и может перевести control plane
+в `drift`, блокирующий group publish до явного reconcile/restore.

@@ -1,93 +1,90 @@
-# Gateway и plugins
+# Интеграция Constructor с Gateway
 
-<img src="/diagrams/constructor-integrations.svg" alt="Constructor взаимодействует с Gateway API и Plugin Admin UI contract" />
+Constructor — отдельный desktop/web продукт и единственный UI настройки
+Gateway. Он не запускает Caddy независимо, не подключается напрямую к plugin
+processes, не читает SQLite Gateway и не открывает Caddy Admin listener.
+Один Constructor может управлять несколькими независимыми Gateways (например,
+dev и production); у каждой привязки собственные environment, endpoint,
+credential reference и operation history.
 
 ## Gateway workspace
 
-Constructor — визуальный control plane, но не альтернативный Gateway runtime.
-Workspace показывает Overview, Routes, Upstreams, Sites, Domains, TLS,
-Networking, Plugins, Configuration, Releases, Logs, Metrics и Health в меру
-доступности Management API. Он читает state, валидирует изменения, применяет
-через API и отображает typed error, health/audit/operations.
+Workspace отображает server status, application/system groups, revisions,
+plugin instances, operations, audit, Caddy build variant и drift state. Traffic
+configuration редактируется как native Caddyfile. Constructor не переводит
+Caddyfile в собственную YAML route DSL и не владеет альтернативной моделью
+listeners/upstreams/policies.
 
-Текущая интеграция и отсутствующие операции приведены в
-[матрице API boundaries](/architecture/api-boundaries). Нельзя создавать
-локальные сущности Gateway лишь потому, что endpoint ещё не существует.
+Редактор групп предоставляет редактирование Caddyfile fragment, обозреватель
+immutable frontend roots, привязку plugin instance IDs/capabilities без
+копирования settings в revision, preview полного snapshot, публикацию одним
+multipart запросом, operation polling, current/previous history и rollback.
+При drift UI блокирует публикацию и предлагает checkpoint restore/reconcile.
 
-## Plugins
+System group доступна только пользователям Constructor с соответствующим
+`gateway.configure` permission на выбранную Gateway binding. Она предупреждает,
+что global Caddy options затрагивают все application groups.
 
-Constructor умеет перечислять instance, показывать status/health и, после
-появления API capability, создавать/изменять/restart их. Его UI не знает plugin
-заранее: plugin предоставляет versioned [Admin UI schema](/plugins/admin-ui-contract)
-с fields/actions/status/metrics/logs/health. Gateway контролирует доступ,
-redaction и lifecycle; Plugin не передаёт UI произвольный executable code.
+## Gateway API и Caddy Admin
 
-### Transport boundary
+Constructor использует Management REST API из OpenAPI. Полный native Caddy
+Admin API может открываться в отдельной raw-json/diagnostic view, но только
+через Gateway endpoint и с checkpoint semantics. UI не открывает Caddy Admin
+listener напрямую и не скрывает за собой второй route schema.
 
-The accepted Plugin Protocol migration replaces the old framing with gRPC over
-loopback HTTP/2. Gateway supervises each plugin and invokes its `PluginService`
-control RPCs plus generic `Call` and bidirectional `Stream`; capability
-payloads stay versioned JSON contracts. The current sibling `core` checkout has
-migrated its plugin adapter to `pluginprotocol v1.1.0` through a local module
-replacement; the release has not yet been published. Remaining Gateway
-acceptance gates, including resource limits and scoped grants, are tracked in
-the core repository.
-The latest protocol client change preserves gRPC `Canceled` and
-`DeadlineExceeded` as Go context cancellation/deadline errors. The current
-sibling Gateway adapter preserves deadlines, but its in-flight `CallJSON` path
-still maps explicit cancellation to `ErrPluginUnavailable`; preserving that
-cancellation through Gateway's operation/API boundary is a tracked core
-follow-up. Constructor remains outside that transport and does not duplicate
-its error policy.
-Constructor does not import `pluginprotocol`, connect to plugin loopback, or
-implement a second plugin transport. The REST control plane and plugin IPC are
-separate boundaries.
+Конкретные HTTP contracts не дублируются здесь: канон —
+[Gateway OpenAPI](/gateway/api/openapi).
 
-For declarative Admin UI, Constructor consumes only Gateway's fixed internal
-REST API: `GET /api/plugins/{instance}/admin/surface`, query, and action routes.
-Those endpoints are owned and authorized by Gateway; the Admin Surface schema
-and page lifecycle are canonical at [Plugin Admin Pages](/plugins/admin-pages)
-and [Plugin Admin UI contract](/plugins/admin-ui-contract). Constructor renders
-known schema elements and never accepts plugin-provided URLs or executable UI.
-The web bundle uses the same-origin Constructor bridge for those exact routes;
-the local Go host forwards only the fixed Admin API path/method allowlist and
-the required digest/idempotency/confirmation headers. `GATEWAY_TOKEN` remains
-server-side and is never returned to browser JavaScript. No generic URL proxy is
-exposed.
+## Доступ к Gateway
 
-This UI capability depends on Gateway's fixed internal REST API, not on direct
-plugin IPC. The old v1.0.0 length-prefixed plugin transport is incompatible;
-do not add a Constructor-side fallback or dual-stack path. Constructor remains
-unaware of plugin loopback endpoints and gRPC service details.
+В web-режиме браузер обращается только к Constructor backend. Backend выполняет
+role/environment authorization, затем подключается к private Gateway
+Management API по HTTPS с mTLS и отдельным Bearer `platform-admin` service token
+на каждую Gateway binding. Сертификат и token хранятся в server-side secret
+storage, не в Constructor DB/browser. Constructor audit сохраняет end-user,
+role, environment, target Gateway, operation и результат; Gateway audit видит
+Controller binding identity.
 
-## Plugin pages in Constructor
+В desktop `none` режиме Constructor использует Go SSH bridge и short-lived SSH
+user certificate через внешний OpenSSH/bastion. SSH разрешён только для
+port-forward к loopback Management API, без shell, SFTP или forwarding на
+произвольный адрес. Внутри туннеля bridge проверяет TLS server certificate и
+передаёт Gateway Bearer token из OS credential store. Desktop не требует
+client mTLS certificate. Без Constructor login доступен только локальный
+single-user desktop; удалённый Gateway всегда требует SSH tunnel и
+platform-admin token.
 
-Plugin pages appear under `Gateway → Plugins → <instance>` only after Gateway
-returns a healthy, schema-valid Admin Surface. Constructor calls the fixed
-Gateway internal API; it does not discover URLs, connect to plugin loopback,
-or execute plugin UI. The page renderer maps allowed `form`, `table`, `detail`,
-`metrics` and `log` sections to Constructor components, validates every action
-input locally for UX and relies on Gateway as authorization authority.
+Trust roots Constructor web backend↔Gateway, desktop SSH CA, Gateway↔plugin и
+Caddy/ACME раздельны. Constructor не получает plugin certificates/grants, не
+становится workload CA и не передаёт Gateway credentials React renderer.
+Подробная auth/RBAC модель — в [governance](governance), API security — в
+[Gateway authentication](/gateway/api/authentication).
 
-Open tabs/cache are keyed by `instance + page ID + surface digest`. When Gateway
-returns `plugin_surface_changed`, tab stops submitting, reloads schema and
-preserves only non-secret draft values that still conform. Unknown types,
-invalid schema, unhealthy instance or missing permission render explicit
-unavailable state, never raw JSON editor.
+## Plugin Admin pages
 
-The complete boundary is [Plugin Admin Pages](/plugins/admin-pages); forms-db
-is the detailed reference at [forms-db](/plugins/forms-db).
+Plugin Admin UI загружается через фиксированные Gateway endpoints и
+declarative surface contract. Gateway выполняет authorization, capability
+dispatch, validation, redaction и audit. Constructor не discovers plugin URLs,
+не соединяется с gRPC/plugin endpoint и не запускает executable code от plugin.
 
-Local Constructor enables the Gateway publish adapter only when `GATEWAY_URL` is
-configured. Publish uses `POST /api/sites/{slug}/publish` and sends the
-immutable build artifact directory as `source`, and sends the deployment ID as
-both `Idempotency-Key` and body `idempotencyKey`, plus the current
-`expectedCurrentRevision` CAS precondition. Constructor waits for a succeeded
-Gateway operation, stores its returned release revision, and only then records
-the Deployment active. Rollback uses the same revision precondition and its own
-stable idempotency key. At startup the local recovery worker replays an in-flight
-operation with the original idempotency key and compare-and-swap revision; an
-unconfirmed result keeps the target reserved instead of claiming success.
-Without `GATEWAY_URL`, deployment fails visibly instead of reporting a false
-success. Constructor never discovers plugin loopback URLs or calls plugins
-directly.
+UI lifecycle, digest-bound surface и разрешённые widgets описаны в
+[Plugin Admin Pages](/plugins/admin-pages).
+
+## Публикация frontend
+
+Constructor собирает immutable frontend output и передаёт его как часть
+application group release: POST /api/groups/{id}/releases. Multipart metadata
+содержит idempotencyKey и expectedCurrentRevision, часть caddyfile — native
+Caddyfile fragment, необязательный artifact — один .tar.gz с roots
+frontends/&lt;id&gt;/....
+
+Gateway проверяет archive и Caddyfile, извлекает только разрешённые regular
+files/directories во staging, строит полный snapshot и активирует revision
+вместе с frontend roots. Constructor считает операцию успешной только после
+terminal succeeded status и сохраняет revision ID. Retry после disconnect
+использует прежний idempotency key и тот же digest. Rollback требует expected
+current revision и отдельный idempotency key.
+
+Публикация не использует старый /api/sites, site.yaml, source directory path
+или Gateway-visible local filesystem path. Wire contract:
+[Group Releases API](/gateway/api/groups).

@@ -2,26 +2,32 @@
 
 | API | Владелец | Потребитель | Назначение |
 | --- | --- | --- | --- |
-| Constructor API | Constructor | его web UI и automation | проекты, Git bindings, snapshots, builds, deployments, RBAC |
-| Gateway Admin API | Gateway | Constructor, CLI, CI | config, runtime state, sites, publish/rollback, audit, operations |
-| Plugin Admin Contract | Plugin через Gateway | Constructor | UI schema, health, status, allowed actions и metadata |
+| Constructor API | Constructor | desktop UI и automation | Проекты, Git bindings, snapshots, builds и deployment workflow Constructor. |
+| Gateway Management API | Gateway | Constructor, CLI, CI | Caddy groups/revisions, plugin instances, access, checkpoints, TLS operations, audit и operations. |
+| Native Caddy Admin API | Embedded Caddy или supervised external Caddy | Только Gateway Admin adapter | Private local configuration/control; публичный доступ запрещён. |
+| Plugin Admin contract | Plugin через Gateway | Constructor | Declarative UI, health, status, actions и schema-bound metadata. |
+| Plugin IPC | pluginprotocol | Gateway control manager ↔ plugin и Caddy data-plane handler ↔ plugin | gRPC lifecycle, Call, Stream и grants; Constructor не использует этот API. |
 
-Constructor использует существующие Gateway endpoints: `GET /api/config`,
-`POST /api/config/validate`, `PUT /api/config`, `GET /api/sites`, publish,
-rollback, runtime lists, audit и operations. Он сохраняет `If-Match` и
-idempotency semantics Gateway, не создавая их локальные аналоги.
+Constructor работает с Gateway через Management REST API. Traffic изменяется
+нативным Caddyfile в group release, а не через старый config API или local
+route model. Liapoldus Caddy handler вызывает plugin напрямую; Gateway
+Management API не является traffic proxy. Frontend archives включаются в тот
+же multipart group release.
+Group rollback не меняет plugin settings.
 
-## Требуемые расширения Gateway API
+## Контракты экранов Constructor
 
-Следующие возможности пока не описаны существующим Management API и должны
-быть добавлены до появления соответствующих экранов Constructor:
-
-| Возможность Constructor | Требуемая Gateway capability |
+| Возможность | Gateway contract |
 | --- | --- |
-| network canvas с редактированием rules | typed read/write representation routes, upstreams, domains и plugin chain |
-| plugin admin pages | namespaced `admin/surface`, query and action dispatch with schema validation, redaction, audit and capability authorization |
-| установка/удаление plugin instance | explicit lifecycle operation и audit |
-| управление domains/TLS | typed domain inventory и operations, если не выражены config apply |
+| Workspace и состояние runtime | status, Caddy build identity, group current/previous, drift и durable operations. |
+| Редактор traffic | native Caddyfile fragments, validation/adaptation и full-composition preview. |
+| Publish/rollback | multipart release, expected revision, idempotency, operation polling и immutable frontend roots. |
+| Advanced Caddy control | authenticated pass-through, checkpoint-before-mutation, audit, explicit reconcile/restore. |
+| Plugin settings | generic plugin instance API и plugin-owned settings schema; не часть group revision. |
+| Plugin Admin pages | fixed namespaced Gateway API, authorization, schema validation, redaction и audit. |
+| TLS | per-domain readiness и Caddy-managed renew/revoke operations. |
+| Credentials | OS credential store через Go desktop backend; renderer не сохраняет raw service key. |
 
-Пока capability отсутствует, UI показывает read-only gap, а не скрытый
-workaround. Точные уже доступные операции — в [Gateway API](/gateway/api/).
+UI не создаёт workaround, если endpoint отсутствует; он показывает явно
+read-only status/gap. Единственные endpoint schemas — опубликованный
+[Gateway OpenAPI](/gateway/api/openapi).

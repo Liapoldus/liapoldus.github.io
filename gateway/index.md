@@ -1,51 +1,24 @@
-# Gateway
+# Liapoldus Gateway
 
-::: info Справочник Gateway
-Здесь описаны команды, ключи YAML, API и ожидаемое поведение Gateway. Примеры
-можно использовать как основу для настройки и демонстрации системы.
-:::
+Liapoldus Gateway — control plane с Management API, CLI и SQLite desired state.
+Caddy исполняет весь public HTTP/TLS и TCP/UDP traffic. Встроенный или
+supervised external Caddy handler вызывает plugins напрямую по gRPC; Gateway
+Management API не проксирует пользовательские запросы.
 
-**Liapoldus Gateway** — web server, reverse proxy и transport runtime. Он
-обслуживает HTTP(S), TCP и UDP, раздаёт static sources, применяет политики,
-балансирует upstream и вызывает явно назначенные plugins. Новый прикладной
-протокол реализуется поверх TCP/UDP без изменения ядра.
+Constructor остаётся отдельным desktop/web-продуктом и единственным UI
+настройки; web-пользователи и environment-scoped роли принадлежат Constructor.
+Traffic настраивается native Caddyfile, а bootstrap gateway.yaml содержит
+только state/artifact paths, Management bind/trust и Caddy build variant.
+Plugins остаются отдельными процессами и подключаются через общий protocol.
 
-Gateway работает без собственной базы данных: конфиги и static sources — файлы
-на диске, управление — CLI и защищённый Management API.
-
-## С чего начать
-
-Выберите путь по задаче:
-
-| Нужно | Начните здесь |
+| Задача | Канон |
 | --- | --- |
-| Описать listeners, static source или policies | [Конфигурация](/gateway/configuration/) |
-| Настроить proxy или security | [Практические примеры](/gateway/examples/) |
-| Автоматизировать Gateway | [Gateway API](/gateway/api/) |
-| Развернуть и наблюдать runtime | [Запуск](/gateway/deploy/) |
-| Реализовать совместимый Gateway | [Архитектура](/gateway/architecture/) |
+| Bootstrap | [Минимальный gateway.yaml](/gateway/configuration/bootstrap) |
+| Traffic и releases | [Group Releases API](/gateway/api/groups) |
+| Management и Caddy Admin pass-through | [API/OpenAPI](/gateway/api/) |
+| Безопасность/deployment | [Security](configuration/security), [Deployment](deploy/) |
+| Архитектура и полный roadmap | [Architecture](architecture/) |
 
-## Разделы документации
-
-<div class="cards">
-  <a class="card" href="/gateway/examples/">
-    <h3>Практические примеры</h3>
-    <p>Полные сценарии настройки: статика, reverse proxy, TLS, формы, капча.</p>
-  </a>
-  <a class="card" href="/gateway/configuration/">
-    <h3>Configuration</h3>
-    <p>gateway.yaml, source types, listeners, TLS/SNI, reload и безопасность.</p>
-  </a>
-  <a class="card" href="/gateway/cli/">
-    <h3>CLI</h3>
-    <p>Подкоманды: версии сайтов, откат, диагностика диска.</p>
-  </a>
-  <a class="card" href="/gateway/deploy/">
-    <h3>Deploy</h3>
-    <p>Локальная разработка, Docker Compose, переменные окружения.</p>
-  </a>
-  <a class="card" href="/gateway/architecture/">
-    <h3>Архитектура</h3>
-    <p>Структура проектов, data/control plane gateway, plugin protocol.</p>
-  </a>
-</div>
+Старая Gateway-specific YAML route DSL, site.yaml и /api/sites не входят в
+v1. Полный порядок миграции и критерии готовности зафиксированы в
+[roadmap](/gateway/architecture/v1-migration-roadmap).

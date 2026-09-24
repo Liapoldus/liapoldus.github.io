@@ -3,9 +3,15 @@ erDiagram
   ROLES ||--o{ USER_ROLES : grants
   ROLES ||--o{ ROLE_PERMISSIONS : contains
   PERMISSIONS ||--o{ ROLE_PERMISSIONS : maps
+  USERS ||--o{ OIDC_IDENTITIES : links
+  USERS ||--o{ WEB_AUTHENTICATORS : owns
+  USERS ||--o{ AUTH_SESSIONS : opens
+  USERS ||--o{ AUDIT_RECORDS : actor
   PROJECTS ||--o{ GIT_BINDINGS : has
   PROJECTS ||--o{ SITES : owns
   SITES ||--o{ ENVIRONMENTS : targets
+  ENVIRONMENTS ||--o{ GATEWAY_BINDINGS : deploys_to
+  PROJECTS ||--o{ GATEWAY_BINDINGS : manages
   SITES ||--o{ SNAPSHOTS : captures
   SNAPSHOTS ||--o{ SNAPSHOT_ENTITIES : pins
   SNAPSHOTS ||--o{ BUILDS : builds
@@ -14,3 +20,131 @@ erDiagram
   BUILDS ||--o{ DEPLOYMENTS : publishes
   SITES ||--o{ ASSET_RECORDS : uses
   ASSET_RECORDS ||--o{ ASSET_VARIANTS : generates
+  GATEWAY_BINDINGS ||--o{ OPERATIONS : receives
+  USERS ||--o{ OPERATIONS : requests
+  GATEWAY_BINDINGS ||--o{ AUDIT_RECORDS : target
+  USERS {
+    text id PK
+    text status
+    text password_hash
+    integer created_at
+  }
+  ROLES {
+    text id PK
+    text name
+    boolean system
+  }
+  PERMISSIONS {
+    text id PK
+    text key
+    text environment_scope
+  }
+  USER_ROLES {
+    text user_id PK, FK
+    text role_id PK, FK
+  }
+  ROLE_PERMISSIONS {
+    text role_id PK, FK
+    text permission_id PK, FK
+  }
+  OIDC_IDENTITIES {
+    text issuer PK
+    text subject PK
+    text user_id FK
+  }
+  WEB_AUTHENTICATORS {
+    text credential_id PK
+    text user_id FK
+    text public_key
+    integer sign_count
+    text status
+  }
+  AUTH_SESSIONS {
+    text id PK
+    text user_id FK
+    text refresh_verifier
+    integer expires_at
+    integer revoked_at
+  }
+  PROJECTS {
+    text id PK
+    text name
+  }
+  GIT_BINDINGS {
+    text id PK
+    text project_id FK
+    text repository_ref
+  }
+  SITES {
+    text id PK
+    text project_id FK
+    text slug
+  }
+  ENVIRONMENTS {
+    text id PK
+    text site_id FK
+    text name
+  }
+  GATEWAY_BINDINGS {
+    text id PK
+    text project_id FK
+    text environment_id FK
+    text endpoint
+    text admin_credential_ref
+    text client_identity_ref
+  }
+  SNAPSHOTS {
+    text id PK
+    text site_id FK
+    text git_commit
+    text content_digest
+  }
+  SNAPSHOT_ENTITIES {
+    text snapshot_id PK, FK
+    text entity_id PK
+    text version
+  }
+  BUILDS {
+    text id PK
+    text snapshot_id FK
+    text status
+    text checksum
+  }
+  ARTIFACTS {
+    text id PK
+    text build_id FK
+    text storage_ref
+  }
+  DEPLOYMENTS {
+    text id PK
+    text environment_id FK
+    text build_id FK
+    text gateway_binding_id FK
+    text status
+  }
+  OPERATIONS {
+    text id PK
+    text actor_user_id FK
+    text gateway_binding_id FK
+    text idempotency_key
+    text result
+  }
+  AUDIT_RECORDS {
+    text id PK
+    text actor_user_id FK
+    text gateway_binding_id FK
+    text action
+    text result
+  }
+  ASSET_RECORDS {
+    text id PK
+    text site_id FK
+    text storage_ref
+    text checksum
+  }
+  ASSET_VARIANTS {
+    text asset_id PK, FK
+    text variant PK
+    text storage_ref
+    text checksum
+  }

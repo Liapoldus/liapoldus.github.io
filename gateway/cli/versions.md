@@ -1,21 +1,13 @@
-# Сайты и releases
+# Group revisions и rollback
 
-```text
-gateway site publish SLUG SOURCE [--idempotency-key KEY]
-gateway site versions SLUG
-gateway site current SLUG
-gateway site previous SLUG
-gateway site rollback SLUG [--idempotency-key KEY]
-```
+CLI просматривает current/previous revisions и запускает group rollback через
+Gateway Management API. Это не отдельная публикация Site resource.
 
-| Команда | Успех | Ошибка |
-| --- | --- | --- |
-| `publish` | новый `current`, старый `previous` | `3` invalid release, `4` lock/conflict |
-| `versions` | retained `current` и `previous` | `5` site missing |
-| `current` / `previous` | revision или `null` | `5` site missing |
-| `rollback` | атомарно меняет ссылки местами | `5` previous missing |
+Group publication принимает Caddyfile и необязательный frontend tar.gz через
+[Group Releases API](/gateway/api/groups). SQLite хранит revision IDs и
+current/previous pointers; files immutable. Rollback активирует полный Caddy
+snapshot и связанный frontend root group, не меняя plugin settings.
 
-`--idempotency-key` обязателен в automation; при отсутствии CLI генерирует
-ключ на один вызов. `--output json` publish/rollback возвращает
-`site`, `revision`, `previousRevision`, `requestId`. Source не изменяется;
-Gateway хранит только две версии. Lifecycle — в [конфиге сайта](/gateway/configuration/site-config).
+Любая операция требует CAS/idempotency и оставляет active pointers без
+изменений при validation, conflict или activation error. Поля и exit/error
+mapping задаются CLI/API contract до implementation.

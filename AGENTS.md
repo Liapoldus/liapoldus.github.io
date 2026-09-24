@@ -74,10 +74,11 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/gateway/con
 diagrams/                     # Mermaid-исходники статических SVG-схем
 .vitepress/theme/            # кастомные компоненты (GatewayNav), custom.css
 .vitepress/shim/             # fastdom-заглушки для сборки (не трогать)
-public/                      # статика (favicon)
-gateway/                     # документация Gateway
-  cli/ configuration/ deploy/ examples/ architecture/
-plugins/                     # документация плагинов (forms-db, captcha)
+public/                      # favicon, versioned contracts и сгенерированные SVG
+gateway/                     # API, architecture, CLI, configuration, deploy, examples
+plugins/                      # protocol, manifest, identity, captcha, forms-db, admin UI
+constructor/                  # отдельная архитектура Constructor и его API
+architecture/ guidelines/     # общие границы и правила документации
 product/                     # «О продукте» (обзор, user-experience)
 index.md                     # корневая страница (layout: home)
 ```

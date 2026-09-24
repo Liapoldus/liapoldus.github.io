@@ -1,165 +1,164 @@
-# Plugin protocol
+# Liapoldus Plugin Data Protocol
 
-Gateway и plugin process обмениваются сообщениями по **gRPC поверх HTTP/2 и
-TCP-loopback**. Gateway остаётся владельцем listener-ов, маршрутизации,
-transport security, process supervision и grants; plugin получает только
-типизированный capability-контекст.
+Эта страница описывает распределение ролей. Единственный канонический источник
+wire-протокола, protobuf definitions, versioned JSON schemas и conformance
+vectors — [`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus/pluginprotocol):
+[proto v1](https://github.com/Liapoldus/pluginprotocol/tree/main/proto/liapoldus/plugin/v1)
+и [контракты](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts).
+Формы сообщений на этой странице намеренно не дублируются.
 
-Нормативный источник протокола — репозиторий
-[`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus/pluginprotocol):
-[protobuf API](https://github.com/Liapoldus/pluginprotocol/tree/main/proto/liapoldus/plugin/v1)
-и [versioned contracts](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts), включая
-[схему контекста L4 stream](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/stream-open-context.schema.json).
-Эта страница описывает архитектурные границы Gateway и ссылается на source of
-truth; определения сообщений и поля вручную здесь не копируются.
+## Граница data plane
 
-## Версии и совместимость
+Caddy исполняет пользовательский traffic. Liapoldus handler в Caddy отправляет
+capability request непосредственно plugin по gRPC; путь не проходит через
+Gateway Management API, его REST handlers или application use cases. Gateway
+заранее управляет plugin lifecycle и формирует immutable dispatch snapshot.
+Embedded Caddy читает snapshot внутри Gateway process. External Caddy получает
+целый snapshot через закрытый аутентифицированный Admin API/IPC, после чего
+самостоятельно диспетчеризует пользовательские запросы.
 
-Эта миграция входит в Gateway v1. Protobuf namespace, Go import path и
-`ProtocolVersion` остаются `liapoldus.plugin.v1` и
-`github.com/Liapoldus/pluginprotocol`. По прямому решению проекта breaking
-transport migration остаётся в ветке protocol v1; следующая запланированная
-публикация — `v1.1.0`.
-Это исключение из обычного ожидания semantic versioning, и потребители обязаны
-обновить plugin вместе с Gateway: старые TCP length-prefixed плагины не
-обслуживаются. Dual-stack, automatic fallback и угадывание версии по байтам
-сокета отсутствуют.
+В control plane остаются Manifest/config/health lifecycle, spawn/shutdown для
+local plugins, remote endpoint configuration, authorization, limits,
+GrantBroker, audit и redaction. Caddy handler не читает SQLite на request path,
+не вызывает Management API и не передаёт plugin socket, filesystem path или raw
+secret. Единственное plugin → Gateway обращение — отдельный scoped
+`GrantBroker.RedeemGrant`; оно не является общим request proxy.
 
-## Транспорт и граница доверия
+## Версия и transport
 
-Текущий запуск ограничен local-supervised endpoint на loopback. Планируемый
-remote mode с фиксированным TLS/mTLS endpoint и требованиями к GrantBroker
-описан в [архитектуре подключения plugin](/gateway/architecture/plugin-deployment);
-он не меняет protobuf API и пока не поддерживается runtime.
+Protocol namespace и Go import path остаются `liapoldus.plugin.v1` и
+`github.com/Liapoldus/pluginprotocol`. Протокол использует gRPC over HTTP/2.
+Local-supervised plugins слушают назначенный IPv4 loopback endpoint и могут
+использовать insecure gRPC credentials только внутри этого локального
+deployment boundary. Remote plugins имеют фиксированный endpoint и обязательный
+TLS; для межмашинной среды требуется mTLS с отдельной externally-issued
+identity. Management и plugin workload trust roots не совмещаются.
 
-- Plugin поднимает gRPC server только на IPv4 loopback; удалённый/public bind
-  запрещён. Supervisor выбирает временный порт, передаёт адрес через
-  `LIAPOLDUS_PLUGIN_ENDPOINT`; нормативный launch contract находится в
-  [`pluginprotocol/contracts/protocol/v1/launch.json`](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/launch.json).
-- Plugin SDK открывает переданный адрес через `transport.ListenLoopback`, а
-  Gateway подключается с insecure gRPC credentials. Это локальный IPC, а не
-  публичный сетевой API. Unix socket не
-  используется по умолчанию, чтобы сохранить одинаковое поведение macOS и
-  Linux.
-- Для scoped-secret grants Gateway отдельно выдаёт plugin loopback endpoint
-  брокера `GrantBroker`; его переменная запуска зафиксирована в launch contract.
-  Это callback-поверхность plugin → Gateway, не публичный listener и не часть
-  REST control plane Constructor.
-- gRPC/HTTP/2 отвечает за framing, multiplexing, flow control и stream
-  cancellation. Самописные Frame, 4-byte length prefix, request/stream ID,
-  session multiplexer и их ошибки больше не являются частью транспорта.
-- Standard gRPC reflection включён на loopback endpoint для диагностики через
-  `grpcurl`; авторизация, лимиты и корректность handshake от reflection не
-  зависят. Reflection не передаёт конфигурацию, grants или capability payload.
-- Gateway не передаёт socket, filesystem path или raw secret. Остаются прежние
-  JSON boundary-типы `HTTPRequest`, `L4Request` и
-  `RequestContext`, их JSON Schemas, grants и редактирование секретов на
-  Gateway boundary.
+Расширение `Stream` публикуется в ветке v1 аддитивно: сохраняются существующие
+L4 field numbers и поведение. Старые framing-плагины не поддерживаются; нет
+dual-stack, autodetection или insecure downgrade. Следующий protocol release —
+`v1.1.0` согласно принятой политике репозитория.
 
-## RPC поверхность
+## RPC и владельцы
 
-| RPC | Тип | Кто вызывает | Назначение |
-| --- | --- | --- | --- |
-| `Manifest` | unary | Gateway → plugin | имя, protocol namespace и список capabilities |
-| `ConfigSchema` | unary | Gateway → plugin | декларативная схема plugin settings |
-| `ConfigApply` | unary | Gateway → plugin | атомарно принять проверенный runtime config |
-| `Shutdown` | unary | Gateway → plugin | штатное завершение процесса |
-| `Health/Check` | standard `grpc.health.v1` | Gateway/оператор → plugin | readiness; отдельный самодельный health RPC отсутствует |
-| `Call` | unary | Gateway → plugin | capability-вызов с versioned JSON payload |
-| `Stream` | bidirectional | Gateway ↔ plugin | L4 data flow и двунаправленные stream/event сообщения |
-| `GrantBroker.RedeemGrant` | unary | plugin → Gateway | выдать секрет только по непрозрачному handle текущего вызова и проверить purpose/domain |
+| RPC/поверхность | Вызов | Назначение |
+| --- | --- | --- |
+| `Manifest`, `ConfigSchema`, `ConfigApply`, `Shutdown` | Gateway → plugin | Контрольная плоскость instance и settings. |
+| `grpc.health.v1` | Gateway/оператор → plugin | Стандартный readiness/health contract. |
+| `Call` | Caddy handler → plugin | Обычный ограниченный request/response с versioned JSON payload. |
+| `Stream` | Caddy handler ↔ plugin | HTTP streaming, WebSocket, SSE и L4. |
+| `GrantBroker.RedeemGrant` | plugin → Gateway | Однократное redemption заранее выданного scoped grant. |
+| Caddy Admin API/IPC | Gateway → Caddy process | Конфигурация runtime и external-варианта; не часть plugin protocol. |
 
-Control plane Constructor ↔ Gateway остаётся REST и этим изменением не
-затрагивается.
+REST Constructor ↔ Gateway остаётся только control plane. Caddy Admin API
+остаётся закрытым; его операторский pass-through через Gateway проходит
+authentication, checkpointing и drift protection.
 
-## Handshake и lifecycle
+Manifest дополняется аддитивным descriptor для каждой capability: явный список
+поддерживаемых invocation modes (`Call`, HTTP stream, WebSocket, SSE, TCP, UDP).
+Существующее поле списка имён сохраняется. Gateway проверяет соответствие
+descriptor с выбранным `liapoldus_plugin` mode до activation group revision;
+runtime-вызов неподдерживаемого mode не используется как механизм discovery.
+Точная protobuf-структура и её versioning определяются только в
+`pluginprotocol`.
 
-Gateway запускает процесс через Supervisor, получает его loopback endpoint,
-создаёт gRPC connection и ограничивает dial вместе со всем handshake одним
-`plugins.<instance>.limits.startTimeout` (default `10s`). Это отдельный предел;
-`plugins.<instance>.limits.timeout` (default `5s`) применяется к последующим
-capability-вызовам и не продлевает startup. Порядок handshake:
+## `Call`
 
-1. `Manifest`: Gateway сверяет имя и объявленные capabilities с конфигурацией.
-2. `Health/Check`: plugin должен сообщить `SERVING`.
-3. `ConfigSchema`: Gateway получает декларативную settings schema.
-4. `ConfigApply`: plugin применяет текущую runtime-конфигурацию и подтверждает
-   успех.
-5. Только после успешного handshake instance становится доступным для dispatch.
+`Call` используется для конечного HTTP request/response, когда request body и
+response можно безопасно ограничить и передать одним вызовом. Сохраняются
+существующие JSON boundary models и их versioned schemas: HTTP request/context,
+identity context, L4 request и response actions. Не добавлять protobuf DTO на
+каждую бизнес-capability и не переносить HTTP method/path/headers/body в
+отдельную route DSL.
 
-`Shutdown` используется при штатном stop; Supervisor сохраняет существующие
-restart/backoff, RSS/call limits и process ownership. Ошибка шага handshake не
-публикует частично готовый instance: Gateway классифицирует её как
-`plugin_unavailable` или `protocol_violation` по существующему каталогу ошибок.
-Каждый RPC получает bounded context deadline; отмена HTTP/L4 операции отменяет
-соответствующий gRPC call/stream.
+Лиаполдус Caddy handler берёт route-selected instance, capability и mode из
+нативного Caddyfile handler directive, удаляет запрещённые credentials из
+context, проверяет входящие cookies по allow-list instance/capability и
+вызывает `Call`. Response payload/action целиком валидируется до передачи в
+Caddy. Обычные и HttpOnly cookies применяются только через типизированные
+response actions; чувствительные значения не попадают в logs, errors, audit,
+traces или diagnostic events.
 
-## Capability `Call`
+## Универсальный `Stream`
 
-`Call` — единая unary-точка входа. Запрос включает capability name и bytes,
-содержащие UTF-8 JSON по versioned capability schema. Ответ содержит JSON
-payload либо typed `code`/`message`; транспортабельные ошибки gRPC остаются
-transport errors и преобразуются Gateway в существующие `plugin_timeout`,
-`plugin_unavailable` или `protocol_violation`.
+Один gRPC bidirectional stream представляет одну ограниченную streaming
+операцию. Он использует versioned open context и явные lifecycle/data/metadata
+frames. Точные enums, JSON fields, sequence rules и size limits определяются
+только в `pluginprotocol`: [open-context schemas](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/stream-open-context.schema.json)
+и [HTTP response-start metadata](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/http-stream-response-metadata.schema.json).
 
-Отдельные protobuf request/response types для каждой бизнес-capability не
-создаются: контракты capabilities, admin surface и settings
-остаются декларативными JSON schemas. В частности, transport migration не
-меняет версии и shape `HTTPRequest`, `L4Request`,
-`RequestContext`, HTTP response actions или admin surface.
+### HTTP streaming request/response
 
-### Scoped secret grants
+Caddy открывает stream с HTTP metadata и context; тело не включается в open
+payload и передаётся последующими request-data chunks. Plugin может независимо
+послать response-start metadata, затем response-data chunks, пока продолжается
+загрузка запроса. Request half-close, response completion, cancellation и
+errors представлены явным lifecycle, а не неограниченной очередью или
+буферизацией тела.
 
-Raw secret не помещается в capability JSON, plugin settings или обычные IPC
-metadata. Gateway прикладывает к `CallRequest` только opaque grant handle,
-`purpose`, разрешённые `domains` и capability-binding; binding включает plugin
-instance, конкретную capability, секрет и scope. Плагин получает endpoint брокера из
-versioned launch contract и может запросить значение отдельным typed RPC
-`RedeemGrant`. Gateway проверяет handle, активность исходного Call, purpose и
-совпадение capability, указанной при вызове и redemption, а также точное
-соответствие запрошенного domain allow-list; пустой domain допустим только для
-grant без ограничения по доменам.
+### WebSocket
 
-Grant существует не дольше одного capability-вызова и отзывается при его
-успехе, ошибке, отмене либо истечении deadline. Secret bytes возвращаются
-только как typed response `RedeemGrantResponse`. Запрещено записывать secret
-или handle в logs, traces, audit, errors/events и следующий IPC вызов. Gateway
-остаётся владельцем разрешения, резолвинга и редактирования; plugin не получает
-пути к файлам или права запрашивать произвольный secret по имени. Обычные
-плагины без выданного handle не могут использовать брокер для доступа к
-секретам.
+Caddy проверяет и выполняет внешний WebSocket handshake и framing. До отправки
+`101` plugin принимает или отклоняет upgrade и может выбрать только subprotocol,
+предложенный клиентом; Caddy проверяет выбор и завершает handshake. После
+upgrade Stream передаёт text/binary messages с сохранением message boundaries.
+Ping/pong и протокольный handshake принадлежат Caddy; нормальное закрытие,
+ошибочный close и cancellation отражаются в stream lifecycle.
 
-## Bidirectional `Stream`
+### Server-Sent Events
 
-Каждый вызов `Stream` создаёт отдельный двунаправленный gRPC stream. L4 lifecycle
-состоит из typed open/data/close сообщений: TCP использует один gRPC stream на
-соединение, UDP — один stream на datagram. Data передаёт raw bytes и явное
-направление; TCP bytes не преобразуются в текст и UDP datagram не разбивается
-или не объединяется с соседними datagram. Ограниченный JSON-контекст открытия
-содержит только metadata соединения, не socket handle, filesystem path или
-секреты. Поля, enum-ы, правила валидации и примеры задаются только в
-`pluginprotocol` proto и versioned schema. gRPC flow control обеспечивает
-bounded backpressure, а context cancellation завершает stream с обеих сторон.
+Plugin отправляет отдельные структурированные SSE events с `data` и
+необязательными `event`, `id`, `retry`. Caddy сериализует их в wire format и
+управляет HTTP flush. Plugin не обязан реализовывать HTTP/SSE server.
 
-Logs/metrics/live-operation events не смешиваются с capability response payload;
-их envelopes определяются отдельными stream message variants. Ни события, ни
-ошибки не должны содержать cookies, Authorization, service key, raw secret,
-private key или grant handle.
+### L4
 
-## Payload, ошибки и conformance
+Сохраняется текущая модель: TCP — один gRPC stream на соединение, UDP — один
+stream на datagram. TCP передаёт raw bytes, UDP сохраняет границы datagram;
+порядок, направление и close/cancel не теряются. Caddy-L4 принимает и
+маршрутизирует внешнее соединение; plugin не получает listener socket.
 
-gRPC message size ограничивается до decode; для unary capability сохраняется
-лимит payload v1 **10 MiB**, а для одного stream message — **1 MiB**. Эти лимиты
-применяются к protobuf message/payload, а не к удалённому custom frame. Точный
-field shape и JSON Schema публикуются из `pluginprotocol/contracts/`.
+## Limits, cancellation и ошибки
 
-Совместимость проверяется protobuf service/message descriptors и TypeScript
-conformance tests для JSON schemas и примеров capability payload. Golden-векторы
-сырого wire hex от framing v1 выводятся из эксплуатации: они не являются
-контрактом gRPC. Gateway v1 golden vectors остаются только для наблюдаемого
-поведения Gateway и не кодируют protobuf wire bytes.
+- Для long-lived streams применяются отдельные instance/route limits:
+  concurrency, idle timeout и maximum duration. Unary `timeout` не применяется
+  вместо этих ограничений.
+- Максимум request body считается по фактически принятым bytes, в том числе
+  chunked; превышение завершает upload независимо от `Content-Length`. Каждый
+  gRPC message ограничен до обработки, а flow control обеспечивает bounded
+  backpressure.
+- Клиентский disconnect, route cancellation, остановка plugin или превышение
+  limits отменяют связанный gRPC stream. Для UDP datagram не объединяются и не
+  дробятся между вызовами.
+- Ошибка до response-start отображается в обычную типизированную Gateway
+  ошибку. После HTTP headers, SSE body или WebSocket `101` заменить response
+  невозможно: Caddy прекращает соответствующий stream/connection.
+- Response-start metadata и все response actions/cookies валидируются
+  атомарно до commit headers/upgrade. Ошибки и telemetry не содержат
+  Authorization, cookies, secrets, private keys, service keys или grant
+  handles.
 
-Реализацию проверяют через `go vet ./...`, `go build ./...`, `make check`,
-TypeScript suites, а также реальный child-process plugin в integration tests на
-macOS/Linux. `grpcurl` и reflection применяются для диагностики, а не вместо
-автоматических conformance-тестов.
+## Handshake и grants
+
+Gateway plugin manager подключается к instance, сверяет Manifest, проверяет
+стандартный health, получает settings schema и применяет settings. Только
+готовый instance попадает в dispatch snapshot. Local Supervisor владеет
+spawn/stop/restart только local instances; remote lifecycle остаётся у Docker,
+Kubernetes или оператора. Caddy handler обновляет active dispatch reference
+атомарно и не использует частичный snapshot.
+
+Grant handle связан с instance, capability, purpose и разрешённым scope, живёт
+не дольше разрешённого вызова и отзывается при завершении, ошибке, отмене или
+deadline. Plugin не может перечислять secrets или запрашивать их по имени.
+Gateway остаётся владельцем разрешения и выдачи; redemption — только narrow
+callback, а не forwarding пользовательского body.
+
+## Conformance
+
+Conformance проверяет protobuf descriptors, JSON schemas и примеры, а также
+последовательности `Call`/`Stream`: malformed/oversized frames, запрещённый
+state transition, deadlines, cancel, concurrency, backpressure, close race,
+WebSocket negotiation, SSE serialization semantics и корректное завершение
+после response-start. Отдельные Gateway E2E тесты проверяют direct
+Caddy-handler-to-plugin path и parity embedded/external. Golden vectors
+наблюдаемого поведения Gateway не должны кодировать protobuf wire bytes.

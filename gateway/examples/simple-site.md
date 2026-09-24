@@ -1,36 +1,22 @@
-# Простой сайт из registry
+# Caddyfile group: HTTP и reverse proxy
 
-Сайт хранит артефакт и site YAML рядом в registry. Главный YAML назначает
-сайт HTTP-route; он не дублирует домены, редиректы или файловую структуру.
+Traffic configuration находится в application group Caddyfile, не в
+gateway.yaml. Нативные Caddyfile directives сохраняют семантику Caddy; group
+release добавляет fragment к остальным active groups и проверяет полный
+snapshot до activation.
 
-```text
-data/registry/sites/blog/
-├── site.yaml
-├── releases/release-2026-09-21/index.html
-├── current -> releases/release-2026-09-21
-└── previous -> releases/release-2026-09-20
-```
+Пример native Caddyfile reverse proxy:
 
-```yaml
-# data/registry/sites/blog/site.yaml
-slug: blog
-index: index.html
-redirects: [{ from: /start, to: /, status: 308 }]
-```
+    api.example.test {
+        reverse_proxy api.internal:8080
+    }
 
-```yaml
-# gateway.yaml
-registry: { path: ./data/registry }
-sites: { blog: { source: { type: release, slug: blog } } }
-listeners:
-  web:
-    type: http
-    address: ':80'
-    routes:
-      - when: { host: blog.example.com }
-        then: { site: blog, cache: { visibility: public, maxAge: 1h }, compression: [br, gzip] }
-```
+Frontend root публикуется в том же release как frontends/portal/... и
+связывается с Caddy runtime immutable-root adapter. Физический artifact path
+не зашивается в управляемый Caddyfile и не выдаётся клиентам.
 
-Публикация создаёт immutable release, проверяет `site.yaml` и только затем
-атомарно меняет symlink `current`; прежняя ссылка становится `previous`.
-Точный контракт — [Конфиг сайта](/gateway/configuration/site-config).
+Загрузка выполняется через POST /api/groups/{id}/releases с metadata,
+Caddyfile и необязательным одним .tar.gz. После успешной активации новая
+revision становится current, старая — previous. Ошибка adapt/load/activation
+не меняет active revision. Поля запроса и лимиты определяются в
+[Group Releases API](/gateway/api/groups).

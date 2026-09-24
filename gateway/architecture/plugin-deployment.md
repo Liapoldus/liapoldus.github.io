@@ -1,185 +1,167 @@
-# Режимы подключения plugin
+# Режимы подключения и восстановления plugin
 
-Gateway v1 поддерживает единый plugin protocol и два способа получить его
-endpoint. Режим выбирается в конфигурации каждого подключённого instance;
-неподключённые plugin binaries или remote services ядру неизвестны. Gateway
-сохраняет владение route dispatch, capability grants, request limits,
-readiness и ответом публичному клиенту. Предметный код и конфигурация остаются
-у plugin.
+Gateway подключает только явно созданные plugin instances. До добавления
+instance ядро не знает конкретный plugin, его название, settings, admin
+endpoints или deployment format. Общие transport, Manifest и launch contracts
+принадлежат единому repository
+[pluginprotocol](https://github.com/Liapoldus/pluginprotocol).
 
-Нормативный transport и launch contract — репозиторий
-[`pluginprotocol`](https://github.com/Liapoldus/pluginprotocol). Эта страница
-описывает deployment boundary, не дублируя protobuf или JSON schema.
+## Два режима на уровне instance
 
-## Режимы
+Режим задаётся для каждого plugin instance, поэтому один Gateway может
+сосуществующе управлять локальными процессами и подключаться к внешним
+workloads. Оба используют `liapoldus.plugin.v1`, generic JSON `Call`,
+bidirectional `Stream` и standard gRPC health. Автоматического downgrade,
+plugin-to-plugin трафика и публичных plugin endpoints нет.
 
-| Режим | Кто запускает процесс | Адрес | Transport security | Остановка и restart |
-| --- | --- | --- | --- | --- |
-| `local` — текущий | Gateway Supervisor | Gateway назначает loopback endpoint | gRPC insecure только на локальном loopback | Supervisor управляет shutdown, health, restart/backoff и локальными resource limits |
-| `remote` — план v1 | оператор, Docker Compose, Kubernetes или другой process manager | обязателен стабильный фиксированный DNS/IP:port | TLS обязателен; mTLS обязателен для межмашинного production deployment | Gateway управляет только своим client connection/health state; жизненным циклом процесса управляет внешняя среда |
+| Режим | Запуск и рестарт процесса | Адрес и trust | Владение Gateway |
+| --- | --- | --- | --- |
+| `local` | Gateway Supervisor запускает, останавливает и перезапускает child process | Назначенный `127.0.0.1:<port>`, локальная process boundary | Handshake, apply, health, shutdown, bounded restart и dispatch readiness |
+| `remote` | Docker/Kubernetes/operator запускает, масштабирует и перезапускает workload | Явный стабильный Service endpoint, production — TLS/mTLS | Control connection, handshake и plugin health; принимает Caddy data-readiness, но не управляет process lifecycle |
 
-Оба режима используют один protobuf namespace `liapoldus.plugin.v1`, один
-handshake (`Manifest`, standard health, `ConfigSchema`, `ConfigApply`), generic
-`Call`, bidirectional `Stream`, JSON capability contracts и одинаковые dispatch
-слои. Нет fallback между режимами, автоматического обнаружения plugin и
-plugin-specific ветвей в core.
+Внешняя среда управляет replicas одного logical remote instance. Все replicas,
+которые отмечены Ready, должны иметь один protocol version, plugin release,
+Manifest/capability modes и settings digest. Оркестратор включает Pod в Service
+только после успешного `ConfigApply` и health readiness. Gateway проверяет
+собственные control connections; Caddy module независимо проверяет TLS identity,
+Manifest/config revision и доступность capabilities на каждом своём data
+connection. Ошибка любого из каналов не активирует несовместимый dispatch
+snapshot.
 
-## Local-supervised режим
+Один stable Service адрес позволяет Docker/Kubernetes выбирать backend при
+установлении соединения. Gateway не балансирует capabilities между отдельными
+Pod endpoints и не делает orchestration discovery. Совместимость rollout и
+готовность всех backend-ов — обязанность deployment/readiness contract plugin.
 
-Текущий `local` режим предназначен для единого Gateway deployment:
+## Control connection и data connection
 
-1. Администратор подключает instance конфигурацией `binary`, `args`, `env`,
-   capabilities, settings и resource limits.
-2. Supervisor запускает child process и передаёт только назначенный IPv4
-   loopback endpoint и scoped-grant callback endpoint через protocol launch
-   contract.
-3. Gateway выполняет handshake под отдельным `startTimeout`, проверяет
-   capabilities и health, применяет settings и только затем включает instance
-   в dispatch.
-4. На штатном stop Gateway вызывает protocol shutdown; при аварии использует
-   bounded restart/backoff. Локальный gRPC transport использует insecure
-   credentials только потому, что endpoint привязан к loopback и принадлежит
-   тому же host user/process boundary.
+Для каждого instance существуют две логически разные gRPC роли клиента:
 
-Этот режим остаётся default и не требует Docker/Kubernetes. Все plugin child
-processes принадлежат одному Supervisor; resource ограничения процесса
-применимы напрямую.
+1. **Gateway control client** принадлежит generic plugin manager. Он выполняет
+   `Manifest`, `ConfigSchema`, `ConfigApply`, standard health, `Shutdown` для
+   local process и control/grant операции. Его readiness подтверждает, что
+   instance принят control plane.
+2. **Caddy data client** принадлежит Liapoldus handler module в Caddy. Он сам
+   открывает gRPC connection pool к объявленному instance endpoint и вызывает
+   только разрешённые `Call`/`Stream` capabilities. Он не проходит через
+   Gateway Management API и не получает control-plane полномочия.
 
-## Remote самостоятельно развёрнутый режим
+Для `local` endpoint оба клиента подключаются к loopback server того же
+process. Для `remote` оба подключаются к стабильному Service и каждый канал
+самостоятельно выполняет TLS/mTLS и protocol handshake. Gateway не передаёт
+Caddy уже открытые connection handles: embedded handler владеет своим pool в
+общем процессе, external handler — внутри supervised Caddy child. Внешний
+Admin socket передаёт только generation-bound endpoint, capability/mode,
+limits и credential/trust references; plaintext keys и установленные gRPC
+connections через него не передаются.
 
-`remote` нужен, когда каждый plugin работает как отдельный container/service на
-другой машине или в собственном Pod. Gateway не запускает и не завершает его.
-Адрес задаётся явно и не меняется без изменения Gateway config; DNS-имя может
-указывать на стабильный Kubernetes Service или Compose service endpoint, но
-Gateway не выполняет собственный service discovery и не выбирает адрес по
-manifest.
+Для remote mode используются разные workload identities с разными scopes:
+Gateway control identity может выполнять control RPC, Caddy data identity —
+только `Call`/`Stream` к разрешённым instances/capabilities. Обе отображаются
+на тот же logical Gateway, но не взаимозаменяемы. Их trust roots отделены от
+Constructor Management CA, SSH CA и Caddy ACME state. Plugin server проверяет
+scope клиентского сертификата на каждом новом channel. Certificate-to-principal
+mapping и RPC authorization rules должны быть закреплены в `pluginprotocol` до
+реализации; wire/schema contract в этой документальной итерации не меняется.
 
-Нормативная runtime-модель должна быть tagged union: ровно один источник
-endpoint на instance — существующая local-ветка с `binary` либо remote-ветка с
-`endpoint`. Смешанный объект (например, одновременно `binary` и удалённый
-`address`) невалиден. Schema содержит только transport/lifecycle-поля общего
-plugin runtime; schema и settings конкретного plugin по-прежнему предоставляет
-сам plugin. Имена этих будущих полей сначала закрепляются TS schema tests и
-versioned contract, а затем реализуются в core.
+Instance получает status `ready` для dispatch только когда control client
+подтвердил Manifest/settings/health, а Caddy module подтвердил достижимость data
+endpoint и допустимость dispatch generation. При потере любого канала readiness
+обновляется для затронутого instance; Caddy прекращает новые вызовы к нему.
+Начатые Call/Stream не переносятся и не повторяются. Для external Caddy
+подтверждение generation приходит через закрытый Admin IPC; отсутствие ack не
+меняет active generation.
 
-Предлагаемая YAML-форма сохраняет существующую конфигурацию: отсутствие нового
-`mode` при наличии `binary` означает `local`. Явный `mode: remote` запрещает
-`binary` и требует `endpoint.address` и TLS-настройки.
+## Local: supervised child process
 
-```yaml
-plugins:
-  local-policy:
-    # Отсутствующий mode сохраняет поведение существующих v1-конфигов.
-    binary: ./bin/policy-plugin
-    capabilities: [edge.policy]
-    settings: {}
+Порядок запуска instance:
 
-  remote-policy:
-    mode: remote
-    endpoint:
-      address: policy.internal.example:9443
-      tls:
-        serverName: policy.internal.example
-        ca: /run/secrets/plugin-ca.pem
-        clientCertificate: /run/secrets/gateway-client.pem
-        clientKey: /run/secrets/gateway-client-key.pem
-    capabilities: [edge.policy]
-    settings: {}
-```
+1. Supervisor создаёт ограниченный loopback endpoint и scoped GrantBroker
+   callback, затем запускает executable с минимальным environment.
+2. Gateway устанавливает gRPC connection, получает Manifest и config schema,
+   проверяет version/capabilities/modes, применяет settings и проверяет
+   `grpc.health.v1`.
+3. Только готовый instance попадает в новый immutable dispatch generation;
+   ошибка запуска или handshake сохраняет предыдущий active generation.
+4. При завершении/ошибке процесса Gateway закрывает его connection и помечает
+   только его bindings unavailable. Новые вызовы к ним получают bounded
+   unavailable; прочий трафик продолжает работу.
+5. Supervisor завершает процесс штатной командой и timeout-ом, затем при
+   необходимости принудительно останавливает child process tree. Повторный
+   запуск использует bounded exponential backoff и заново выполняет handshake,
+   config apply и health до восстановления dispatch readiness.
 
-Это проектный пример, не действующая gateway schema. Все поля должны быть
-добавлены в schema/config-fields contract одним изменением; private key остаётся
-внешним secret file и никогда не указывается inline. Legacy-плагин с `binary`
-остаётся local; явный remote mode не должен молча откатываться к этому режиму.
+После успешного control handshake Caddy module открывает собственный
+data-plane connection к тому же loopback endpoint. При restart plugin оба
+клиентских connection закрываются независимо: Gateway повторяет control
+handshake, Caddy пересоздаёт data pool, и generation возвращается в `ready`
+только после повторной проверки обоих каналов.
 
-Remote lifecycle:
+Local transport может быть insecure только для loopback instance в той же
+host/process security boundary. Loopback bind не должен принимать внешние
+соединения. Gateway stop сначала прекращает новые dispatch, затем посылает
+plugin shutdown, ограниченно ждёт streams/process exit и закрывает остаточные
+соединения.
 
-1. Config compiler проверяет endpoint, TLS trust roots, `serverName` и
-   сертификат Gateway для mTLS; private-key values разрешаются через
-   существующую secret boundary, а не inline YAML.
-2. Runtime делает TLS-verified gRPC dial только по фиксированному endpoint.
-   Проверяется имя сервера по SAN; при mTLS plugin также проверяет client
-   certificate Gateway.
-3. Через текущий handshake проверяются protocol version, manifest/capability
-   allow-list, settings schema, ConfigApply и standard health.
-4. Instance входит в dispatch только после полного успешного handshake.
-   Invalid certificate, несовместимый manifest или неготовность не приводят к
-   insecure fallback и не активируют частичную конфигурацию.
-5. Потеря связи переводит instance в недоступное состояние. Gateway применяет
-   bounded deadlines и health recheck, но не обещает restart remote process.
-   Новая config activation атомарна: при неудачном dial/handshake остаётся
-   предыдущий active graph.
+## Remote: Docker, Kubernetes и standalone workload
 
-Подключение адресуется непосредственно конфигурацией: DNS round-robin,
-Kubernetes Service или ingress/LB может балансировать только совместимые
-экземпляры одного plugin; manifest и config apply должны иметь согласованную
-версию на всех replicas. Gateway не добавляет собственный registry/discovery.
+Endpoint — явно заданный DNS/IP и port стабильного Service, не адрес случайной
+Pod. Docker Compose может использовать service DNS, Kubernetes — Service DNS.
+Gateway никогда не запускает, не останавливает и не перезапускает удалённый
+процесс; replicas, rolling rollout, readiness/liveness probes и restart policy
+принадлежат operator-у.
 
-## Grant broker в remote mode
+Межмашинное соединение обязательно использует TLS/mTLS. Каждая Pod получает
+отдельную externally-issued server identity; сертификат одновременно
+идентифицирует workload replica и связывает её с заранее зарегистрированным
+logical plugin instance. Gateway control client и Caddy data client используют
+собственные client identities и проверяют server chain, срок, отзыв,
+endpoint/SAN, logical instance binding и отсутствие downgrade. Plugin server
+проверяет client certificate scope: control RPC разрешён Gateway identity,
+Call/Stream — Caddy identity. Management trust roots,
+plugin workload trust roots и Caddy/ACME state разделены. Gateway не является
+CA. Private key монтируется из Docker/Kubernetes secret или operator-provided
+credential store, не попадает в SQLite, Caddyfile, logs, traces или API output.
 
-Scoped secret grant callback — отдельное направление plugin → Gateway. Его
-нельзя оставить loopback-only, если remote plugin законно получает grants. Для
-remote mode v1 единственное разрешение — отдельный внутренний GrantBroker
-endpoint Gateway, доступный только из доверенной plugin network, с TLS/mTLS и
-тем же opaque per-call handle/purpose/capability/domain binding. Он не
-совмещается с REST Management API, не публикуется в Internet и не принимает
-Bearer/service-account credentials вместо plugin client identity.
+Во время rollout оркестратор не направляет новые connections на Pod, пока она
+не прошла собственную config apply и readiness. При каждом reconnect обе
+клиентские роли повторяют TLS и protocol handshake независимо. Неизвестный результат unary
+`Call` автоматически не повторяется: повтор мог бы дважды выполнить
+неидемпотентную операцию. Уже открытый HTTP/WebSocket/SSE/TCP/UDP Stream при
+потере replica закрывается; он не мигрирует на другую Pod. Новые вызовы
+возобновляются после того, как control channel и Caddy data pool снова готовы.
+Ни Gateway, ни Caddy не обещают exactly-once для side-effecting plugin calls.
 
-Gateway проверяет клиентский сертификат, активность исходного Call, срок
-действия handle, capability binding и scope при каждом redemption. Ответ
-содержит только конкретный разрешённый secret; GrantBroker не предоставляет
-перечисление grants/secrets. Secret и handle остаются исключёнными из logs,
-traces, audit и protocol errors. Network policy разрешает этот callback только
-между Gateway и подключёнными plugin workloads.
+## Деградация, readiness и состояние Caddy
 
-До готовности mTLS endpoint и callback conformance remote plugin с secret grants
-не активируется: raw secret нельзя «временно» включать в обычный `Call` payload.
+Недоступность одного plugin instance не блокирует весь Gateway. Для связанных
+с ним Caddyfile bindings handler выдаёт bounded unavailable; несвязанные
+sites/listeners продолжают работу. Management API сообщает состояние instance,
+последний безопасный handshake/revision и readiness, не раскрывая secrets.
+Candidate Caddyfile с capability или mode, отсутствующим в plugin Manifest,
+отвергается до activation. Вызовы не выполняются, если проверенная Manifest
+revision не совпадает с активным dispatch snapshot.
 
-## TLS/mTLS и эксплуатация
+Gateway восстанавливает SQLite metadata и immutable files, запускает plugin
+control manager и Caddy, строит активный in-memory snapshot и открывает traffic
+после успешного recovery Caddy generation. Plugin, который временно недоступен,
+не блокирует несвязанный traffic; его отдельные routes остаются degraded.
+Если journal или artifact digest не позволяют доказать соответствие active
+runtime и durable pointers, Caddy listeners остаются fenced до reconciliation.
 
-- TLS обязателен между разными hosts и Pod boundaries. Межмашинное production
-  подключение требует взаимной аутентификации сертификатами; insecure remote
-  режим отсутствует.
-- Trust root, server name и Gateway client certificate/key принадлежат
-  Gateway deployment configuration. Plugin server certificate/key принадлежат
-  workload secret store. Секреты не встраиваются в image, manifest, environment
-  diagnostics или YAML plain value.
-- Сертификаты имеют проверяемые SAN, цепочку доверия и период действия; ротация
-  допускает контролируемую overlap-фазу старого и нового CA/certificate без
-  перехода на insecure channel. Expiry/verification failure маркируются как
-  plugin unavailable, без раскрытия сертификатов/ключей.
-- Pod/service readiness должна отражать protocol handshake и применённую
-  settings revision, а не только открытый TCP port. Liveness/restart отвечает
-  внешний orchestrator.
-- NetworkPolicy/firewall ограничивает Gateway → plugin gRPC и plugin → Gateway
-  grant redemption. Plugin gRPC, reflection и GrantBroker не должны быть
-  доступны публичному клиенту.
-- Call deadline, payload size, concurrent-call limit, stream flow control,
-  cancellation и redaction одинаковы для local и remote mode. Автоматические
-  повторные capability-вызовы не выполняются: идемпотентность не предполагается.
-- Gateway может метриками сообщать mode, readiness и transport failure class,
-  но не endpoint credentials, payload, cookies или secret grant handle.
+GrantBroker остаётся узкой callback-поверхностью plugin → Gateway для одного
+scoped secret redemption. Он не передаёт пользовательские HTTP/L4 тела.
+Пользовательский путь — `Caddy handler → plugin`; Management API не становится
+proxy. В external Caddy-варианте data-plane identity и Gateway control
+identity получают только необходимые им network grants.
 
-## Границы v1 и проверка
+## Проверки
 
-Remote mode не меняет публичный listener, route/action semantics или REST
-control plane Constructor ↔ Gateway. Gateway не содержит перечней конкретных
-plugin, их image names, ports, health paths, settings fields или Kubernetes
-ресурсов. Docker/Kubernetes manifests принадлежат deployable plugin и operator
-repositories; в Gateway документации остаются только нейтральные примеры.
-
-Перед реализацией v1 требуются red-first TS тесты в `core/tests/` и
-`pluginprotocol/tests/`: tagged-union schema; несовместимые `local`/`remote`
-поля; фиксированный endpoint; TLS CA/SAN validation; обязательный mTLS для
-remote production; отсутствие subprocess spawn/Shutdown в remote mode; полный
-handshake и standard health; Call и bidi Stream через реальный TLS child/service;
-отказ без downgrade; disconnect/recovery; atomic config activation; remote
-GrantBroker redemption и отказ подменённому/истёкшему handle; concurrency,
-deadlines, cancellation и отсутствие credentials в логах. Приёмка включает
-Docker Compose и Kubernetes deployment examples, Linux/macOS build, `go vet
-./...`, `go build ./...`, `make check` и VitePress build.
-
-Сейчас поддерживается только local-supervised запуск по
-[plugin protocol v1](/gateway/architecture/protocol). Remote endpoint, TLS/mTLS
-для plugin transport, удалённый GrantBroker и их schema являются планом Gateway
-v1, а не уже готовой возможностью.
+Приёмка должна запускать процессы в standalone, Docker и Kubernetes-подобных
+fixtures и покрывать: локальный graceful shutdown и restart/backoff; remote
+Pod readiness, Service reconnect и uniform release mismatch; уникальные
+replica certificates, invalid/revoked identity и rotation; handshake повторно
+на новом connection; cancellation и закрытие in-flight Stream без replay;
+отказ одного instance при работающих несвязанных routes; no downgrade и
+отсутствие plugin-to-plugin трафика. Нормативная wire-схема и JSON contracts
+остаются только в [pluginprotocol](protocol).

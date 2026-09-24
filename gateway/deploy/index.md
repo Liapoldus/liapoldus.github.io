@@ -1,84 +1,74 @@
-# Запуск
+# Развёртывание Gateway
 
-Единственный долгоживущий процесс — `gateway serve`; остальные CLI-команды —
-разовые (см. [CLI](/gateway/cli/) и [serve](/gateway/cli/serve)).
+Gateway поставляется как один Liapoldus server process. Constructor — отдельный
+desktop/web-продукт, plugins остаются отдельными binaries/services. Caddy имеет два
+варианта запуска: embedded в Gateway process либо compatible external binary,
+который Gateway запускает и supervises как child process.
 
-## Сценарии запуска
+## Выбор Caddy build
 
-:::tabs
-== Локальная разработка
+Оба build variants обязательны для v1 и используют общий Management API и
+одинаковый Liapoldus data-plane handler:
 
-Мейктаргеты в корне репозитория:
+- embedded: Caddy и Liapoldus/Caddy-L4 modules включены в Gateway executable;
+- external: Gateway запускает указанный совместимый Caddy binary отдельным
+  процессом.
 
-```bash
-make run       # go run ./cmd/gateway serve --config ../../gateway.yaml
-make build     # сборка бинарников (с GOOS-переменными из Makefile)
-```
+External binary обязан иметь зафиксированные совместимые Liapoldus modules и
+Caddy-L4; обычный Caddy не поддерживается. Gateway проверяет build/module
+identity до открытия traffic listeners и передаёт external runtime config и
+immutable dispatch snapshots через закрытый Admin API на permissioned Unix
+socket. Сам handler вызывает plugin напрямую по gRPC; Management API не
+проксирует пользовательские запросы. Caddy Admin listener не публикуется в
+host/container network. Gateway supervises external Caddy, перезапускает child
+с bounded backoff и выставляет data-plane readiness отдельно от Management
+readiness. Оба variants проходят общий parity suite; Caddy-L4 failure блокирует
+release.
 
-`make dev` с Postgres не является зависимостью Gateway: это опциональное
-окружение для разработки `forms-db`.
+## Хранилище
 
-Отдельно модуль:
+`gateway.yaml` задаёт путь к локальной SQLite database и artifact root. SQLite
+содержит группы/revisions/pointers, plugin metadata, service-key verifiers,
+operations/idempotency, audit и Caddy checkpoints. Immutable Caddyfile и plugin
+settings revisions, frontend roots и checkpoint snapshots хранятся как файлы.
+При старте Gateway сверяет metadata/digests и гидратирует active generation в
+immutable in-memory snapshot; пользовательские запросы не читают SQLite или
+файлы. SQLite на сетевой filesystem не поддерживается.
 
-```bash
-cd gateway/core && go run ./cmd/gateway serve --config ../../gateway.yaml
-```
+Backup должен согласованно включать online SQLite backup и immutable artifacts
+из одного snapshot boundary. ACME internal state остаётся под управлением
+Caddy/CertMagic.
 
-== Docker Compose
+## Сеть и безопасность
 
-Стек: gateway (публичный рантайм + mgmt).
+Публичный traffic слушается только Caddy. Management listener отделён. Web
+Constructor backend подключается только из private network/VPN по HTTPS+mTLS и
+отдельному Bearer platform-admin token для каждого Gateway. Desktop Constructor
+использует short-lived SSH certificate через OpenSSH/bastion, ограниченный
+forwarding к loopback Management API; внутри tunnel проверяются TLS server
+identity и Bearer token. Caddy Admin доступен только Gateway по permissioned
+Unix socket и не публикуется через
+container port, Kubernetes Service/Ingress, host ingress или reverse proxy.
 
-```bash
-docker compose up -d --build
-```
+Plugin mode задаётся на instance. Local mode использует supervised process и
+назначенный loopback endpoint. Remote mode подключается к стабильному Service
+по TLS/mTLS; внешняя среда запускает и рестартует workload. Каждая replica
+имеет unique identity, привязанную к logical instance; Ready replicas должны
+иметь одинаковые release/config digests, а Gateway повторяет handshake на
+каждом новом connection. Gateway не запускает remote plugin и не replay-ит
+неопределённый Call. Plugin workload CA и Management CA разделяются; identities
+ротируются внешним CA.
 
-- `liapoldus-gateway` — публичный рантайм (`18080`); management-порт наружу
-  доступен **только на loopback хоста** (`127.0.0.1:18090`), доступ — по
-  service-account key из `gateway.yaml`/secret mount.
-- Volume `appdata` — registry (`/app/data/registry`); контейнеры `read_only`
-  с `no-new-privileges`.
+## Container
 
-== Production-бинарник
+Embedded variant работает в одном контейнере Gateway. External variant
+содержит совместимый Caddy binary в том же image либо в ограниченно доступном
+каталоге на той же машине/Pod; Gateway supervises его lifecycle. Это два
+процесса в одном deployment unit, но Caddy control endpoint остаётся private
+permissioned Unix socket, а не отдельной публичной службой. Gateway process
+работает non-root; database, artifacts и ACME state находятся в отдельных
+persistent mounts с ограниченными правами.
 
-```bash
-cd gateway/core
-GOOS=linux go build -o bin/gateway ./cmd/gateway
-./bin/gateway serve --config /etc/liapoldus/gateway.yaml
-```
-
-`Dockerfile` собирает один образ gateway; `docker-entrypoint.sh` запускает
-только `gateway serve`. `LIAPOLDUS_MODE=gateway` допустим исключительно для
-совместимости и не меняет запускаемый процесс.
-:::
-
-### Рантайм-флаги и завершение
-
-Флаги `serve` и graceful shutdown — [serve](/gateway/cli/serve).
-
-## Переменные окружения
-
-| Переменная | Назначение |
-| --- | --- |
-| `LIAPOLDUS_GATEWAY_CONFIG` | путь к конфигу процесса (аналог `--config`) |
-| `LIAPOLDUS_GATEWAY_REGISTRY` | переопределяет корневой `registry` |
-| `LIAPOLDUS_MODE` | `gateway`; `single` — устаревшее значение и не поддерживается target-spec |
-
-## Контракт контейнерного образа
-
-Образ запускается non-root UID/GID `10001`, workdir `/app`, entrypoint —
-`gateway serve --config /etc/liapoldus/gateway.yaml`. Root filesystem read-only.
-Единственные writable mounts: `/app/data/registry` (releases),
-`/app/data/audit` (JSONL audit) и `/app/data/tls` (protected TLS storage).
-Конфиг и service-account hashes монтируются read-only в `/etc/liapoldus` и
-`/run/secrets`.
-
-Минимальный Compose публикует `18080:18080`, а management — только
-`127.0.0.1:18090:9090`; healthcheck вызывает `GET /healthz` внутри контейнера.
-PostgreSQL допустим лишь отдельным `forms-db` profile и не входит в stack
-Gateway. Default config отсутствует: `--config` или
-`LIAPOLDUS_GATEWAY_CONFIG` обязателен для production image.
-
-## Проверка здоровья
-
-- `GET /healthz` на management-порту (без авторизации).
-- CLI-команда `gateway status` — диагностика диска без работающего runtime.
+Bootstrap описан в [схеме gateway.yaml](/gateway/configuration/bootstrap),
+plugin modes — в [архитектуре подключения plugins](/gateway/architecture/plugin-deployment),
+а общий порядок миграции — в [roadmap](/gateway/architecture/v1-migration-roadmap).

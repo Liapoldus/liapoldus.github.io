@@ -1,0 +1,100 @@
+erDiagram
+    GROUP ||--o{ GROUP_REVISION : owns
+    GROUP_REVISION ||--o{ REVISION_FRONTEND : contains
+    FRONTEND_ROOT ||--o{ REVISION_FRONTEND : binds
+    PLUGIN_INSTANCE ||--o{ PLUGIN_CAPABILITY : declares
+    GROUP_REVISION ||--o{ GROUP_PLUGIN_BINDING : references
+    PLUGIN_INSTANCE ||--o{ GROUP_PLUGIN_BINDING : selected
+    SERVICE_KEY ||--o{ AUDIT_EVENT : acts
+    OPERATION ||--o| IDEMPOTENCY_RECORD : deduplicated_by
+    GROUP_REVISION ||--o{ OPERATION : target
+    CADDY_CHECKPOINT ||--o{ OPERATION : recovers
+    SERVICE_KEY ||--o{ OPERATION : requested_by
+    GROUP {
+        text id PK
+        text kind
+        boolean active
+        text current_revision_id FK
+        text previous_revision_id FK
+        integer created_at
+        integer updated_at
+    }
+    GROUP_REVISION {
+        text id PK
+        text group_id FK
+        text caddyfile_digest
+        text artifact_digest
+        text manifest_digest
+        integer created_at
+    }
+    FRONTEND_ROOT {
+        text id PK
+        text immutable_path
+        text digest
+    }
+    REVISION_FRONTEND {
+        text revision_id PK, FK
+        text frontend_id PK, FK
+        text root_path
+    }
+    PLUGIN_INSTANCE {
+        text id PK
+        text mode
+        text endpoint_reference
+        text settings_json
+        text state
+        integer updated_at
+    }
+    PLUGIN_CAPABILITY {
+        text plugin_id PK, FK
+        text capability PK
+        text contract_version
+    }
+    GROUP_PLUGIN_BINDING {
+        text revision_id PK, FK
+        text plugin_id PK, FK
+        text capability PK
+    }
+    SERVICE_KEY {
+        text id PK
+        text role
+        text verifier_hash
+        text state
+        integer created_at
+        integer revoked_at
+    }
+    OPERATION {
+        text id PK
+        text actor_key_id FK
+        text kind
+        text state
+        text input_digest
+        text checkpoint_id FK
+        integer created_at
+        integer updated_at
+    }
+    IDEMPOTENCY_RECORD {
+        text actor_key_id PK, FK
+        text idempotency_key PK
+        text input_digest
+        text operation_id FK
+        integer expires_at
+    }
+    AUDIT_EVENT {
+        text id PK
+        text actor_key_id FK
+        text action
+        text resource_type
+        text resource_id
+        text result
+        text request_id
+        integer created_at
+    }
+    CADDY_CHECKPOINT {
+        text id PK
+        text runtime_digest
+        text composition_digest
+        text artifact_path
+        text source_operation_id FK
+        integer created_at
+    }

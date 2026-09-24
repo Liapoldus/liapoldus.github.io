@@ -7,11 +7,13 @@ Go API генерируется из proto, а JSON shape задают versioned
 
 ## Обязательная граница
 
-Plugin — отдельный процесс и отдельный Go-модуль. Его server слушает только
-`127.0.0.1:<port>` по gRPC/HTTP/2. Gateway владеет публичным socket,
-маршрутизацией, TLS, лимитами, grants, rate limits и выдачей HTTP response.
-Plugin получает ограниченный context и может вернуть только действие,
-разрешённое соответствующим capability contract.
+Plugin — отдельный процесс/service и отдельный Go-модуль. Локальный server
+слушает назначенный `127.0.0.1:<port>` по gRPC/HTTP/2, remote server — явно
+настроенный TLS/mTLS endpoint. Caddy владеет публичным socket, маршрутизацией,
+TLS и HTTP/WebSocket/SSE/L4 protocol runtime. Liapoldus Caddy handler вызывает
+plugin напрямую и применяет общие Gateway-owned grants, limits, cookie boundary
+и typed response actions; Gateway Management API не пересылает пользовательский
+request.
 
 Сохраните прежние declarative JSON contracts и версии их payloads. Переход на
 gRPC не превращает каждую capability в отдельный protobuf тип: unary business
@@ -32,9 +34,11 @@ paths, listener sockets и grant handles нельзя писать в logs/event
 3. Зарегистрируйте `Call`-обработчик. Он обязан проверять имя capability,
    валидировать JSON по её опубликованной schema и возвращать только
    задекларированный response или typed error.
-4. Реализуйте `Stream` только для capability, объявивших streaming contract.
-   Уважайте `context.Context`, cancellation, deadlines, лимит одного сообщения
-   и gRPC flow control; не создавайте неограниченные внутренние очереди.
+4. Реализуйте `Stream` для объявленных streaming capabilities. В v1 это
+   HTTP request/response chunks, WebSocket text/binary messages, structured SSE
+   events и существующий L4 lifecycle. Уважайте `context.Context`, cancellation,
+   per-stream limits, размер сообщения и gRPC flow control; не создавайте
+   неограниченные внутренние очереди.
 5. Получайте loopback endpoint через `LIAPOLDUS_PLUGIN_ENDPOINT`, объявленный в
    [launch contract](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/launch.json),
    и открывайте его `transport.ListenLoopback`. Не открывайте listener на
@@ -72,8 +76,10 @@ npm test --prefix tests
 ## Сохранение product boundaries
 
 - Конкретный plugin владеет своими settings, capability semantics, state,
-  tokens, sessions и cookies; Gateway предоставляет общий runtime, scoped
-  grants, ограниченный context и применение типизированных response actions.
+  tokens и sessions. Caddy выполняет data-plane transport semantics; Gateway
+  управляет instance lifecycle, scoped grants и security policy, а Caddy
+  handler передаёт ограниченный context и применяет типизированные response
+  actions.
 - Конкретные capability и продуктовые схемы описываются и версионируются
   владельцем plugin, а не включаются в Gateway runtime или общий перечень
   встроенных providers.

@@ -1,40 +1,18 @@
-# HTTP runtime
+# HTTP runtime boundary
 
-Канонический исполнимый контракт HTTP — <a href="/spec/http-runtime.json" target="_blank" rel="noopener">http-runtime.json</a>.
-Он определяет defaults, порядок pipeline, routing precedence, proxy/static,
-MIME, conditional/range, CORS, cache, compression, HTTP/2 и HTTP/3 limits.
-Markdown-страница не расширяет этот контракт.
+HTTP/HTTPS, HTTP/2/3, reverse proxy, static serving, WebSocket, TLS и ACME
+исполняет совместимый Caddy runtime. Канонический traffic config — native
+Caddyfile group composition, не gateway.yaml DSL. Gateway не копирует в
+собственную схему стандартные Caddy HTTP semantics.
 
-## Порядок обработки
+Gateway владеет Management API, авторизацией операций, group activation,
+immutable frontend roots, plugin lifecycle, подготовкой dispatch snapshots,
+grants и audit. Caddy Liapoldus handler исполняет direct plugin dispatch,
+применяет route/stream limits и redaction; он не обращается к Management API,
+application use cases или SQLite. Две Liapoldus Caddyfile directives,
+`liapoldus_frontend` и `liapoldus_plugin`, описаны в
+[control plane](/gateway/architecture/control-plane#liapoldus-caddyfile-handlers).
 
-![Порядок обработки HTTP-запроса](/diagrams/http-request-lifecycle.svg)
-
-Если route не совпал, Gateway отвечает `404 route_not_found`. Если policy
-отказала, terminal target не вызывается. Ошибка любого этапа использует
-`application/problem+json` из [Gateway API](/gateway/api/).
-
-## Static и SPA
-
-Release-root — единственная filesystem-граница: decoded path нормализуется;
-`..`, NUL, absolute path и symlink за пределы release дают `404`. Directory
-listing всегда выключен. Для директории ищется `<path>/<index>`; MIME выбирается
-по расширению, неизвестный тип — `application/octet-stream`.
-
-`spa: true` возвращает `index` для `GET` и `HEAD`, независимо от значения
-`Accept`, если путь не содержит расширения файла и static lookup дал `404`.
-Он не маскирует `403`, `5xx`, API/proxy routes и отсутствующие assets.
-
-Gateway поддерживает `ETag`, `Last-Modified`, `If-None-Match`,
-`If-Modified-Since`, byte `Range` и `HEAD`; точный формат ETag и поведение
-single/multipart range определяет контракт.
-
-Для ответа с подходящим `Accept-Encoding: gzip` Gateway применяет gzip после
-раздачи статического содержимого и выставляет `Content-Encoding: gzip` и
-`Vary: Accept-Encoding`. `/healthz` принимает только `GET` и `HEAD`.
-
-## Transforms
-
-`rewrite` выполняется единожды. Группы регулярного выражения доступны как
-`${1}`, `${2}` и не считаются переменными конфигурации. Преобразования response выполняются после
-terminal target. Условия, priority и порядок policy описаны в contract;
-синтаксис полей — в [gateway.schema.json](gateway-schema).
+Если Caddy не может адаптировать fragment или подготовить snapshot, текущий
+runtime/current/previous остаются без изменений. HTTP behavior variants
+покрываются parity conformance suite из [acceptance matrix](acceptance).

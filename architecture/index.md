@@ -7,8 +7,9 @@ Liapoldus состоит из независимых продуктов с яв�
 
 | Продукт | Владеет | Не владеет |
 | --- | --- | --- |
-| [Gateway](/gateway/) | listeners, TLS, routes, upstreams, releases, runtime snapshot | UI Constructor, прикладная логика plugins |
-| [Plugins](/plugins/) | capability-логика, свой жизненный цикл и конфигурационная схема | public socket, маршрутизация и raw secrets |
+| [Gateway](/gateway/) | control plane, Management API, desired state, plugin lifecycle, releases и runtime reconciliation | traffic protocol execution, которое принадлежит Caddy; UI Constructor и прикладная логика plugins |
+| [Caddy runtime](/gateway/architecture/gateway) | public HTTP/TLS/L4 listeners, native routes и direct plugin data dispatch | control-plane persistence и Management API |
+| [Plugins](/plugins/) | capability-логика, свой жизненный цикл и конфигурационная схема | public socket, внешняя маршрутизация и raw secrets |
 | [Constructor](/constructor/) | Git-native проект, редакторы, snapshots, builds, deployment metadata | реализация Gateway и proprietary исходники |
 
 ## Путь публикации

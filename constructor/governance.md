@@ -1,30 +1,73 @@
-# Sites, authentication и deployment mode
+# Пользователи, роли и режимы аутентификации
 
-## Sites
+Constructor владеет пользовательской аутентификацией и RBAC. Gateway видит
+только административную identity соответствующей Constructor binding и не
+хранит пользователей или роли Constructor.
+
+## Три режима входа
+
+| Режим | Назначение | Граница доступа |
+| --- | --- | --- |
+| `oidc` | Web deployment с внешним identity provider | OIDC subject связывается с Constructor user по `iss` + `sub`; неизвестный subject закрыт до provisioning |
+| `local-jwt` | Web deployment, где Constructor хранит accounts/password hashes и выпускает короткоживущий JWT | Пароль проверяется backend-ом, затем обязательный WebAuthn/passkey; permissions берутся из Constructor DB |
+| `none` | Только single-user desktop/Wails installation | Без пользовательского login/roles; Constructor API ограничен локальным приложением и не открыт сетевым клиентам |
+
+В `oidc`-режиме Constructor выполняет Authorization Code flow через backend,
+проверяет issuer, audience, state, nonce и подпись. После успешного внешнего
+login пользователь дополнительно проходит Constructor WebAuthn/passkey
+challenge. В local web режиме после проверки пароля применяется тот же
+обязательный WebAuthn flow. OIDC tokens, пароли, refresh values и Gateway
+credentials не передаются React renderer.
+
+Оба web режима выдают Constructor session в `Secure`, `HttpOnly`, `SameSite`
+cookie. `local-jwt` использует короткоживущий подписанный JWT; refresh
+credential имеет отдельный срок, хранится/проверяется backend-ом и ротируется
+при использовании. Mutating API требует CSRF defense и строгой Origin/Host
+проверки; login, MFA, refresh и recovery имеют rate limits и audit events.
+Recovery не отключает MFA молча. WebAuthn credential хранится как public
+credential metadata, не как private key. Exact TTL, password hashing, recovery
+codes, CSRF/session rotation и rate-limit defaults должны быть зафиксированы в
+versioned Constructor auth/security policy до реализации; задача внесена в
+[TODO Constructor](https://github.com/Liapoldus/Constructor/blob/main/todo.md).
+
+Desktop `none` разрешён только для single-user local installation. Это не
+означает, что локальный Gateway Management API становится открытым: когда
+Constructor управляет Gateway, тот всё ещё требует `platform-admin` Bearer.
+Remote Gateway из desktop открывается через Go SSH bridge и внешний OpenSSH /
+bastion, см. [интеграцию с Gateway](integrations).
+
+## Роли и permissions
+
+Web roles, permissions и назначения пользователей хранятся в operational DB
+Constructor. Immutable системная роль `admin` существует всегда и не может
+потерять критические permissions. Каждая изменяющая операция проверяет
+permission в backend use case; UI visibility не является security boundary.
+
+Permissions Gateway имеют явную environment scope. Например, роль может иметь
+`gateway.view`, `gateway.configure`, `deploy.dev` и `deploy.prod`. Каждая
+Gateway binding помечается `dev` или `prod`; backend разрешает операцию только
+если permission scope совпадает с environment binding. Одни и те же роли
+применяются к нескольким независимым Gateway bindings, поэтому оператор может
+иметь deploy на dev и только read на prod.
+
+Constructor DB и audit связывают изменение с конкретным пользователем, ролью,
+target Gateway, environment, operation и результатом. Gateway audit видит
+Controller binding/service identity, а не подменяемый client-supplied actor
+header. Gateway service credential сам по себе не является механизмом
+Constructor RBAC.
+
+## Sites и deployments
 
 Installation имеет deployment capability `single` или `multiple`. В `single`
-существует ровно один Site: API запрещает второй, а UI скрывает selector/Add
-Site. Это server-side invariant, не косметическое ограничение UI.
+существует ровно один Site: API запрещает второй, UI скрывает selector/Add
+Site. Publish разрешается только выбранной environment binding и требует
+соответствующего scoped permission. Backend повторно проверяет право перед
+каждым deploy/rollback; frontend скрывает недоступное действие только как UX.
 
-## Authentication и permissions
+## Local и web deployment
 
-Constructor использует внешний authentication provider через выделенный
-adapter; его конкретный protocol и session lifecycle принадлежат plugin
-capability, а не Constructor или Gateway core. В
-local single-user режиме defaults — `auth = none`, `user = admin`,
-`permissions = *`; Roles UI можно не показывать. Web mode поддерживает
-multiple users, custom roles и permissions (`code.*`, `content.*`, `assets.*`,
-`gateway.*`, `plugins.*`, `snapshots.*`, `build.execute`, `deploy.execute`).
-
-Every mutation endpoint resolves a permission before invoking its use case;
-frontend visibility is not an authorization boundary.
-
-## Local и web
-
-Desktop/local запускает то же web application с local Git и SQLite. Web mode
-использует PostgreSQL, remote Git и remote Gateway; отдельного frontend для
-desktop не создаётся.
-
-Local mode implements the same authorization boundary with a local admin
-principal and all permissions. Web mode can replace this adapter with an
-external authentication provider without changing application use cases.
+Desktop/local использует single-user auth mode `none`, local Git и SQLite.
+Web mode поддерживает OIDC или local-JWT auth, multiple users, Constructor DB,
+roles, audit, remote Git и несколько remote Gateway bindings. В web режиме
+Gateway API credentials находятся только в server-side secret storage и
+доступны Gateway adapter; browser не соединяется с Gateway напрямую.

@@ -1,46 +1,59 @@
 # Ресурсы и операции
 
-API разделён на чтение состояния, изменение snapshot и асинхронные операции.
+Набор endpoints и typed schemas единожды определён в [OpenAPI](/spec/management.openapi.yaml). Эта страница описывает только владение и общую механику операций.
 
-| Группа | Методы | Назначение |
+## Control-plane ресурсы
+
+| Ресурс | Источник истины | Область изменения |
 | --- | --- | --- |
-| Runtime | `GET /api/status`, `/api/listeners`, `/api/upstreams`, `/api/plugins`, `/api/tls` | read-only состояние active snapshot |
-| Конфигурация | `GET/PUT /api/config`, `POST /api/config/validate`, `/api/reload` | validate, compare и atomic apply |
-| Registry | `GET /api/sites`, `POST /api/sites/{slug}/publish`, `/rollback` | releases и указатели `current`/`previous` |
-| Plugin/TLS | `POST /api/plugins/{id}/restart`, `/api/tls/{issuer}/renew`, `/revoke` | операции с ожиданием |
-| Audit | `GET /api/audit`, `GET /api/operations/{id}` | история и результат |
+| Caddy groups/revisions | SQLite metadata/digests/pointers + immutable files | Group publish/rollback активирует полный in-memory Caddy snapshot. |
+| Plugin instances/settings | SQLite metadata/state + immutable settings revision files | Отдельные CRUD/apply операции; group rollback не меняет plugin settings. |
+| Service keys | SQLite verifier hash и lifecycle | Raw credential выдаётся только create/rotate один раз. |
+| Caddy checkpoints | SQLite metadata + immutable snapshot artifact | До каждой mutating Admin API операции. |
+| Operations/idempotency | SQLite | Durable polling/retry/recovery. |
+| Audit | SQLite append-only records | Redacted, без тел и секретов. |
+| Caddy runtime | Embedded Caddy или supervised external Caddy process | Конфигурация и dispatch generation по private Admin API/IPC; customer traffic напрямую через Caddy handler к plugin. |
 
-## Конкурентность
+## Долгие операции
 
-`PUT /api/config` принимает обязательный `If-Match: <active-digest>`. Старый
-digest возвращает `409 digest_conflict`; active runtime при этом не меняется.
-Publish, rollback, renew и revoke требуют `idempotencyKey` длиной 16–128 ASCII
-символов. Повтор ключа для того же actor и body возвращает сохранённый ответ;
-другой body даёт `409`. Запись живёт 24 часа.
+Publish, rollback, checkpoint restore, reconcile, plugin lifecycle и TLS
+renew/revoke возвращают 202 с operationId. Клиент опрашивает
+GET /api/operations/{operationId}. Состояния: pending, running,
+succeeded, failed; завершённая operation содержит typed result либо RFC
+9457 problem. Operation и idempotency record сохраняются в SQLite и
+восстанавливаются после process restart.
 
-Для publish и rollback body дополнительно содержит `expectedCurrentRevision`:
-SHA-256 revision текущего release или `null` для ещё не публиковавшегося Site.
-Gateway проверяет значение атомарно с переключением release pointers. Stale
-значение возвращает `409 release_revision_conflict` с ожидаемой и фактической
-revision; состояние registry остаётся прежним. Поле входит в idempotency
-fingerprint.
+Idempotency применяется к actor + key + canonical request digest. Тот же ключ
+с тем же содержимым возвращает ту же operation; другой digest возвращает
+409 idempotency_conflict. Retention и максимальное число записей задаются
+versioned runtime contract. Group changes дополнительно используют CAS через
+expectedCurrentRevision; Admin reconcile — If-Match runtime digest.
 
-## Списки и операции
+## Caddy Admin pass-through
 
-Списки используют `limit` (1–100, default 50) и opaque `cursor`; клиент
-передаёт `nextCursor` без разбора. Long-running вызов возвращает
-`{ "operationId", "requestId" }`. Статусы: `pending`, `running`, `succeeded`,
-`failed`; terminal объект содержит либо typed `result`, либо `problem`.
+/api/caddy/{path} повторяет native Caddy Admin methods/payloads. Gateway
+сохраняет upstream status/body, применяя только безопасные transport headers и
+redaction в telemetry. Request/response payload не попадают в audit. Перед
+POST, PUT, PATCH или DELETE Gateway создаёт checkpoint и durable operation.
+Неуспешный запрос не помечает runtime как изменённый, если Caddy
+подтверждает отсутствие mutation; неопределённый transport result помечается
+как потенциальный drift и блокирует group activation.
 
-## Plugin admin pages
+Если native mutation меняет runtime вне опубликованных group revisions,
+GET /api/caddy-state показывает drift. До явного restore/reconcile publish и
+rollback отклоняются. Restore возвращает checkpoint snapshot; reconcile
+строит полный runtime из выбранного набора revisions. Автоматическое
+преобразование arbitrary Caddy JSON в Caddyfile не выполняется.
 
-Gateway reserves `/api/plugins/{instance}/admin/*` for declarative plugin
-administration. It is not a direct plugin listener: Gateway validates the
-active surface, authorizes capability and actor, forwards bounded typed input,
-redacts output and audits mutations. Contract, lifecycle and fixed endpoints
-are in [Plugin Admin Pages](/plugins/admin-pages). This capability is required
-before Constructor can render a plugin-owned page.
+## TLS operations
 
-`GET /api/config` возвращает исходный YAML active snapshot, но secret values
-заменяет `***`; ссылки `env:` и `file:` сохраняются. API никогда не выдаёт
-secret, key hash, cookie, authorization header или private key.
+Caddy/CertMagic владеет ACME. GET /api/tls сообщает готовность по домену;
+POST /api/tls/{domain}/renew и /revoke — async/idempotent операции только для
+Caddy-managed certificates. Revoke требует serial и reason. Static/external
+certificates этими endpoints не изменяются.
+
+## Удалённые старые ресурсы
+
+Старые /api/config, /api/sites, /api/reload и site-oriented publish
+контракты относятся к прежней Gateway route DSL и не являются v1 API. Их
+замещают bootstrap schema, Group Releases API и full Caddy Admin pass-through.

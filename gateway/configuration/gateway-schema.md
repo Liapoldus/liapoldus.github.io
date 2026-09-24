@@ -1,9 +1,9 @@
-# Схемы конфигурации
+# Схема bootstrap gateway.yaml
 
-Канонические исполнимые схемы конфигурации:
+Нормативная схема bootstrap-конфигурации опубликована как
+[gateway.schema.json](/spec/gateway.schema.json). Она намеренно не описывает
+Caddyfile, plugins, public listeners или сайт-манифесты.
 
-- <a href="/spec/gateway.schema.json" target="_blank" rel="noopener">gateway.schema.json</a> — `gateway.yaml`;
-- <a href="/spec/site.schema.json" target="_blank" rel="noopener">site.schema.json</a> — `site.yaml`.
-
-Обе используют JSON Schema Draft 2020-12. Примеры и остальные Markdown-страницы
-не расширяют эти контракты.
+Для человекочитаемого описания см. [Bootstrap gateway.yaml](bootstrap);
+архитектура group composition находится в
+[Control plane](/gateway/architecture/control-plane).

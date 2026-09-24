@@ -1,31 +1,22 @@
-# HTTP reverse proxy с WAF
+# HTTP reverse proxy с native Caddyfile
 
-Маршрут API применяет политики до передачи запроса в здоровый upstream. Полные
-справочники: [маршруты](/gateway/configuration/server-blocks),
-[upstream](/gateway/configuration/upstreams) и [безопасность](/gateway/configuration/security).
+Gateway не задаёт YAML-модель upstream/WAF/rate limit. Caddyfile использует
+нативные Caddy matchers/handlers, а compatible Caddy build поставляет
+зафиксированные modules. Group Release API валидирует и активирует fragment
+вместе со всеми active groups.
 
-```yaml
-upstreams:
-  api:
-    discovery: { dns: api.internal, interval: 30s }
-    healthCheck: { path: /healthz, interval: 10s, timeout: 2s }
-    balance: least-connections
-wafPolicies:
-  public:
-    rules: [{ when: { requestSize: { gt: 2MiB } }, then: { deny: { status: 413 } } }]
-rateLimits:
-  api: { key: source-ip, requests: 120, per: 1m, burst: 30 }
-listeners:
-  https:
-    type: http
-    address: ':443'
-    tls: public
-    routes:
-      - when: { host: app.example.com, path: { prefix: /api/ } }
-        then: { proxy: api, waf: public, rateLimit: api }
-      - when: { host: app.example.com }
-        then: { site: portal }
-```
+Пример native reverse proxy:
 
-`proxy` сохраняет метод, путь и query. При отсутствии healthy target Gateway
-возвращает согласованную ошибку и записывает request ID в log/trace.
+    app.example.test {
+        handle /api/* {
+            reverse_proxy api.internal:8080
+        }
+    }
+
+Plugin capability, если она нужна вместо upstream, задаётся отдельным
+liapoldus_plugin directive, описанным в
+[control-plane contract](/gateway/architecture/control-plane#liapoldus-caddyfile-handlers).
+Никаких route YAML, WAF policy objects или upstream groups Gateway не добавляет.
+
+Полное поведение reverse_proxy и доступные Caddy modules фиксируются в build
+manifest и проверяются parity suite обоих Caddy variants.

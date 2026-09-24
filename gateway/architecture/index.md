@@ -1,42 +1,19 @@
-# Liapoldus: архитектура
+# Архитектура Gateway
 
-Архитектура — blueprint независимой совместимой реализации: владельцы
-состояния, границы доверия, state machines и публичные contracts. Она не
-предписывает язык, framework или внутренние классы.
+Эти страницы описывают целевую архитектуру Gateway v1, а не текущую
+реализацию. Нормативная модель настройки: native Caddyfile group revisions +
+минимальный bootstrap gateway.yaml + authenticated Management API.
 
-Liapoldus состоит из обязательного **Gateway** и опциональных **plugins**.
-Gateway владеет публичным трафиком, конфигурацией, runtime-снимком и
-безопасностью. Плагин выполняет только явно выданную capability; он не создаёт
-публичные маршруты и не становится владельцем состояния Gateway.
-
-## Общая схема
-
-![Общая архитектура Liapoldus](/diagrams/architecture-overview.svg)
-
-## Четыре правила реализации
-
-1. **Файлы первичны.** Runtime — производная от валидных файлов; Gateway не
-   требует собственной БД для восстановления конфигурации и релизов.
-2. **Снимок целостен.** Новый runtime подготавливается полностью и только
-   затем атомарно становится активным. Ошибка не меняет обслуживаемый снимок.
-3. **Публичный сокет принадлежит Gateway.** Даже при proxy и плагинах именно
-   Gateway применяет маршрутизацию, TLS, авторизацию, лимиты и телеметрию.
-4. **Расширение выдаётся явно.** Instance плагина и capability проверяются при
-   компиляции конфигурации; IPC ограничен выбранным transport contract. Сейчас
-   доступен только local loopback; remote TLS/mTLS mode ещё планируется.
-
-## Документы
-
-| Файл | Содержание |
+| Документ | Для чего |
 | --- | --- |
-| [Границы и решения](target.md) | Что входит в систему, инварианты и последствия архитектурных решений. |
-| [Компоненты runtime](gateway.md) | Владение компонентами, применение конфигурации и пути трафика. |
-| [Blueprint реализации](implementation.md) | process boundaries, state machines, concurrency и trust boundaries. |
-| [Кодовая архитектура](structure.md) | Направление зависимостей и доменные порты реализации. |
-| [Plugin protocol](protocol.md) | Единственная wire-спецификация IPC: gRPC методы, потоки и ошибки. |
-| [Cookie-контракт](cookies.md) | Текущая поддержка cookie и целевая безопасная передача в plugin capability. |
-| [Режимы подключения plugin](plugin-deployment.md) | Текущий local-supervised и целевой remote deployment. |
-| [Гайд создания плагина](guide.md) | Практический контракт автора plugin binary. |
+| [План перепроектирования v1](v1-migration-roadmap) | Этапы, карта replace/adapt/remove и gates. |
+| [Control plane](control-plane) | Caddy build variants, группы, Admin API, SQLite и безопасность. |
+| [Границы и решения](target) | Зафиксированные продуктовые инварианты. |
+| [Компоненты runtime](gateway) | Владельцы компонентов и потоки данных. |
+| [Кодовая архитектура](structure) | Слои и persistence adapters. |
+| [Plugin protocol](protocol) | Единственный IPC contract. |
+| [Режимы plugins](plugin-deployment) | Local supervision и remote mTLS. |
+| [Cookie boundary](cookies) | Plugin-owned cookies и типизированные actions. |
 
-Документация по декларации, супервизору и жизненному циклу плагинов —
-в разделе «[Плагины](/plugins/)».
+Общие цели и зависимости вынесены в per-repository TODO файлы; подробный
+порядок работ хранится в roadmap.

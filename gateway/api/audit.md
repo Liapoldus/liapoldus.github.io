@@ -1,25 +1,24 @@
-# Audit и operations API
+# Audit и operations
 
-`GET /api/audit` возвращает paginated audit records: actor, action, resource,
-result, `digestBefore`, `digestAfter` и `requestId`. Записи хранятся в JSONL по
-UTC-дате в `${registry.path}/audit/YYYY-MM-DD.jsonl`, удаляются после 90 дней и
-сохраняются при перезапуске Gateway. Если `registry.path` не указан, используется
-каталог `registry` рядом с активным конфигурационным файлом. Секреты и private
-material исключены до записи. Для общего static token указывается actor
-`static-token`, для service account — его ID.
+Audit и durable operations хранятся в SQLite, а не в JSONL-файлах. Контракт
+полей и API pagination задан в [OpenAPI](/spec/management.openapi.yaml).
 
-Событие успешной публикации release имеет action `site_published`; source path
-не включается в audit record.
+Gateway audit фиксирует actor service-key/Controller-binding ID, action,
+resource type/ID, result, timestamp,
+request ID и применимые digests. Он не сохраняет Caddyfile/artifact contents,
+Admin API request/response bodies, Authorization, secrets, private keys,
+cookies, plugin payloads или grant handles. Для Admin mutations записываются
+method, normalized path, checkpoint reference и результат без тела.
 
-Вызов отката release записывается с action `site_rolled_back`: `succeeded` после
-переключения указателей релизов или `failed`, если проверка версии либо операция
-отката завершилась ошибкой. Запись содержит slug сайта, actor и request ID, но
-не содержит путь к registry или release.
+Операции group publish/rollback, Caddy checkpoint restore/reconcile, plugin
+lifecycle и TLS renew/revoke сохраняют state, idempotency fingerprint,
+timestamps и safe result/problem. После restart операция восстанавливается или
+явно помечается failed/recovery-required; она не теряется в памяти процесса.
 
-Операции restart plugin, TLS renew/revoke и другие длительные действия отвечают
-`202` с `operationId`. `GET /api/operations/{id}` возвращает `pending`,
-`running`, `succeeded` или `failed`; terminal ответ содержит `result` либо RFC
-9457 `problem`. Operation хранится 24 часа.
+Для web-операций Gateway видит только authenticated Constructor binding;
+Constructor audit связывает тот же operation ID с end-user, role, environment
+и target Gateway. Gateway не принимает непроверенные actor headers.
 
-Локальные JSONL audit, retention, logs, Prometheus и OTLP — в
-[deployment observability](/gateway/deploy/observability).
+Audit append-only в API semantics, с документированным retention/backup и
+explicit platform-admin access. Полный storage/ER контракт:
+[Control plane](../architecture/control-plane#sqlite-и-файлы).

@@ -19,7 +19,7 @@ Gateway остаётся единственной точкой internal API, aut
 
 | Артефакт | Автор | Хранение | Что содержит |
 | --- | --- | --- | --- |
-| Instance settings | оператор/Constructor | `gateway.yaml: plugins.<instance>.settings` | DB connection refs, feature settings; валидируются `config.schema` |
+| Instance settings | оператор/Constructor | Gateway Plugin Instance API; immutable settings revision files + SQLite metadata/digest | DB connection refs, feature settings; валидируются plugin `ConfigSchema` |
 | Admin surface | plugin release | versioned plugin contract | page/section/field/table/action metadata |
 | Page data/action result | plugin через Gateway | transient response + audit | typed query/action payload, никогда не executable UI |
 
@@ -153,8 +153,9 @@ Gateway помечает административный Surface недосту
   action input and idempotency key.
 - Table data is subject to surface-declared columns, cursor limit and Gateway
   redaction. Export/download is a distinct declared action with audit.
-- Configuration write remains `config.apply`; an admin page cannot mutate
-  `gateway.yaml` outside its instance settings.
+- Configuration write remains the generic plugin `ConfigApply` lifecycle through
+  Gateway; an admin page cannot mutate bootstrap `gateway.yaml` or traffic
+  configuration outside its instance settings.
 
 ## Владение контрактом
 

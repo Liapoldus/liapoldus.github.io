@@ -140,6 +140,10 @@ wildcard Origin с credentials запрещён. `SameSite=None` без `Secure`
 - Лимит числа actions и суммарного сериализованного размера задаётся в
   versioned contract, проверяется до ответа и покрывается boundary tests; он не
   заимствует неявно request body limit.
+- Численные v1 bounds: allow-list содержит максимум 16 разных имён; входящий
+  Cookie representation — до 8 KiB; response — до 32 actions, 4 KiB на одну
+  serialized cookie и 16 KiB суммарно. Все величины измеряются в octets после
+  сериализации и до записи headers.
 - TLS listener, upstream TLS и plugin transport TLS — независимые hop security
   boundaries. `Secure` относится к browser-facing cookie и не заменяет TLS/mTLS
   до upstream или remote plugin.

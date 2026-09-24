@@ -1,15 +1,14 @@
-# Config API
+# Конфигурационный интерфейс Gateway
 
-`GET /api/config` читает redacted active YAML. `POST /api/config/validate`
-проверяет переданный YAML без записи. `PUT /api/config` применяет новый snapshot.
+В v1 нет Gateway route-configuration API. Bootstrap gateway.yaml читается при
+старте; его ограниченная схема описана в
+[Bootstrap configuration](/gateway/configuration/bootstrap).
 
-| Запрос | Защита | Результат |
-| --- | --- | --- |
-| `GET /api/config` | Bearer; remote также mTLS | active YAML, secrets `***`, digest |
-| `POST /api/config/validate` | Bearer; remote также mTLS | diagnostics без изменения runtime |
-| `PUT /api/config` | Bearer; remote также mTLS, `If-Match` | новый revision/digest |
-| `POST /api/reload` | Bearer; remote также mTLS | перечитывает configured files |
+Traffic runtime задаётся native Caddyfile group fragments и изменяется через
+[Group Releases API](groups). Для advanced operator доступен полный native
+Caddy Admin API pass-through под Management API authentication. Изменение
+через Admin API создаёт checkpoint; при drift group publish блокируется до
+явного reconcile или restore.
 
-`PUT` сравнивает `If-Match` с active digest. Несовпадение даёт `409
-digest_conflict`; ошибка validation даёт `422`; в обоих случаях active snapshot
-остаётся прежним. Полная форма тел — в [OpenAPI](openapi).
+PUT /api/config, POST /api/config/validate и POST /api/reload являются
+удалёнными endpoints старой Gateway DSL и не входят в целевой v1 contract.

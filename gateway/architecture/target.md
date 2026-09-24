@@ -1,45 +1,53 @@
-# Границы и архитектурные решения
+# Целевая архитектура Gateway v1
 
-Эта страница — реестр решений, на которые опирается справочник. Она отделяет
-публичный контракт от деталей реализации, которые можно изменить без изменения
-опыта оператора.
+## Модель продукта
 
-## Системный контекст
+Liapoldus Gateway — control plane. Caddy — единственный владелец исполнения
+пользовательского HTTP/TLS/L4 traffic. Constructor остаётся отдельным
+desktop-продуктом и единственным UI настройки; плагины — отдельные процессы
+или сервисы.
 
-![Системный контекст Gateway](/diagrams/system-context.svg)
+У Gateway есть собственный, изолированный Management listener. Он не принимает
+и не проксирует пользовательские HTTP-запросы. В embedded-варианте Caddy и
+Liapoldus handler-модули загружены в Gateway process; в external-варианте
+Gateway запускает совместимый Caddy process и синхронизирует его runtime по
+закрытому аутентифицированному Admin API/IPC. В обоих случаях запрос проходит
+от Caddy handler непосредственно к plugin по gRPC, а не через Management API.
 
-Gateway не владеет контентом и не заменяет CI/CD: он принимает уже собранные
-артефакты. Gateway не является CMS, identity provider или очередью задач.
-
-## Архитектурные решения
-
-| Решение | Причина | Последствие для пользователя |
-| --- | --- | --- |
-| Registry и конфиг хранятся на диске | переносимость и восстановление без БД | версии можно проверить и доставить офлайн |
-| Один gateway-процесс содержит data и local control plane | минимальная эксплуатационная сложность | нет отдельного обязательного control-plane сервиса |
-| Management API отделён от публичных слушателей | сокращение поверхности атаки | API должен быть ограничен сетью и аутентификацией |
-| Плагины — отдельные процессы | изоляция предметной логики и независимые релизы | сбой плагина наблюдаем и не меняет ядро gateway |
-| HTTP-маршрут привязан к capability явно | безопасность и проверяемость | нет «магических» методов и неявно доступных плагинов |
+| Решение | Нормативное следствие |
+| --- | --- |
+| Traffic config — native Caddyfile | Не создавать Gateway route DSL; gateway.yaml остаётся только bootstrap. |
+| Control plane вне пользовательского request path | Management API, SQLite и group/release use cases не проксируют запросы клиентов к plugins. |
+| Два Caddy build variants | Embedded и compatible external custom Caddy обязательны для v1 parity gate; Gateway запускает и supervises external binary. Stock Caddy не поддерживается. |
+| Прямой plugin data dispatch | Caddy Liapoldus handler использует immutable dispatch snapshot и обращается к plugin напрямую по gRPC. Scoped GrantBroker остаётся отдельной redemption callback-поверхностью. |
+| Полный Caddy Admin pass-through | Caddy Admin слушает только loopback/private IPC; операторский доступ идёт через аутентифицированный Gateway API с checkpoint/drift protection. |
+| Группы revisions | Caddyfile fragment и frontend roots объединены immutable revision; current/previous хранятся как SQLite revision IDs. |
+| SQLite control plane | Долговременная metadata для groups, plugins, keys, operations, audit, checkpoints и pointers; Caddyfile/plugin-settings revisions и artifacts хранятся immutable файлами, runtime использует in-memory snapshots. |
+| Generic plugins | Ядро знает только общий protocol/dispatch boundary. Конкретные plugin contracts появляются только при подключении. |
+| Caddy-L4 | Обязателен в v1 для TCP/UDP; conformance failure блокирует релиз, fallback на Go net/gnet запрещён. |
+| Caddy/CertMagic | Единственный владелец ACME; domain readiness не блокирует активацию валидного snapshot. |
+| Security | Web Constructor backend: private HTTPS + mTLS + отдельный Bearer token на Gateway; desktop: short-lived SSH certificate и ограниченный tunnel к loopback API; Gateway имеет только роль `platform-admin`, Constructor хранит user RBAC. |
 
 ## Инварианты
 
-Реализация обязана обеспечивать следующее:
+- Сначала durable immutable artifacts, затем candidate полного snapshot,
+  затем activation и единая SQLite pointer transaction.
+- Любая ошибка подготовки или активации сохраняет старый runtime, current и
+  previous; crash recovery не допускает смешанного состояния.
+- Group rollback меняет только Caddyfile/frontend composition; plugin settings
+  имеют независимую API-жизнь.
+- Любая Caddy Admin mutation создаёт checkpoint. При drift group publish
+  блокируется до явного restore или reconcile.
+- Не выполняется преобразование arbitrary Caddy Admin JSON обратно в Caddyfile.
+- Ни secret values, keys, cookies, Authorization, private keys, grant handles,
+  ни sensitive request bodies не попадают в logs, responses или audit.
+- Management и plugin workload trust roots разделены; Gateway не является CA.
+- Никаких прямых plugin-to-plugin соединений. Пользовательский payload идёт
+  `Caddy handler → plugin`; Management API не является промежуточным proxy.
+- Внешний Caddy принимает только целый authenticated immutable dispatch snapshot;
+  ошибка синхронизации не публикует candidate traffic configuration.
+- Вызов GrantBroker — только отдельная scoped redemption операция от plugin,
+  не общий механизм передачи пользовательских запросов через control plane.
 
-- Runtime обслуживает только полностью валидный снимок конфигурации и registry.
-- Неуспешный reload не меняет активную конфигурацию.
-- У сайта всегда есть наблюдаемая активная версия; откат не удаляет версию,
-  на которую он указывает.
-- Плагин слушает только loopback и получает лишь объявленную конфигурацию.
-- Секреты не оказываются в публичных ответах, access-логах и diagnostic API.
-
-## Эксплуатационные правила
-
-- Gateway поставляется как бинарник и контейнерный образ; оба используют один
-  формат `gateway.yaml`.
-- Management API использует service accounts с ролями, а статический токен
-  подходит только для локального изолированного запуска.
-- Сертификаты поставляет внешняя система; Gateway безопасно читает и применяет
-  файлы сертификата и ключа.
-- Публикация формирует новую полную версию сайта, проверяет её, затем атомарно
-  переключает указатель `current`. Параллельные публикации сериализуются для
-  одного `slug`.
+Подробная модель — в [Control plane](control-plane); полный порядок и gates —
+в [плане v1](v1-migration-roadmap).

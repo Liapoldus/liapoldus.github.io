@@ -1,169 +1,51 @@
-# TLS, mTLS и WAF
+# Безопасность Gateway
 
-Gateway владеет listener-ами, TLS termination, проверкой mTLS-сертификата,
-порядком policy и ограничением запросов. Встроенная WAF отвечает за правила,
-Geo/ASN lookup и rate limit. Любое поведение конкретного подключённого plugin
-выбирается только по его объявленным capability и не добавляется в core как
-специальный provider, endpoint или action.
+Эта страница кратко фиксирует trust boundaries конфигурации. Полный контракт
+Management authentication, Constructor roles и desktop bridge описан в
+[Аутентификации Management API](/gateway/api/authentication); здесь правила не
+дублируются.
 
-Нормативные runtime-поля и ошибки описаны в
-[security-runtime.json](/spec/security-runtime.json). Поля YAML определены в
-[схеме Gateway](/spec/gateway.schema.json).
+## Сетевые поверхности
 
-## TLS и mTLS
+- Публичные HTTP/TLS/L4 listener-ы принадлежат Caddy и не обслуживают
+  Management API.
+- Management API имеет отдельный listener. Web Constructor backend подключается
+  только из private network/VPN по HTTPS+mTLS и Bearer token.
+- Desktop Constructor открывает SSH port-forward через внешний OpenSSH/bastion
+  к loopback Management API; tunnel не даёт shell или произвольного forwarding.
+  Внутри tunnel проверяются TLS server identity и Gateway Bearer token.
+- Caddy Admin API external process привязан к permissioned Unix socket, доступному
+  Gateway process; embedded variant использует внутренний adapter. Socket/API
+  не публикуется через host port, Docker/Kubernetes Service, Ingress или
+  reverse proxy.
+- Plugin endpoints доступны только из разрешённой plugin/Caddy network policy.
+  Прямой plugin-to-plugin traffic запрещён.
 
-```yaml
-tlsProfiles:
-  public:
-    certificates:
-      - cert: file:/etc/liapoldus/public.crt
-        key: file:/etc/liapoldus/public.key
-    protocols: [http/1.1, h2, h3]
-    securityHeaders:
-      strictTransportSecurity: max-age=31536000; includeSubDomains
-      contentSecurityPolicy: "default-src 'self'"
+## Plugin trust
 
-  service-mtls:
-    certificates:
-      - cert: file:/etc/liapoldus/service.crt
-        key: file:/etc/liapoldus/service.key
-    clientAuth:
-      mode: require
-      ca: file:/etc/liapoldus/clients-ca.pem
-```
+Local plugin запускается Gateway Supervisor на назначенном loopback endpoint.
+Remote plugin подключается по стабильному Docker/Kubernetes Service endpoint с
+TLS/mTLS; процессом, replicas, readiness и restart policy владеет внешняя
+среда. Каждая Pod имеет уникальную externally-issued workload identity,
+связанную с logical plugin instance. Все Ready replicas обязаны иметь один
+совместимый release/Manifest/settings digest; новая gRPC connection заново
+проверяет сертификат и protocol handshake. Management CA, plugin workload CA и
+Caddy/ACME state разделены; Gateway не является CA и не имеет insecure fallback.
 
-Сертификат выбирается по SNI. TCP listener может завершать TLS (`terminate`)
-или передавать зашифрованный поток по SNI (`passthrough`); mTLS доступен при
-termination. HTTP/3 открывает UDP и TCP на одном address и использует тот же
-SNI/TLS profile. QUIC limits задаются в `listener.limits.quic`:
-`maxConnections`, `maxStreams`, `maxPacketBytes` и `idleTimeout`.
+Потеря одного plugin instance деградирует только связанные Caddy bindings.
+Неопределённый unary Call не повторяется автоматически; оборванный Stream
+закрывается и не переносится между replicas. Полный lifecycle и recovery
+описан в [режимах подключения plugin](/gateway/architecture/plugin-deployment).
 
-Protected TLS material хранится Gateway в `${registry.path}/tls/`. Любая
-интеграция, которая создаёт или обновляет TLS material, подключается через
-общую capability/grant boundary; Gateway проверяет материал и управляет его
-применением к listener. Протокол конкретной интеграции и её settings не входят
-в Gateway schema.
+## Секреты и audit
 
-mTLS — встроенная transport-security возможность Gateway. Клиентский
-сертификат проверяется во время TLS handshake, до разбора HTTP. Недействительный
-предъявленный сертификат завершает handshake без HTTP-ответа. Если режим
-`require` допускает TLS handshake без сертификата, HTTP middleware отвечает
-`401 mtls_required`; при `optional` отсутствие сертификата разрешено. Любой
-предъявленный сертификат проверяется TLS stack.
+Plaintext secrets запрещены в Caddyfile revisions, Gateway API bodies, SQLite,
+external Caddy control payloads, logs, traces и audit. Config содержит только
+внешние secret references. Constructor credentials и plugin workload
+credentials никогда не экспортируются в UI. Ошибки безопасны и redacted;
+Admin audit хранит actor binding, method, normalized path, operation/checkpoint
+IDs и результат, но не request/response bodies или sensitive headers.
 
-## Привязка policy к plugin
-
-Правила передачи входящих cookie и выдачи response cookie описаны в
-[каноническом cookie-контракте](/gateway/architecture/cookies). Транспорт и
-режимы запуска plugin описаны в
-[архитектуре подключения plugin](/gateway/architecture/plugin-deployment).
-
-Gateway не содержит OIDC/JWT runtime и не определяет формат внешней
-аутентификации. Route policy может быть связана с произвольной capability из
-manifest подключённого plugin:
-
-```yaml
-plugins:
-  access:
-    binary: ./bin/access-policy
-    capabilities: [access.authorize]
-    settings: {}
-
-authPolicies:
-  protected:
-    plugin:
-      instance: access
-      capability: access.authorize
-
-listeners:
-  web:
-    type: http
-    address: 127.0.0.1:8080
-    routes:
-      - when: { path: { prefix: /private } }
-        then: { proxy: api, auth: protected }
-```
-
-Gateway проверяет, что instance и capability объявлены и подключены, передаёт
-ограниченный HTTP context и применяет типизированный HTTP response. Plugin
-владеет своим протоколом, токенами, сессиями, claims и cookies. Неизвестные
-Gateway поля plugin settings не интерпретирует: их валидирует schema самого
-plugin через generic plugin lifecycle.
-
-Входящие `Authorization`, `Cookie` и `Proxy-Authorization` не входят в обычный
-plugin request context. Plugin не получает socket, путь к файловой системе или
-raw Gateway secret. Секрет выдаётся только через scoped grant, если конфигурация
-явно разрешила его соответствующей capability.
-
-Plugin response может вернуть несколько отдельных `Set-Cookie` actions.
-Gateway добавляет каждую запись отдельно, не объединяя их и не изменяя
-атрибуты; plugin сам выбирает, нужна ли cookie с `HttpOnly`, `Secure`, `SameSite`,
-`Path` или `Max-Age`. Передача входящих cookie в capability требует отдельного
-явного grant/context-контракта и не включается автоматически.
-
-## WAF и ограничения
-
-```yaml
-plugins:
-  policy:
-    binary: ./bin/policy
-    capabilities: [edge.inspect]
-    settings: {}
-
-wafPolicies:
-  public:
-    rules:
-      - when: { method: [TRACE], path: { regex: '.*' } }
-        then: { deny: { status: 405 } }
-      - when: { sourceIp: { notIn: [10.0.0.0/8] }, path: { regex: '^/admin' } }
-        then:
-          plugin: { instance: policy, capability: edge.inspect }
-
-rateLimits:
-  public-api: { key: source-ip, requests: 120, per: 1m, burst: 30 }
-```
-
-Встроенные WAF actions — `allow`, `deny`, `limit` и вызов произвольной
-подключённой capability через `plugin`. Capability получает method, path, query,
-не credential headers и измеренный размер тела запроса; чувствительные headers
-исключаются. Она должна вернуть ровно одно из двух решений:
-
-- `continue: true` — Gateway продолжает обычный HTTP pipeline;
-- `continue: false` вместе с `response` — Gateway применяет status, headers,
-  cookies и body, затем завершает запрос.
-
-Провайдеры и специальные verification endpoints не являются частью Gateway
-WAF. Если capability реализует challenge, проверку токена или собственный
-callback, эти маршруты, конфигурация и cookie/token lifecycle принадлежат
-соответствующему plugin. Gateway не создаёт challenge token, не выбирает
-внешний provider и не резервирует plugin endpoint.
-
-Geo/ASN использует явно объявленный локальный MaxMind MMDB provider. При его
-недоступности правило не становится `allow`: применяется `onError` правила,
-затем provider, иначе `deny`. Условия одного matcher объединяются через AND;
-`all`, `any` и `not` поддерживают рекурсивную композицию. Ошибка Geo/ASN lookup
-имеет состояние «неизвестно» и не инвертируется через `not`.
-
-В HTTP WAF `requestSize` — фактически полученные байты body после снятия HTTP
-transfer framing; chunked body измеряется по прочитанным данным, не по
-`Content-Length`. Если policy использует `requestSize`, Gateway читает и
-сохраняет body до WAF-проверки, затем передаёт те же байты downstream. Чтение
-ограничено `listeners.<name>.limits.bodyBytes`; превышение возвращает
-`413 body_too_large` до upstream/plugin dispatch. Порог задаётся целым числом
-байт или размером с суффиксом `KiB`, `MiB`, `GiB`; доступны `gt`, `gte`, `lt`,
-`lte`.
-
-```yaml
-dataProviders:
-  geo:
-    type: mmdb
-    path: /var/lib/liapoldus/GeoLite2-City.mmdb
-    onError: deny
-```
-
-При reload Gateway открывает новый MMDB reader до атомарной замены активного.
-Неуспешная загрузка сохраняет предыдущий reader. `geo.country` использует
-ISO 3166-1 alpha-2, `geo.city` — английское имя из `city.names.en`; `asn.in` и
-`asn.notIn` применяются совместно.
-
-Полный порядок request pipeline — в [описании HTTP runtime](/gateway/configuration/http-runtime).
+Сертификатная готовность отслеживается отдельно по домену. TLS/ACME ownership и
+Caddy trust configuration заданы в
+[архитектуре control plane](/gateway/architecture/control-plane).

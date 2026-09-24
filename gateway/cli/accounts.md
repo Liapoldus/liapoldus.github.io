@@ -1,35 +1,16 @@
-# accounts
+# Service keys
 
-Управление service accounts для Gateway API. Формат Bearer key и правила
-доступа — в [аутентификации API](/gateway/api/authentication).
+CLI позволяет создать, rotate и revoke Management API service key. В v1 все
+ключи имеют роль platform-admin. Команды и API responses согласуются с
+[OpenAPI](../api/openapi) и общим [CLI contract](index).
 
-```bash
-gateway accounts create <id> --role=platform-admin
-gateway accounts rotate <id>
-gateway accounts revoke <id>
-```
+Raw token выводится ровно один раз при create/rotate. В SQLite хранится только
+verifier/hash, идентификатор, имя, роль, статус и lifecycle metadata.
+Rotation атомарно заменяет credential; revoke блокирует дальнейшую
+аутентификацию. CLI должен скрывать значение от shell history и не записывать
+его в gateway.yaml.
 
-| Флаг | Назначение |
-| --- | --- |
-| `--config`, `--config-dir` | выбирают config по [общему порядку](/gateway/cli/) |
-| `--role` | обязательное значение `platform-admin` |
-
-## Как это работает
-
-- `create`/`rotate` печатают секрет **один раз**: `lpgw_<id>_<payload>`, где
-  `payload` — ровно 32 случайных байта в `base64url` без padding. В файл пишется только bcrypt-хеш с cost `12`; сам секрет
-  восстановить нельзя.
-- `rotate` атомарно заменяет `keyHash`: старый key сразу перестаёт проходить
-  Bearer-проверку. `revoke` удаляет account; `create` существующего аккаунта
-  завершается exit `4`, а `rotate`/`revoke` неизвестного — exit `5`.
-- Запись выполняется через временный файл и atomic rename с режимом `0600`.
-  CLI создаёт каталог `secrets/accounts`, но никогда не переписывает
-  `gateway.yaml`: оператор сам добавляет `keyHash: file:...`.
-
-## Пример
-
-```bash
-gateway accounts create ops --role=platform-admin --config gateway.yaml
-# service account ops created; save this key now — it will not be shown again:
-# lpgw_ops_1f09c2...
-```
+Desktop Constructor сохраняет свой Gateway token в OS credential store через
+Go backend. Web Constructor backend хранит отдельный token для каждой Gateway
+binding только в server-side secret storage; browser его не получает.
+Изменение key никогда не требует редактировать Caddyfile или group revision.

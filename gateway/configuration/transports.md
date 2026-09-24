@@ -1,50 +1,27 @@
-# TCP, UDP и P2P
+# Транспорты Gateway
 
-Liapoldus принимает TCP и UDP наряду с HTTP. L4-listener владеет сокетом,
-ограничениями, TLS и выбором rule; он не интерпретирует прикладной протокол.
-Это позволяет использовать gateway как защищённый relay для произвольной
-peer-to-peer системы.
+## HTTP и TLS
 
-```yaml
-listeners:
-  game-udp:
-    type: udp
-    address: ':3478'
-    limits: { datagramsPerSecond: 2000, bytesPerSecond: 32MiB }
-    rules:
-      - when: { sourceIp: { notIn: [10.0.0.0/8] } }
-        then: { proxy: game-relay }
+HTTP/HTTPS, HTTP/2/3, reverse proxy, static serving, WebSocket и ACME
+исполняются совместимым Caddy runtime. Его конфигурация задаётся native
+Caddyfile, входит в активные group revisions и проходит embedded/external
+parity gate. HTTP streaming request/response, WebSocket и SSE используют
+Liapoldus handler module и прямой gRPC `Stream` к plugin; Gateway Management
+API не находится в пользовательском request path. Caddy Admin API остаётся
+внутренним и недоступным с публичного интерфейса.
 
-  peer-tcp:
-    type: tcp
-    address: ':443'
-    tls: { mode: passthrough }
-    rules:
-      - when: { sni: peers.example.com, alpn: [p2p] }
-        then:
-          plugin: { instance: peer-relay, capability: peer.session }
-          rateLimit: peer-connections
-      - when: { sni: api.example.com }
-        then: { proxy: app-api }
-```
+## L4
 
-## Контракт L4-rule
+Gateway v1 использует [Caddy-L4](https://github.com/mholt/caddy-l4) за Liapoldus adapter для TCP/UDP relay и direct plugin streams. Это
+обязательный компонент обоих Caddy build variants. Caddy-L4 экспериментален,
+поэтому расширенный conformance suite — блокирующий release gate. При провале
+v1 не объявляется готовым; переход на Go net или gnet fallback не допускается.
 
-`rules` обрабатываются по порядку и используют тот же `when → then → else`,
-что HTTP. Terminal target для L4 — `proxy`, `plugin` или `deny`. TCP передаёт
-двунаправленный поток; UDP создаёт flow по tuple source/destination и передаёт
-датаграммы до idle timeout.
+L4 в v1 — relay к заранее заданному peer/upstream; peer discovery, rendezvous,
+hole punching и NAT traversal не обещаются. TCP stream соответствует одному
+соединению; UDP сохраняет datagram boundaries. Лимиты, timeouts, cancellation,
+reload и поведение при partial failure должны совпадать между embedded и
+external variant.
 
-| Поле | TCP | UDP |
-| --- | --- | --- |
-| `proxy` | поток к выбранному upstream target | flow к выбранному target |
-| `plugin` | capability получает session stream | capability получает datagram flow |
-| `tls.mode` | `terminate` или `passthrough` | не применяется |
-| `sni`, `alpn` | доступны при ClientHello | не применяются |
-| `limits` | connections, bytes, idle timeout | datagrams, bytes, flow idle timeout |
-
-## P2P-граница
-
-Gateway аутентифицирует, ограничивает и relay-ит peer-трафик. Он не хранит
-каталог пиров, не выполняет NAT traversal и не навязывает прикладной формат
-сообщений. Эти функции принадлежат внешней системе или plugin capability.
+Точные conformance cases собраны в [Acceptance matrix](acceptance), а module
+build policy — в [Control plane](/gateway/architecture/control-plane).

@@ -104,7 +104,7 @@ export default defineConfig({
             text: 'Оператор',
             items: [
               { text: 'Gateway: обзор', link: '/gateway/' },
-              { text: 'Первый сайт', link: '/gateway/configuration/' },
+              { text: 'Настройка Gateway', link: '/gateway/configuration/' },
               { text: 'Практические сценарии', link: '/gateway/examples/' },
               { text: 'Развёртывание', link: '/gateway/deploy/' }
             ]
@@ -117,7 +117,7 @@ export default defineConfig({
               { text: 'Обзор примеров', link: '/gateway/examples/' },
               { text: 'Простой сайт', link: '/gateway/examples/simple-site' },
               { text: 'Reverse proxy', link: '/gateway/examples/proxy' },
-              { text: 'TLS, OIDC и WAF', link: '/gateway/examples/tls' },
+              { text: 'TLS и доступ к Management API', link: '/gateway/examples/tls' },
               { text: 'TCP passthrough', link: '/gateway/examples/tcp' },
               { text: 'UDP и P2P relay', link: '/gateway/examples/udp-p2p' },
               { text: 'Формы на сайте', link: '/gateway/examples/forms' },
@@ -130,14 +130,12 @@ export default defineConfig({
             text: 'Оператор · конфигурация',
             items: [
               { text: 'Обзор и быстрый старт', link: '/gateway/configuration/' },
-              { text: 'Язык gateway.yaml', link: '/gateway/configuration/yaml-reference' },
-              { text: 'Полная схема gateway.yaml', link: '/gateway/configuration/gateway-schema' },
-              { text: 'Корневая схема', link: '/gateway/configuration/root-schema' },
-              { text: 'Маршруты и условия', link: '/gateway/configuration/server-blocks' },
+              { text: 'Bootstrap gateway.yaml', link: '/gateway/configuration/bootstrap' },
+              { text: 'Полная схема bootstrap', link: '/gateway/configuration/gateway-schema' },
+              { text: 'Traffic config в Caddyfile', link: '/gateway/configuration/server-blocks' },
               { text: 'TCP, UDP и P2P', link: '/gateway/configuration/transports' },
               { text: 'Upstream и балансировка', link: '/gateway/configuration/upstreams' },
               { text: 'TLS, auth и WAF', link: '/gateway/configuration/security' },
-              { text: 'Конфиг сайта', link: '/gateway/configuration/site-config' },
               { text: 'HTTP runtime', link: '/gateway/configuration/http-runtime' },
               { text: 'Reload и конфликты', link: '/gateway/configuration/tls-reload' },
               { text: 'Каталог ошибок', link: '/gateway/configuration/errors' },
@@ -173,9 +171,8 @@ export default defineConfig({
             items: [
               { text: 'Обзор', link: '/gateway/api/' },
               { text: 'Аутентификация', link: '/gateway/api/authentication' },
+              { text: 'Группы и revisions', link: '/gateway/api/groups' },
               { text: 'Ресурсы и операции', link: '/gateway/api/operations' },
-              { text: 'Config API', link: '/gateway/api/config' },
-              { text: 'Sites API', link: '/gateway/api/sites' },
               { text: 'Audit и operations', link: '/gateway/api/audit' },
               { text: 'OpenAPI', link: '/gateway/api/openapi' }
             ]
@@ -186,7 +183,9 @@ export default defineConfig({
             text: 'Реализатор · архитектура',
             items: [
               { text: 'Обзор', link: '/gateway/architecture/' },
+              { text: 'План миграции Gateway v1', link: '/gateway/architecture/v1-migration-roadmap' },
               { text: 'Границы и решения', link: '/gateway/architecture/target' },
+              { text: 'Control plane и группы', link: '/gateway/architecture/control-plane' },
               { text: 'Компоненты runtime', link: '/gateway/architecture/gateway' },
               { text: 'Blueprint реализации', link: '/gateway/architecture/implementation' },
               { text: 'Кодовая архитектура', link: '/gateway/architecture/structure' },
@@ -209,7 +208,6 @@ export default defineConfig({
               { text: 'Admin pages', link: '/plugins/admin-pages' },
               { text: 'Разработка плагина', link: '/plugins/development' },
               { text: 'Существующие плагины', link: '/plugins/existing' },
-              { text: 'tls-issuer', link: '/plugins/tls-issuer' },
               { text: 'forms-db', link: '/plugins/forms-db' },
               { text: 'captcha', link: '/plugins/captcha' }
             ]

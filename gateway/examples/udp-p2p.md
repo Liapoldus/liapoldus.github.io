@@ -1,28 +1,15 @@
-# UDP и P2P relay
+# UDP relay и P2P scope
 
-Gateway защищает и маршрутизирует датаграммы, но не ведёт discovery пиров и не
-выполняет NAT traversal. Прикладной peer-протокол реализует upstream или
-плагин, явно назначенный в rule.
+Gateway v1 поддерживает UDP relay к явно заданному peer/upstream через
+Caddy-L4. Это не peer discovery, rendezvous service, NAT traversal или
+hole-punching network. Адреса и правила принадлежат native Caddyfile; Gateway
+не публикует отдельную UDP route DSL.
 
-```yaml
-plugins:
-  peer-relay:
-    binary: ./bin/peer-relay
-    settings: {}
-    capabilities: [peer.datagrams]
-listeners:
-  peers:
-    type: udp
-    address: ':3478'
-    limits: { datagramsPerSecond: 2000, bytesPerSecond: 32MiB, flowIdleTimeout: 30s }
-    rules:
-      - when: { sourceIp: { notIn: [10.0.0.0/8] } }
-        then:
-          plugin: { instance: peer-relay, capability: peer.datagrams }
-          rateLimit: peer-connections
-      - when: {}
-        then: { deny: { reason: private-source } }
-```
+Flow state, idle timeouts, datagram/byte limits и behavior при reload должны
+быть bounded и проверены Caddy-L4 conformance suite на embedded и external
+build variants. Неподдержанный contract блокирует v1; запасного Go net/gnet
+implementation нет.
 
-Плагин получает только datagram flow, метаданные источника и разрешённый
-контекст rule. Он не может открыть дополнительный публичный listener.
+Точную Caddy-L4 configuration reference см. в
+[официальном repository](https://github.com/mholt/caddy-l4), а продуктовый
+scope — в [transports](../configuration/transports).

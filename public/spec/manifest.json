@@ -1,0 +1,13 @@
+{
+  "version": "liapoldus.gateway.v1",
+  "source": "https://liapoldus.github.io/spec/",
+  "files": {
+    "errors.json": "sha256:81f4b9c0dd8e39b85f7417d2b18f1006c836e38a604df44f45b55fed74698dd0",
+    "gateway.schema.json": "sha256:e858389459a8ed1d8b50bdf88ee2b7e38484c54e652d2f307bf0d1f3fe9c4a16",
+    "golden-vectors.json": "sha256:bb2c31c53fb44327a9c1e05ddf7adcd416cbc0ae25c12c3e5c9be164b2ab5f52",
+    "http-runtime.json": "sha256:a44305156b1919c3bb78be23d384d942e85b95f9bc810c6523454421d20ee0e0",
+    "management.openapi.yaml": "sha256:3a913a395247910709975c99afa237263f581de76b8ad2f360b6c865a3bcc4aa",
+    "plugin-contracts.json": "sha256:fee6b31edace4630e83cbc79d609543915b1d4b3856fcece06f4b133a1cadf15",
+    "security-runtime.json": "sha256:ca07625d474dca512214f70f26e226876e5e8a54d2853098fcd694b06a8489d5"
+  }
+}
