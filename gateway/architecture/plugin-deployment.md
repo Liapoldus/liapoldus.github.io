@@ -28,17 +28,28 @@ Manifest/config revision и доступность capabilities на каждо�
 connection. Ошибка любого из каналов не активирует несовместимый dispatch
 snapshot.
 
-Один stable Service адрес позволяет Docker/Kubernetes выбирать backend при
-установлении соединения. Gateway не балансирует capabilities между отдельными
-Pod endpoints и не делает orchestration discovery. Совместимость rollout и
-готовность всех backend-ов — обязанность deployment/readiness contract plugin.
+Перед активацией Gateway отправляет каждой Ready replica typed
+`DispatchApply` из единого [pluginprotocol v1](protocol). Replica сверяет
+generation, logical instance ID, capability/mode scope, свой активный settings
+digest и digest выполняемого release, затем возвращает ack с собственной URI
+identity и digest Manifest/settings/release/dispatch. Повтор той же generation
+допустим только с идентичным scope; меньшая generation и изменение scope при
+той же generation отклоняются. Пока все требуемые acknowledgements не собраны,
+новый Caddy snapshot не активируется.
+
+Обычный балансируемый ClusterIP/Service скрывает состав backend replicas и не
+может сам по себе доказать, что `DispatchApply` получил ack от каждой из них.
+Следовательно, одного адреса Service недостаточно для rollout barrier; способ
+получить и индивидуально адресовать все Ready replica endpoints — отдельное
+решение, зафиксированное в [roadmap](v1-migration-roadmap) как integration
+blocker. Нельзя трактовать один ответ от Service как подтверждение всех replicas.
 
 ## Control connection и data connection
 
 Для каждого instance существуют две логически разные gRPC роли клиента:
 
 1. **Gateway control client** принадлежит generic plugin manager. Он выполняет
-   `Manifest`, `ConfigSchema`, `ConfigApply`, standard health, `Shutdown` для
+   `Manifest`, `ConfigSchema`, `ConfigApply`, `DispatchApply`, standard health, `Shutdown` для
    local process и control/grant операции. Его readiness подтверждает, что
    instance принят control plane.
 2. **Caddy data client** принадлежит Liapoldus handler module в Caddy. Он сам
@@ -61,8 +72,8 @@ Gateway control identity может выполнять control RPC, Caddy data i
 на тот же logical Gateway, но не взаимозаменяемы. Их trust roots отделены от
 Constructor Management CA, SSH CA и Caddy ACME state. Plugin server проверяет
 scope клиентского сертификата на каждом новом channel. Certificate-to-principal
-mapping и RPC authorization rules должны быть закреплены в `pluginprotocol` до
-реализации; wire/schema contract в этой документальной итерации не меняется.
+mapping и RPC authorization rules заданы в едином [pluginprotocol v1](protocol);
+новые wire/API изменения описываются только там.
 
 Instance получает status `ready` для dispatch только когда control client
 подтвердил Manifest/settings/health, а Caddy module подтвердил достижимость data
