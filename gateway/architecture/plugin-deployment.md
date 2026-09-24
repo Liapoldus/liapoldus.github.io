@@ -49,8 +49,10 @@ blocker. Нельзя трактовать один ответ от Service ка
 Для каждого instance существуют две логически разные gRPC роли клиента:
 
 1. **Gateway control client** принадлежит generic plugin manager. Он выполняет
-   `Manifest`, `ConfigSchema`, `ConfigApply`, `DispatchApply`, standard health, `Shutdown` для
-   local process и control/grant операции. Его readiness подтверждает, что
+   `Manifest`, `ConfigSchema`, `ConfigApply`, standard health и control/grant
+   операции; `Shutdown` используется для local process. Для remote instance
+   Gateway отдельно отправляет `DispatchApply` каждой Ready replica. Его
+   readiness подтверждает, что
    instance принят control plane.
 2. **Caddy data client** принадлежит Liapoldus handler module в Caddy. Он сам
    открывает gRPC connection pool к объявленному instance endpoint и вызывает

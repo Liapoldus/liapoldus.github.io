@@ -44,6 +44,7 @@ dual-stack, autodetection или insecure downgrade. Следующий protocol
 | RPC/поверхность | Вызов | Назначение |
 | --- | --- | --- |
 | `Manifest`, `ConfigSchema`, `ConfigApply`, `Shutdown` | Gateway → plugin | Контрольная плоскость instance и settings. |
+| `DispatchApply` | Gateway → каждая remote replica | Установка монотонной dispatch generation с точным scope и per-replica digest acknowledgement перед Caddy activation. |
 | `grpc.health.v1` | Gateway/оператор → plugin | Стандартный readiness/health contract. |
 | `Call` | Caddy handler → plugin | Обычный ограниченный request/response с versioned JSON payload. |
 | `Stream` | Caddy handler ↔ plugin | HTTP streaming, WebSocket, SSE и L4. |
@@ -60,7 +61,10 @@ Manifest дополняется аддитивным descriptor для кажд�
 descriptor с выбранным `liapoldus_plugin` mode до activation group revision;
 runtime-вызов неподдерживаемого mode не используется как механизм discovery.
 Точная protobuf-структура и её versioning определяются только в
-`pluginprotocol`.
+`pluginprotocol`. Typed `DispatchApply` использует Manifest modes как верхнюю
+границу и не заменяет readiness/health или ConfigApply. Gateway должен применить
+поколение на всех известных Ready remote replicas; стабильный load-balanced
+Service не является fan-out acknowledgement.
 
 ## `Call`
 
