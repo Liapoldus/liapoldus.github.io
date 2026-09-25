@@ -62,9 +62,11 @@ descriptor с выбранным `liapoldus_plugin` mode до activation group r
 runtime-вызов неподдерживаемого mode не используется как механизм discovery.
 Точная protobuf-структура и её versioning определяются только в
 `pluginprotocol`. Typed `DispatchApply` использует Manifest modes как верхнюю
-границу и не заменяет readiness/health или ConfigApply. Gateway должен применить
-поколение на всех известных Ready remote replicas; стабильный load-balanced
-Service не является fan-out acknowledgement.
+границу и не заменяет readiness/health или ConfigApply. Remote membership
+задаётся явным desired set индивидуальных стабильных endpoints; Gateway не
+обнаруживает replicas через API оркестратора, а один load-balanced Service не
+считается fan-out acknowledgement. Порядок обновления membership, rollout и
+drain нормативно описан в разделе [режимов подключения и восстановления](plugin-deployment).
 
 ## `Call`
 

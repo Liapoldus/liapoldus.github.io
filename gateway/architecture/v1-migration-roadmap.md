@@ -44,7 +44,7 @@ plugin capabilities, безопасные границы, immutable releases, а
 | Caddy Admin API | Защитить и проксировать | Полный native pass-through через authenticated Gateway boundary; embedded — in-process adapter, external — permissioned Unix socket, оба недоступны снаружи. |
 | Data-plane dispatch | Заменить request path | Liapoldus handler в Caddy вызывает plugin напрямую; Gateway хранит desired state и синхронизирует immutable dispatch generations. |
 | Plugin protocol | Расширить v1 | Оставить JSON `Call`, расширить gRPC `Stream` на HTTP bidi, WebSocket, SSE и L4; wire/schema source только в `pluginprotocol`. |
-| Plugins | Оставить generic runtime | Local-supervised и remote Service-backed режимы задаются per instance и смешиваются; remote replicas имеют unique identities и единый release/config digest. |
+| Plugins | Оставить generic runtime | Local-supervised и remote режимы задаются per instance и смешиваются; remote membership — явный набор отдельных endpoint-ов с unique identities и единым release/config digest. Подробности — [plugin deployment](plugin-deployment). |
 | TLS | Оставить Caddy-owned | Caddy/CertMagic — единственный ACME owner; domain readiness отдельно от активации конфигурации. |
 | L4 | Обязательный Caddy-L4 | Caddy-L4 входит в оба варианта и v1 conformance gate; Go `net` fallback не допускается. |
 | Persistence | Уточнить durable/runtime границу | SQLite хранит control-plane metadata/journal/pointers; immutable Caddyfile/plugin-settings revisions и большие artifacts — файлы; active runtime — in-memory snapshot. |
@@ -178,14 +178,17 @@ declarative plugin contract.
 | Режим | Процесс | Транспорт и lifecycle |
 | --- | --- | --- |
 | `local` | Запускает/supervises Gateway | Назначенный loopback endpoint; handshake/config apply/health до dispatch readiness; bounded restart/backoff. |
-| `remote` | Docker, Kubernetes или операторский process manager | Стабильный Service endpoint и mTLS; per-Pod identity привязана к logical instance; внешняя среда владеет restart/rollout. |
+| `remote` | Docker, Kubernetes или операторский process manager | Явный desired set индивидуальных стабильных endpoints и mTLS; per-replica identity привязана к logical instance; внешняя среда владеет restart/rollout. Правила membership/barrier/drain — в [канонической странице deployment](plugin-deployment). |
 
 Плагин не соединяется напрямую с другим плагином. Пользовательский capability
 traffic идёт `Caddy handler → plugin`; Gateway заранее выбирает разрешённый
 instance/capability, подготавливает dispatch snapshot и владеет scoped grants.
-Все Ready replicas одного Service имеют совместимые release/Manifest/settings
-digests; каждый новый gRPC channel проходит TLS/protocol handshake. Gateway
-reconnect-ится без replay Call с неизвестным исходом; потерянный Stream
+Все endpoints active desired set имеют совместимые release/Manifest/settings
+digests; каждый новый gRPC channel проходит TLS/protocol handshake. Gateway не
+использует load-balanced Service как доказательство per-replica readiness и не
+зависит от API Docker/Kubernetes. Подробная последовательность membership,
+rollout и drain дана на [канонической странице deployment](plugin-deployment).
+Gateway reconnect-ится без replay Call с неизвестным исходом; потерянный Stream
 закрывается. Только связанные с нездоровым instance bindings деградируют,
 остальной traffic продолжает работать. Management и plugin workload trust roots
 раздельны; внешняя CA/operator выпускает per-replica identities и выполняет
@@ -275,7 +278,7 @@ traversal.
 | 5. Caddy integration | Embedded и supervised external process; native directive, private snapshot sync, direct plugin handler; full Admin pass-through. | Одинаковые module manifest/semantics; Admin endpoint private; sync/load failure сохраняет прежние generations. |
 | 6. Group releases | Multipart upload, safe extraction, immutable revisions, `current`/`previous`, atomic full snapshot. | Конкурентная публикация, rollback, crash recovery, failure preserves active state. |
 | 7. Admin mutation safety | Checkpoint, drift detection, reconcile/restore и deploy block. | Нельзя затереть native mutations незаметно; восстановление после crash. |
-| 8. Plugins/security | Mixed local-supervised + remote Service replicas, per-replica mTLS identity, separate control/data client identities, scoped grants и прямой Caddy-to-plugin data path. | Docker/Kubernetes/standalone rollout/reconnect conformance; readiness обоих channels; uniform digest; no replay; certificate scope/rotation/revocation; no downgrade/peer traffic. |
+| 8. Plugins/security | Mixed local-supervised + remote replicas from explicit stable endpoint sets, per-replica mTLS identity, separate control/data client identities, scoped grants и прямой Caddy-to-plugin data path. | Per-replica endpoint/readiness/`DispatchApply` barrier, safe rollout/drain, no orchestrator API dependency, reconnect/no replay; certificate scope/rotation/revocation; no downgrade/peer traffic. См. [каноническое описание deployment](plugin-deployment). |
 | 9. Runtime parity | HTTP/TLS/ACME, HTTP/1.1–3, HTTP bidi, WebSocket, SSE, static, proxy, TCP/UDP Caddy-L4. | Оба build variants, macOS/Linux; Caddy-L4 и direct-dispatch gates обязательны, fallback запрещён. |
 | 10. Release readiness | Один Gateway product, контейнерные и операторские инструкции, Constructor integration. | `make check`, `go vet ./...`, `go build ./...`, Docker smoke и полный E2E/security suite. |
 

@@ -17,16 +17,22 @@ plugin-to-plugin трафика и публичных plugin endpoints нет.
 | Режим | Запуск и рестарт процесса | Адрес и trust | Владение Gateway |
 | --- | --- | --- | --- |
 | `local` | Gateway Supervisor запускает, останавливает и перезапускает child process | Назначенный `127.0.0.1:<port>`, локальная process boundary | Handshake, apply, health, shutdown, bounded restart и dispatch readiness |
-| `remote` | Docker/Kubernetes/operator запускает, масштабирует и перезапускает workload | Явный стабильный Service endpoint, production — TLS/mTLS | Control connection, handshake и plugin health; принимает Caddy data-readiness, но не управляет process lifecycle |
+| `remote` | Docker/Kubernetes/operator запускает, масштабирует и перезапускает workload | Явный набор стабильных адресов отдельных replicas, production — TLS/mTLS | Control connection, handshake и plugin health; принимает Caddy data-readiness, но не управляет process lifecycle |
 
 Внешняя среда управляет replicas одного logical remote instance. Все replicas,
-которые отмечены Ready, должны иметь один protocol version, plugin release,
-Manifest/capability modes и settings digest. Оркестратор включает Pod в Service
-только после успешного `ConfigApply` и health readiness. Gateway проверяет
-собственные control connections; Caddy module независимо проверяет TLS identity,
-Manifest/config revision и доступность capabilities на каждом своём data
-connection. Ошибка любого из каналов не активирует несовместимый dispatch
-snapshot.
+которые входят в active generation, должны иметь один protocol version, plugin
+release, Manifest/capability modes и settings digest. Gateway не обращается к
+Docker/Kubernetes API и не обнаруживает membership через оркестратор. Источник
+membership — явно сохранённый в Gateway Management API desired set
+индивидуальных stable endpoints для instance. Endpoint должен разрешаться ровно
+в одну replica, иметь отдельную TLS identity и не быть балансируемым адресом,
+скрывающим список backend-ов.
+
+Gateway проверяет каждый endpoint candidate set индивидуально: TLS/mTLS
+identity, protocol handshake, Manifest, settings/release digest и health.
+Недоступная обязательная replica не получает readiness и блокирует activation
+этого candidate generation. Один ответ от общего load-balanced Service не
+подтверждает готовность остальных endpoints.
 
 Перед активацией Gateway отправляет каждой Ready replica typed
 `DispatchApply` из единого [pluginprotocol v1](protocol). Replica сверяет
@@ -37,12 +43,78 @@ identity и digest Manifest/settings/release/dispatch. Повтор той же 
 той же generation отклоняются. Пока все требуемые acknowledgements не собраны,
 новый Caddy snapshot не активируется.
 
-Обычный балансируемый ClusterIP/Service скрывает состав backend replicas и не
-может сам по себе доказать, что `DispatchApply` получил ack от каждой из них.
-Следовательно, одного адреса Service недостаточно для rollout barrier; способ
-получить и индивидуально адресовать все Ready replica endpoints — отдельное
-решение, зафиксированное в [roadmap](v1-migration-roadmap) как integration
-blocker. Нельзя трактовать один ответ от Service как подтверждение всех replicas.
+## Явный membership и rollout barrier
+
+Для каждого remote instance Management API хранит desired set стабильных
+адресов replicas и их ожидаемые logical instance/release identity. Набор
+обновляется оператором через Gateway API; подключение Gateway к API
+оркестратора не требуется. Обычный балансируемый ClusterIP/Service, Docker
+service name с round-robin DNS или другой endpoint, за которым нельзя отдельно
+адресовать всех участников, запрещён как единственный endpoint remote instance.
+Балансировщик не входит в per-replica `DispatchApply` barrier и не становится
+адресом в active dispatch snapshot.
+
+Добавление replica и переключение поколения выполняются так:
+
+1. Оператор разворачивает replica вне active dispatch membership, задаёт ей тот
+   же logical instance и целевой release/settings digest, выдаёт уникальный
+   сертификат и ждёт собственных workload probes.
+2. Оператор сохраняет через Gateway Management API candidate desired set с
+   индивидуальным стабильным endpoint этой replica. Текущее поколение и старые
+   active endpoints продолжают обслуживать traffic до activation.
+3. Gateway control client и Caddy data client отдельно подключаются к каждому
+   endpoint candidate set. Они проверяют TLS identity, handshake, health,
+   Manifest/modes и digest. Gateway отправляет `DispatchApply` каждому
+   участнику; каждый ack должен подтверждать конкретную replica identity и
+   generation. Вызов через балансировщик не заменяет индивидуальные ack.
+4. Только после всех обязательных per-replica acknowledgements Gateway
+   атомарно активирует dispatch/Caddy generation. Caddy направляет новые вызовы
+   исключительно endpoints из active set; endpoint вне него не получает новые
+   вызовы.
+5. При замене/удалении новая generation переводит старый endpoint в
+   `draining`: Caddy больше не выбирает его для новых вызовов, но endpoint ещё
+   сохраняется в учёте membership для наблюдения и завершения текущих streams.
+   После подтверждённого drain либо согласованного drain period отдельный
+   последующий Management API update/generation удаляет endpoint из desired
+   membership. Затем внешняя CA/operator отзывает его сертификат.
+
+Candidate set для одного поколения должен иметь одинаковый release digest.
+Для blue/green rollout новая однородная группа endpoints проходит handshake,
+health и `DispatchApply` до переключения; старые endpoints после переключения
+остаются draining, но не входят в active Caddy set. При обновлении тех же
+стабильных адресов с остановкой процесса без blue/green старое generation может
+оставаться active, но traffic к уже заменённому endpoint будет unavailable;
+оператор должен считать такой rollout maintenance с возможным простоем. Чтобы
+сохранить доступность, использовать blue/green с отдельными стабильными
+адресами. Mixed-release набор нельзя активировать как одно поколение. Если
+membership, health или digest меняются во время подготовки, candidate
+отклоняется, active generation не меняется.
+
+Для удаления без замены сначала активируется generation без удаляемого endpoint,
+затем завершается drain/закрываются streams, и только последующей generation
+endpoint удаляется из desired membership. Gateway не повторяет `Call` с
+неизвестным результатом; Caddy закрывает stream при потере выбранной replica.
+
+Практические стабильные адреса:
+
+- **Docker Compose / Docker:** объявлять replicas отдельными явно именованными
+  services/containers (например, `forms-0`, `forms-1`) с DNS alias или
+  `host:port`, каждый из которых разрешается ровно в одну replica. Общее Compose
+  имя балансируемого service использовать нельзя. Для нескольких hosts —
+  стабильные DNS records или статические адреса, достижимые Gateway и Caddy.
+- **Kubernetes:** использовать StatefulSet ordinal DNS через headless Service,
+  например `plugin-0.plugin-headless.namespace.svc` и
+  `plugin-1.plugin-headless.namespace.svc`. Сертификат SAN покрывает фактическое
+  имя. Обычный ClusterIP Service не задаётся как весь membership; Gateway не
+  вызывает Kubernetes API.
+- **Standalone:** задать стабильный DNS name или `host:port` каждого binary
+  workload; при смене адреса сначала добавить и проверить новый, затем отдельными
+  поколениями выполнить drain/remove старого.
+
+Это сознательный v1 выбор в пользу проверяемого barrier и одинакового поведения
+в Docker, Kubernetes и standalone. Масштабирование, изменение числа replicas и
+замена endpoint требуют явного Management API update. Автообнаружение endpoints
+и автоматическая реакция Gateway на Kubernetes membership не входят в v1.
 
 ## Control connection и data connection
 
@@ -51,7 +123,8 @@ blocker. Нельзя трактовать один ответ от Service ка
 1. **Gateway control client** принадлежит generic plugin manager. Он выполняет
    `Manifest`, `ConfigSchema`, `ConfigApply`, standard health и control/grant
    операции; `Shutdown` используется для local process. Для remote instance
-   Gateway отдельно отправляет `DispatchApply` каждой Ready replica. Его
+   Gateway отдельно отправляет `DispatchApply` каждому endpoint candidate set.
+   Его
    readiness подтверждает, что
    instance принят control plane.
 2. **Caddy data client** принадлежит Liapoldus handler module в Caddy. Он сам
@@ -60,7 +133,8 @@ blocker. Нельзя трактовать один ответ от Service ка
    Gateway Management API и не получает control-plane полномочия.
 
 Для `local` endpoint оба клиента подключаются к loopback server того же
-process. Для `remote` оба подключаются к стабильному Service и каждый канал
+process. Для `remote` оба подключаются индивидуально к endpoints active desired
+set и каждый канал
 самостоятельно выполняет TLS/mTLS и protocol handshake. Gateway не передаёт
 Caddy уже открытые connection handles: embedded handler владеет своим pool в
 общем процессе, external handler — внутри supervised Caddy child. Внешний
@@ -118,9 +192,10 @@ plugin shutdown, ограниченно ждёт streams/process exit и зак�
 
 ## Remote: Docker, Kubernetes и standalone workload
 
-Endpoint — явно заданный DNS/IP и port стабильного Service, не адрес случайной
-Pod. Docker Compose может использовать service DNS, Kubernetes — Service DNS.
-Gateway никогда не запускает, не останавливает и не перезапускает удалённый
+Каждый endpoint — явно заданный DNS/IP и port одной стабильной replica, не общий
+балансируемый Service и не адрес случайной ephemeral Pod. Способы задания
+стабильных Docker, Kubernetes и standalone имён приведены выше. Gateway никогда
+не запускает, не останавливает и не перезапускает удалённый
 процесс; replicas, rolling rollout, readiness/liveness probes и restart policy
 принадлежат operator-у.
 
@@ -172,7 +247,8 @@ identity получают только необходимые им network grant
 
 Приёмка должна запускать процессы в standalone, Docker и Kubernetes-подобных
 fixtures и покрывать: локальный graceful shutdown и restart/backoff; remote
-Pod readiness, Service reconnect и uniform release mismatch; уникальные
+endpoint membership update, per-replica readiness/DispatchApply ack,
+rollout/drain/remove и rejection load-balanced-only endpoint; uniform release mismatch; уникальные
 replica certificates, invalid/revoked identity и rotation; handshake повторно
 на новом connection; cancellation и закрытие in-flight Stream без replay;
 отказ одного instance при работающих несвязанных routes; no downgrade и
