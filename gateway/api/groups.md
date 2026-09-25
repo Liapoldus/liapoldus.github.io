@@ -25,6 +25,9 @@ plugin settings/secrets. Несуществующая instance или capability
 `POST /api/groups` создаёт application group по уникальному ID. Новая группа
 не входит в runtime до первой успешной публикации. Группа `system` создаётся
 Gateway при инициализации БД и не создаётся/удаляется этим endpoint-ом.
+Отсутствующее или некорректное JSON-тело, а также поля, не соответствующие
+схеме `GroupCreate` (включая формат ID и обязательные поля), дают `400
+invalid_request`; точные ограничения определены в OpenAPI.
 Повтор создания существующего ID возвращает `409 group_already_exists`.
 
 `DELETE /api/groups/{id}` архивирует application group: Gateway собирает и

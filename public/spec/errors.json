@@ -3,6 +3,7 @@
   "title": "Liapoldus Gateway error catalog",
   "version": "1.0.0",
   "errors": [
+    {"code":"invalid_request","status":400,"title":"Некорректный запрос","detail":"Тело запроса отсутствует, повреждено или не соответствует опубликованной схеме."},
     {"code":"bootstrap_invalid","status":422,"title":"Некорректная bootstrap-конфигурация","detail":"Bootstrap gateway.yaml не соответствует опубликованной схеме."},
     {"code":"unknown_field","status":422,"title":"Неизвестное поле","detail":"Обнаружено поле вне разрешённой bootstrap-схемы."},
     {"code":"caddy_build_incompatible","status":422,"title":"Несовместимая сборка Caddy","detail":"Вариант Caddy не содержит требуемые Liapoldus modules или Caddy-L4."},
