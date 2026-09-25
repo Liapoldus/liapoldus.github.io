@@ -39,10 +39,13 @@ idempotency key. Архивировать `system` нельзя. `POST
 runtime через ту же full-snapshot prepare/activate схему; группа без current
 revision сначала должна получить release.
 
-`GET /api/groups/{id}/releases` перечисляет immutable revision metadata с
-cursor pagination. `GET /api/groups/{id}/releases/{revisionId}` возвращает
-canonical Caddyfile, digests и frontend manifest без server filesystem paths.
-Архив целиком не возвращается. Все revisions хранятся до явного безопасного
+`GET /api/groups/{id}/releases` перечисляет metadata-only revision summaries с
+cursor pagination. Summary не содержит Caddyfile, server filesystem paths или
+frontend artifact bytes; его точная форма задана OpenAPI-схемой
+`GroupRevisionSummary`. Для содержимого конкретной revision вызывается отдельный
+`GET /api/groups/{id}/releases/{revisionId}`: он возвращает canonical Caddyfile,
+digests и frontend manifest без server filesystem paths и без самих artifact
+bytes. Архив целиком не возвращается. Все revisions хранятся до явного безопасного
 GC; automatic retention не удаляет их молча. GC не может удалить current,
 previous, revision в checkpoint или revision, на которую ссылается durable
 operation.
