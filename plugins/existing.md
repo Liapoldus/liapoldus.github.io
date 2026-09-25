@@ -16,11 +16,11 @@ Gateway управляет plugin trust и разрешёнными identities; 
 отдельной локальной Git-репозиторией и использует текущий `core` и
 `pluginprotocol` без их изменения.
 
-| Plugin | Состояние каркаса | Local smoke |
+| Plugin | Состояние каркаса | Проверка |
 | --- | --- | --- |
-| `forms-db` | gRPC lifecycle, forms capabilities, deterministic memory repository | `tests/gateway_smoke.sh` |
-| `captcha` | gRPC lifecycle, `captcha.verify`, deterministic provider | `tests/gateway_smoke.sh` |
-| `identity` | gRPC lifecycle, declared identity capabilities, deterministic provider | `tests/gateway_smoke.sh` |
+| `forms-db` | gRPC lifecycle, forms capabilities, deterministic memory repository | `go test ./...`; Gateway child-process E2E ожидает production runtime composition |
+| `captcha` | gRPC lifecycle, `captcha.verify`, deterministic provider | `go test ./...`; Gateway child-process E2E ожидает production runtime composition |
+| `identity` | gRPC lifecycle, declared identity capabilities, deterministic provider | `go test ./...`; Gateway child-process E2E ожидает production runtime composition |
 
 Каркас не является production-реализацией SQLite/PostgreSQL/MySQL, внешних
 captcha-провайдеров или OAuth/OIDC. Для локальной проверки нужны соседние

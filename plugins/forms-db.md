@@ -126,11 +126,11 @@ Go adapter читает её через embedded read-only filesystem модул
 go build ./...
 go vet ./...
 go test ./...
-LIAPOLDUS_CORE_ROOT="../../core" ./tests/gateway_smoke.sh
 ```
 
-Smoke test собирает текущий Gateway из соседнего `core`, запускает отдельный
-процесс forms-db через `LIAPOLDUS_PLUGIN_ENDPOINT` и проверяет HTTP dispatch.
+Gateway child-process smoke пока не предоставляется: прежний скрипт строил
+конфигурацию с удалёнными `listeners/routes` и не проверял текущую Caddyfile
+архитектуру. E2E будет добавлен после production runtime composition в core.
 
 ## Страницы в Constructor
 
