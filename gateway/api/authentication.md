@@ -45,8 +45,10 @@ metadata в SQLite. Ни token, ни Authorization header не попадают 
 traces, audit payloads, browser storage или crash reports.
 
 Первый token создаётся локально командой
-`gateway access bootstrap` при пустом списке ключей и доступе к host state
-directory. Удалённый клиент не может выполнить bootstrap. После импорта
+`gateway access bootstrap` при отсутствии в SQLite любого действующего,
+неотозванного и неистёкшего ключа и доступе к host state directory. Проверка
+условия и запись verifier атомарны; expired/revoked записи остаются для аудита
+и не мешают восстановлению. Удалённый клиент не может выполнить bootstrap. После импорта
 credential в серверное secret storage Constructor операции create/rotate/revoke
 выполняются только с действующей административной identity. Rotation создаёт
 новый token, а старый отзывается по документированной операции; потеря

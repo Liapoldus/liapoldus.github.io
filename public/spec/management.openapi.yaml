@@ -279,7 +279,8 @@ components:
     Problem: { description: RFC 9457 problem, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
   schemas:
     Health: { type: object, required: [status, requestId], properties: { status: { const: ok }, requestId: { type: string } } }
-    Status: { type: object, required: [caddy, drift, requestId], properties: { caddy: { $ref: '#/components/schemas/CaddyBuild' }, drift: { type: boolean }, runtimeDigest: { type: string }, compositionDigest: { type: string }, requestId: { type: string } } }
+    Status: { type: object, required: [caddy, drift, dataPlaneReadiness, requestId], properties: { caddy: { $ref: '#/components/schemas/CaddyBuild' }, drift: { type: boolean }, runtimeDigest: { type: string }, compositionDigest: { type: string }, dataPlaneReadiness: { $ref: '#/components/schemas/DataPlaneReadiness' }, requestId: { type: string } } }
+    DataPlaneReadiness: { type: object, required: [state], properties: { state: { enum: [ready, not-ready] }, reason: { enum: [system-release-required, caddy-unavailable, recovery-required], description: Present only when state is not-ready. } } }
     CaddyBuild: { type: object, required: [variant, buildId, modules], properties: { variant: { enum: [embedded, external] }, buildId: { type: string }, modules: { type: array, items: { type: string } } } }
     Group: { type: object, required: [id, kind, active, currentRevision, previousRevision, state], properties: { id: { type: string }, kind: { enum: [system, application] }, active: { type: boolean }, currentRevision: { type: [string, 'null'] }, previousRevision: { type: [string, 'null'] }, state: { enum: [empty, ready, applying, drift-blocked, failed] } } }
     GroupList: { type: object, required: [items, requestId], properties: { items: { type: array, items: { $ref: '#/components/schemas/Group' } }, requestId: { type: string } } }

@@ -16,8 +16,8 @@ error. Временно нездоровый plugin не блокирует не
 Новая SQLite содержит обязательную `system` group, но её `current` pointer
 изначально пуст. В этом состоянии `serve` поднимает только защищённый
 Management API и control plane: публичные Caddy listeners не открываются,
-data-plane readiness остаётся `not-ready`, а status сообщает, что требуется
-первая system-group release. Это штатный bootstrap state, а не повреждённая БД.
+`GET /api/status` возвращает `dataPlaneReadiness.state=not-ready` с причиной
+`system-release-required`. Это штатный bootstrap state, а не повреждённая БД.
 Оператор публикует первую валидную system revision через Management API; после
 успешной подготовки Caddy snapshot Gateway открывает заданные Caddyfile
 listeners и переводит data plane в `ready`.
