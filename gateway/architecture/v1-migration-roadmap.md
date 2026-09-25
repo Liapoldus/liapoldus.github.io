@@ -48,7 +48,7 @@ plugin capabilities, безопасные границы, immutable releases, а
 | TLS | Оставить Caddy-owned | Caddy/CertMagic — единственный ACME owner; domain readiness отдельно от активации конфигурации. |
 | L4 | Обязательный Caddy-L4 | Caddy-L4 входит в оба варианта и v1 conformance gate; Go `net` fallback не допускается. |
 | Persistence | Уточнить durable/runtime границу | SQLite хранит control-plane metadata/journal/pointers; immutable Caddyfile/plugin-settings revisions и большие artifacts — файлы; active runtime — in-memory snapshot. |
-| `tls-issuer` | Удалить из активной системы | Не входит в бинарник, конфиги, docs, tests, сборки и текущие TODO; удалённый репозиторий/history не трогать. |
+| `tls-issuer` | Удалить из активной системы | Не входит в бинарник, конфиги, active docs, tests, сборки и текущие TODO; прежний URL ведёт только на описание Caddy-owned TLS. Удалённый репозиторий/history не трогать. |
 
 ## Caddy build variants
 

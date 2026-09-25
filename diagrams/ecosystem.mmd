@@ -5,4 +5,6 @@ flowchart TD
   C -->|admin contract| P[Plugins]
   A -->|release| GW
   P -->|scoped capabilities| GW
-  GW --> R[Public runtime]
+  GW -->|control plane| CADDY[Caddy data plane]
+  CADDY -->|HTTP / TCP / UDP| R[Public runtime]
+  CADDY -->|direct gRPC dispatch| P

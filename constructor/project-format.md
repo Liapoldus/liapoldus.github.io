@@ -36,7 +36,7 @@ Project является нормальным monorepo React-приложени�
     themes/<theme-id>.json
     assets.json                # Asset metadata/references, not binary secrets
     infrastructure/<environment>.json
-    gateway/<environment>.yaml # Gateway desired configuration fragment
+    gateway/<group-id>.caddyfile # native Caddyfile fragment for a Gateway group release
     plugins/<environment>/<instance>.json
   public/assets/               # filesystem asset storage in local mode
 ```

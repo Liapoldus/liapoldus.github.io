@@ -1,5 +1,6 @@
-# TLS issuer — выведен из эксплуатации
+# Старый адрес документации `tls-issuer`
 
-`tls-issuer` не входит в активную систему и не устанавливает сертификаты.
-ACME и продление сертификатов принадлежат Caddy/CertMagic; см. [архитектуру
-Gateway](/gateway/architecture/gateway) и [управление TLS API](/gateway/api/config).
+Этот URL сохранён для старых ссылок; `tls-issuer` не является компонентом
+Gateway v1. ACME и жизненным циклом сертификатов Caddy-managed доменов владеет
+Caddy/CertMagic. Текущая модель описана в [архитектуре control plane](/gateway/architecture/control-plane)
+и [контракте TLS operations](/gateway/api/operations#tls-operations).
