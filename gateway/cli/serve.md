@@ -11,6 +11,23 @@ preparation не открывает traffic listeners и завершает пр
 error. Временно нездоровый plugin не блокирует несвязанные sites: unavailable
 получают только его bindings до reconnect, handshake, config apply и health.
 
+## Первый запуск без активной system revision
+
+Новая SQLite содержит обязательную `system` group, но её `current` pointer
+изначально пуст. В этом состоянии `serve` поднимает только защищённый
+Management API и control plane: публичные Caddy listeners не открываются,
+data-plane readiness остаётся `not-ready`, а status сообщает, что требуется
+первая system-group release. Это штатный bootstrap state, а не повреждённая БД.
+Оператор публикует первую валидную system revision через Management API; после
+успешной подготовки Caddy snapshot Gateway открывает заданные Caddyfile
+listeners и переводит data plane в `ready`.
+
+Если указатель уже задан, но revision, immutable Caddyfile/artifact или digest
+отсутствуют либо не совпадают, это не bootstrap state: Gateway не открывает
+traffic listeners и сохраняет доступ только к защищённой Management API для
+диагностики и восстановления. Нельзя автоматически подменять повреждённую
+revision пустым Caddyfile или сбрасывать `current`/`previous`.
+
 Graceful shutdown прекращает принимать новые Management/traffic requests,
 завершает bounded in-flight calls, корректно останавливает local-supervised
 plugins и закрывает Caddy runtime. External Caddy останавливается как
