@@ -2,6 +2,28 @@
 
 Эта спецификация позволяет создать совместимый Gateway на любом языке. Она
 нормирует observable behavior, а не packages, classes или framework.
+Описанные ниже state machines и границы — целевая нормативная архитектура, а
+не перечень уже работающих production-маршрутов. Фактическое состояние core
+фиксируется в [матрице реализации](#текущее-состояние-core); она не изменяет
+требования blueprint.
+
+## Текущее состояние core
+
+| Область | Подтверждённая реализация | Что ещё не доказано или не подключено |
+| --- | --- | --- |
+| Group releases | Management handlers и SQLite-backed publish/rollback проходят TypeScript integration; проверяются Caddyfile adaptation и staging archive. | Activator в этих тестах не доказывает активацию живого production Caddy; нет полного crash recovery и полного positive archive conformance. |
+| Plugin dispatch | Отдельные Caddy handler slices проверяют `Call`, HTTP `Stream`, WebSocket, SSE и Caddy-L4 TCP/UDP. | Production `serve` не композиционирует plugin runtime/SQLite instances с Caddy handler и не предоставляет сквозной Caddy→plugin traffic path. |
+| Capability → mode | Handler `Provision` сверяет выбранный mode с descriptor capability; handler-level tests покрывают режимы. | Group publish/activation не проверяет candidate Caddyfile против live plugin Manifest до активации. |
+| Cookies | Изолированные Caddy `Call`/`Stream` handler tests покрывают allow-list и typed cookie response actions. | Production `serve` composition и сквозной запрос через запущенный Gateway пока не подключены. |
+| HTTP Stream limits | В handler есть route-level concurrency guard; HTTP Stream/WebSocket/SSE проверяются focused E2E. | Общий configurable per-instance concurrency, idle timeout и maximum duration отсутствуют; нормативный набор лимитов не выполнен. |
+| External Caddy | `serve` запускает и supervises external process; focused lifecycle tests проверяют private control socket, readiness и restart. | Plugin dispatch generation в реальном data-plane и parity embedded/external не закрыты conformance gate. |
+| Management API | Bootstrap/auth, группы, revisions, publish/rollback, operations lookup, plugin inventory read и audit имеют текущие handlers/тесты. | TLS operations, полный Caddy Admin pass-through/checkpoint/drift/reconcile и часть mutation/audit/recovery semantics остаются планом. |
+| CAPTCHA/WAF | Документация и generic plugin contract задают plugin-owned boundary; отдельные handler slices существуют. | CAPTCHA WAF dispatch и production plugin composition не подключены; пример не означает готовую WAF функцию. |
+
+Подробный изменяемый список незавершённой работы — в
+[`core/TODO.md`](https://github.com/Liapoldus/core/blob/main/TODO.md). Статус
+обновляется по подтверждённым runtime/test evidence; наличие OpenAPI, proto,
+схемы или handler-level test само по себе не означает production готовность.
 
 ## Process boundaries
 

@@ -9,3 +9,8 @@ Gateway: WAF может вызвать произвольную capability по�
 в [разделе безопасности](/gateway/configuration/security). Продуктовая
 конфигурация CAPTCHA, если она реализована в отдельном plugin, описывается
 только в [документации этого plugin](/plugins/captcha).
+
+Пример описывает целевую plugin-owned границу, а не доступную сейчас WAF
+функцию: WAF runtime не имеет production consumer-а, а `serve` пока не связывает
+plugin instances с Caddy dispatch. Статус реализации приведён в
+[матрице core](/gateway/architecture/implementation#текущее-состояние-core).

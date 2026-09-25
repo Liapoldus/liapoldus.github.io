@@ -6,6 +6,13 @@ endpoints или deployment format. Общие transport, Manifest и launch con
 принадлежат единому repository
 [pluginprotocol](https://github.com/Liapoldus/pluginprotocol).
 
+Эта страница фиксирует целевую нормативную механику deployment, readiness,
+rollout и восстановления; не все описанные шаги уже реализованы в production
+core. В частности, текущий `serve` ещё не подключает plugin lifecycle и
+dispatch snapshots к Caddy data plane. Исполняемые части и открытые пробелы
+перечислены в [матрице реализации core](implementation#текущее-состояние-core)
+и [`core/TODO.md`](https://github.com/Liapoldus/core/blob/main/TODO.md).
+
 ## Два режима на уровне instance
 
 Режим задаётся для каждого plugin instance, поэтому один Gateway может

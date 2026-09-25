@@ -7,6 +7,11 @@ vectors — [`github.com/Liapoldus/pluginprotocol`](https://github.com/Liapoldus
 и [контракты](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts).
 Формы сообщений на этой странице намеренно не дублируются.
 
+Описания вызовов и ownership ниже задают целевое поведение. Они не означают,
+что весь production Gateway уже соединяет Caddy с plugin runtime. Подтверждённые
+handler slices и отсутствующая production composition сведены в
+[матрицу реализации core](implementation#текущее-состояние-core).
+
 ## Граница data plane
 
 Caddy исполняет пользовательский traffic. Liapoldus handler в Caddy отправляет
@@ -55,11 +60,14 @@ REST Constructor ↔ Gateway остаётся только control plane. Caddy 
 остаётся закрытым; его операторский pass-through через Gateway проходит
 authentication, checkpointing и drift protection.
 
-Manifest дополняется аддитивным descriptor для каждой capability: явный список
-поддерживаемых invocation modes (`Call`, HTTP stream, WebSocket, SSE, TCP, UDP).
-Существующее поле списка имён сохраняется. Gateway проверяет соответствие
-descriptor с выбранным `liapoldus_plugin` mode до activation group revision;
-runtime-вызов неподдерживаемого mode не используется как механизм discovery.
+Целевой Manifest дополняется аддитивным descriptor для каждой capability:
+явный список поддерживаемых invocation modes (`Call`, HTTP stream, WebSocket,
+SSE, TCP, UDP). Существующее поле списка имён сохраняется. Целевой Gateway
+проверяет соответствие descriptor с выбранным `liapoldus_plugin` mode до
+activation group revision; runtime-вызов неподдерживаемого mode не используется
+как механизм discovery. Сейчас mode проверяется при provision отдельного Caddy
+handler, но pre-activation validation опубликованной группы против live Manifest
+не подключена.
 Точная protobuf-структура и её versioning определяются только в
 `pluginprotocol`. Typed `DispatchApply` использует Manifest modes как верхнюю
 границу и не заменяет readiness/health или ConfigApply. Remote membership

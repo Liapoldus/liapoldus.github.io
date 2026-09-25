@@ -44,24 +44,27 @@ Policy validation, фильтрация запроса и проверка respo
 
 ## Состояние интеграции в Gateway
 
-Protocol contract уже опубликован, но текущий Gateway runtime ещё не реализует
-эту cookie boundary. В существующем Caddy plugin handler входящий заголовок
-`Cookie` исключается из передаваемых HTTP headers; cookie-specific allow-list и
-отдельное поле запроса пока не подключены. Если plugin вернёт cookie actions,
-handler отклонит ответ до записи `Set-Cookie`; generic `Set-Cookie` response
-header также запрещён. Следовательно, сейчас plugin через этот handler не
-может получить browser cookie или установить её.
+Изолированные Caddy `Call` и `Stream` handler integration tests проверяют
+передачу cookie только по allow-list и обработку typed response actions, включая
+`HttpOnly`; некорректный response не должен частично менять headers. Это
+подтверждает handler-level slice, но не production-путь через запущенный Gateway:
+`serve` пока не подключает сохранённые plugin instances/runtime dispatch к Caddy
+handlers. Поэтому сквозная установка или передача plugin cookie через
+production Gateway пока не подтверждена.
 
 Это ограничение относится к Liapoldus plugin dispatch, а не утверждает
 поведение произвольных native Caddy handlers. Внешний или Constructor session
 cookie также не является cookie plugin и описывается отдельными security
 контрактами.
 
+Подтверждённые handler slices и отсутствующая production composition сведены в
+[матрицу реализации core](/gateway/architecture/implementation#текущее-состояние-core).
+
 Будущая интеграция должна связать allow-list с выбранными instance и capability,
 проверять её до активации candidate dispatch configuration, фильтровать request
 до `Call`/`Stream`, а все response actions валидировать до commit. Неприемлемые
 policy/request/action должны завершаться безопасно и без частичного forwarding;
 сырой cookie value нельзя включать в ошибку. Это целевое поведение protocol
-contract, а не утверждение о реализованном runtime. Реализация и E2E-проверки
-остаются в [roadmap Gateway v1](v1-migration-roadmap#план-этапов-и-gates) и
+contract, а не утверждение о завершённой production-интеграции. Оставшаяся работа
+перечислена в [roadmap Gateway v1](v1-migration-roadmap#план-этапов-и-gates) и
 [`core/TODO.md`](https://github.com/Liapoldus/core/blob/main/TODO.md).

@@ -1,6 +1,11 @@
 # Ресурсы и операции
 
-Набор endpoints и typed schemas единожды определён в [OpenAPI](/spec/management.openapi.yaml). Эта страница описывает только владение и общую механику операций.
+Набор целевых endpoints и typed schemas единожды определён в
+[OpenAPI](/spec/management.openapi.yaml). OpenAPI — нормативный контракт v1,
+но не утверждение, что каждый описанный маршрут уже зарегистрирован в core.
+Текущее покрытие handlers и runtime-интеграции указано в
+[матрице реализации](/gateway/architecture/implementation#текущее-состояние-core);
+эта страница описывает владение и целевую механику операций.
 
 ## Control-plane ресурсы
 
@@ -29,7 +34,7 @@ Idempotency применяется к actor + key + canonical request digest. Т
 versioned runtime contract. Group changes дополнительно используют CAS через
 expectedCurrentRevision; Admin reconcile — If-Match runtime digest.
 
-## Caddy Admin pass-through
+## Caddy Admin pass-through — целевой контракт
 
 /api/caddy/{path} повторяет native Caddy Admin methods/payloads. Gateway
 сохраняет upstream status/body, применяя только безопасные transport headers и
@@ -45,7 +50,7 @@ rollback отклоняются. Restore возвращает checkpoint snapsho
 строит полный runtime из выбранного набора revisions. Автоматическое
 преобразование arbitrary Caddy JSON в Caddyfile не выполняется.
 
-## TLS operations
+## TLS operations — целевой контракт
 
 Caddy/CertMagic владеет ACME. GET /api/tls сообщает готовность по домену;
 POST /api/tls/{domain}/renew и /revoke — async/idempotent операции только для
