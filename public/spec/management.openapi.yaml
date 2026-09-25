@@ -235,9 +235,18 @@ paths:
   /api/audit:
     get:
       operationId: listAudit
+      description: >-
+        Returns redacted records newest-first in stable append-sequence order.
+        The cursor is opaque and is passed unchanged from nextCursor to continue
+        pagination. Limit defaults to 50 and is bounded from 1 to 100. A null
+        nextCursor means there is no next page. Records older than the 90-day
+        retention period are pruned and are outside the visible result set.
+        The API is append-only; it does not expose per-record mutation or
+        deletion. Audit records exclude request/response payloads and secrets;
+        requestId and applicable digests are included where defined by schema.
       parameters: [{ $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
       responses:
-        '200': { description: Redacted audit events, content: { application/json: { schema: { $ref: '#/components/schemas/AuditList' } } } }
+        '200': { description: Redacted audit events in stable newest-first append-sequence order; nextCursor is null on the last page. Records are subject to 90-day retention., content: { application/json: { schema: { $ref: '#/components/schemas/AuditList' } } } }
   /api/access/service-keys:
     get:
       operationId: listServiceKeys
@@ -272,8 +281,8 @@ components:
     OperationId: { name: operationId, in: path, required: true, schema: { type: string } }
     KeyId: { name: keyId, in: path, required: true, schema: { type: string } }
     Domain: { name: domain, in: path, required: true, schema: { type: string, format: hostname } }
-    Cursor: { name: cursor, in: query, schema: { type: string, description: Opaque cursor } }
-    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+    Cursor: { name: cursor, in: query, description: Opaque continuation token; pass nextCursor unchanged., schema: { type: string, description: Opaque cursor; no client parsing or modification. } }
+    Limit: { name: limit, in: query, description: Page size. Defaults to 50; accepted range is 1 through 100., schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
     IfMatch: { name: If-Match, in: header, required: true, schema: { type: string } }
     IfMatchRuntimeDigest: { name: If-Match, in: header, required: true, schema: { type: string, pattern: '^[0-9a-f]{64}$' } }
   responses:
@@ -324,7 +333,7 @@ components:
     OperationReference: { type: object, required: [operationId, state, requestId], properties: { operationId: { type: string }, state: { enum: [pending, running] }, requestId: { type: string } } }
     Operation: { type: object, required: [id, kind, state, createdAt, requestId], properties: { id: { type: string }, kind: { type: string }, state: { enum: [pending, running, succeeded, failed] }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time }, result: {}, problem: { $ref: '#/components/schemas/Problem' }, requestId: { type: string } } }
     TlsList: { type: object, required: [items, requestId], properties: { items: { type: array, items: { type: object, required: [domain, state], properties: { domain: { type: string }, serial: { type: [string, 'null'] }, notAfter: { type: [string, 'null'], format: date-time }, state: { enum: [pending, ready, renewing, degraded, expired] } } } }, requestId: { type: string } } }
-    AuditList: { type: object, required: [items, nextCursor, requestId], properties: { items: { type: array, items: { type: object, required: [timestamp, actor, action, result], properties: { timestamp: { type: string, format: date-time }, actor: { type: string }, action: { type: string }, resource: { type: string }, result: { enum: [succeeded, failed] } } } }, nextCursor: { type: [string, 'null'] }, requestId: { type: string } } }
+    AuditList: { type: object, description: Records are ordered newest-first by stable append sequence. Records older than 90 days are excluded by retention. The API is append-only; payloads and secrets are never included., required: [items, nextCursor, requestId], properties: { items: { type: array, items: { type: object, required: [timestamp, actor, action, result, requestId], properties: { timestamp: { type: string, format: date-time }, actor: { type: string }, action: { type: string }, resource: { type: string }, result: { enum: [succeeded, failed] }, requestId: { type: string }, beforeDigest: { type: [string, 'null'], pattern: '^[0-9a-f]{64}$', description: Digest of the resource before the operation, when applicable. }, afterDigest: { type: [string, 'null'], pattern: '^[0-9a-f]{64}$', description: Digest of the resource after the operation, when applicable. } } } }, nextCursor: { type: [string, 'null'], description: Opaque continuation cursor; null when no following page exists. }, requestId: { type: string, description: Request ID for this list operation. } } }
     ServiceKeyInput: { type: object, additionalProperties: false, required: [name], properties: { name: { type: string, minLength: 1, maxLength: 80 } } }
     CreatedServiceKey: { type: object, required: [id, name, role, token, requestId], properties: { id: { type: string }, name: { type: string }, role: { const: platform-admin }, token: { type: string, writeOnly: true }, requestId: { type: string } } }
     Problem: { type: object, required: [type, title, status, code, detail, instance, requestId], properties: { type: { type: string, format: uri }, title: { type: string }, status: { type: integer }, code: { type: string }, detail: { type: string }, instance: { type: string }, requestId: { type: string }, diagnostics: { type: array, items: { type: object } } } }
