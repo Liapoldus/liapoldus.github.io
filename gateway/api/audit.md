@@ -6,8 +6,9 @@ Audit и durable operations хранятся в SQLite, а не в JSONL-фай�
 > **Статус реализации core:** SQLite storage, retention и cursor pagination
 > работают. Для успешного `group.create` создание группы и audit row фиксируются
 > одной SQLite-транзакцией; если вставка audit row не удаётся, API возвращает
-> `503`, а группа не создаётся. Ошибки записи audit для неуспешных попыток пока
-> не передаются вызывающему коду. Audit остальных mutations и durable-operation
+> `503`, а группа не создаётся. Для неуспешной попытки событие записывается до
+> ответа; при ошибке append API возвращает `503 audit_unavailable` вместо
+> исходного `400`/`409`. Audit остальных mutations и durable-operation
 > transitions, а также durable operations storage/API и атомарность других
 > mutations ещё не реализованы. Текущий статус и план — в
 > [roadmap Gateway v1](../architecture/v1-migration-roadmap#план-этапов-и-gates).
