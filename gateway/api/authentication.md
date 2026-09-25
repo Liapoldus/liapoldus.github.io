@@ -53,6 +53,13 @@ credential в серверное secret storage Constructor операции cre
 credential требует локального bootstrap/recovery, а не автоматического
 анонимного self-service.
 
+Verifier records и lifecycle metadata сервисных ключей хранятся только в
+SQLite, защищённой правами state directory. Отдельный `bearerVerifier` файл в
+bootstrap YAML не используется. До первой локальной команды bootstrap
+Management API не принимает анонимные запросы: любые защищённые endpoints
+fail-closed с `401`; исключение составляет только минимальный unauthenticated
+`/healthz` без inventory и конфигурации. `/api/status` остаётся Bearer-protected.
+
 Management CA, Constructor backend client identity, plugin workload CA и
 Caddy/ACME state принадлежат разным trust domains. Gateway не выпускает
 сертификаты. mTLS handshake с неверным/отозванным сертификатом закрывается до

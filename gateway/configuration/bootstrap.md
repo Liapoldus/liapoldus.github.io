@@ -13,7 +13,7 @@ listeners, sites, proxy rules, TLS automation и L4 configuration задаютс
 | --- | --- |
 | `state` | SQLite database path и служебные параметры долговременного состояния. |
 | `artifacts` | Корень immutable group revisions, uploads и checkpoints. |
-| `management` | Отдельный bind API, TLS server identity, optional clientCA для non-loopback mTLS, Bearer verifier source и request limits. |
+| `management` | Отдельный bind API, TLS server identity, optional clientCA для non-loopback mTLS и request limits. |
 | `caddy` | `embedded` либо `external`; для external — путь к compatible custom Caddy binary и проверяемый build identity. |
 
 Не допускаются `includes`, переменные/подстановки общего назначения, sites,
@@ -32,13 +32,17 @@ management:
   tls:
     certificate: file:/run/secrets/gateway-management.crt
     key: file:/run/secrets/gateway-management.key
-  bearerVerifier: file:/run/secrets/service-key-verifiers.json
 caddy:
   variant: embedded
 ```
 
-Для любого Management bind обязательны TLS server certificate/key и Bearer
-service key. Для literal loopback IP (`127.0.0.0/8` или `::1`) `clientCA`
+Для любого Management bind обязательны TLS server certificate/key и
+Bearer-аутентификация. Service-key verifiers и их lifecycle metadata хранятся
+в SQLite; отдельного verifier-файла или raw key в YAML нет. Первичный ключ
+создаётся локальной командой `gateway access bootstrap`, а raw token выводится
+только один раз. До создания хотя бы одного действующего ключа все
+авторизованные Management endpoints закрыты (`401`); анонимный fallback
+запрещён. Для literal loopback IP (`127.0.0.0/8` или `::1`) `clientCA`
 не указывается: Desktop SSH bridge подключается только через restricted
 OpenSSH/bastion port-forward и проверяет server identity. Для любого другого
 bind, включая hostname и wildcard address, необходимы private network/VPN,

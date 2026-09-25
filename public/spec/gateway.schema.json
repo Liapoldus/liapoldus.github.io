@@ -38,7 +38,7 @@
     "management": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["listen", "tls", "bearerVerifier"],
+      "required": ["listen", "tls"],
       "properties": {
         "listen": { "type": "string", "minLength": 1 },
         "tls": {
@@ -52,7 +52,6 @@
           },
           "description": "TLS server identity is required for every Management listener. A non-loopback listener additionally requires clientCA for mTLS; a loopback listener omits clientCA and uses TLS server verification plus Bearer authorization through restricted SSH forwarding. Runtime validation classifies literal loopback IPs; hostnames and wildcard binds require clientCA."
         },
-        "bearerVerifier": { "$ref": "#/$defs/fileReference", "description": "Path to verifier records; plaintext service keys are never stored." },
         "requestLimits": {
           "type": "object",
           "additionalProperties": false,
@@ -90,7 +89,7 @@
     "Only state, artifact paths, Management API transport/trust and Caddy variant are bootstrap settings.",
     "Traffic listeners, sites, routes, upstreams, TLS sites, and L4 configuration are native Caddyfile group revisions.",
     "Unknown properties, includes, site.yaml, and route DSL fields are rejected.",
-    "Every Management listener requires TLS server identity and Bearer authorization. Loopback literal-IP binds omit clientCA and desktop SSH forwarding verifies the server identity. Any non-loopback, hostname, or wildcard bind requires private network/VPN, clientCA verification (mTLS), and Bearer authorization for the web Constructor backend.",
+    "Every Management listener requires TLS server identity and Bearer authorization. Service-key verifiers and lifecycle metadata are stored in SQLite; local CLI bootstrap creates the first key and prints the raw token once; no active service key means fail-closed authorization. Loopback literal-IP binds omit clientCA and desktop SSH forwarding verifies the server identity. Any non-loopback, hostname, or wildcard bind requires private network/VPN, clientCA verification (mTLS), and Bearer authorization for the web Constructor backend.",
     "Management trust roots and plugin workload trust roots are separate.",
     "SQLite database and artifact store must use local storage; plaintext secret values are forbidden."
   ]
