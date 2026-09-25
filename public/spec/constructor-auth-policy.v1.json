@@ -1,0 +1,39 @@
+{
+  "title": "Constructor Auth Policy v1",
+  "policyVersion": "liapoldus.constructor.auth.v1",
+  "session": {
+    "accessJwtTtlSeconds": 300,
+    "refresh": {
+      "rotatesOnUse": true,
+      "absoluteTtlSeconds": 43200,
+      "slidingExpiration": false,
+      "reuseRevokesFamily": true
+    }
+  },
+  "passwordHash": {
+    "algorithm": "Argon2id",
+    "memoryKiB": 19456,
+    "iterations": 2,
+    "parallelism": 1
+  },
+  "throttling": {
+    "account": {
+      "failedAttempts": 5,
+      "windowSeconds": 900
+    },
+    "ipNetworkLimiterRequired": true,
+    "ipNetworkLimiterNumericDefaults": null
+  },
+  "csrf": {
+    "mechanism": "session-bound-synchronizer-token",
+    "rotateOn": ["login", "refresh", "privilege-change"],
+    "strictOriginHostValidation": true
+  },
+  "recovery": {
+    "allowedMethods": ["one-time-hashed-codes", "explicit-admin-provisioning"],
+    "silentMfaBypass": false
+  },
+  "audit": {
+    "retentionDays": 365
+  }
+}

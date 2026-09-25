@@ -22,13 +22,22 @@ credentials не передаются React renderer.
 Оба web режима выдают Constructor session в `Secure`, `HttpOnly`, `SameSite`
 cookie. `local-jwt` использует короткоживущий подписанный JWT; refresh
 credential имеет отдельный срок, хранится/проверяется backend-ом и ротируется
-при использовании. Mutating API требует CSRF defense и строгой Origin/Host
-проверки; login, MFA, refresh и recovery имеют rate limits и audit events.
-Recovery не отключает MFA молча. WebAuthn credential хранится как public
-credential metadata, не как private key. Exact TTL, password hashing, recovery
-codes, CSRF/session rotation и rate-limit defaults должны быть зафиксированы в
-versioned Constructor auth/security policy до реализации; задача внесена в
-[TODO Constructor](https://github.com/Liapoldus/Constructor/blob/main/todo.md).
+при использовании. Утверждённые defaults v1: access JWT действует 5 минут;
+rotating refresh credential имеет абсолютный TTL 12 часов без sliding
+продления, а повторное использование отозванного refresh token отзывает всё
+семейство. Пароли хешируются Argon2id с `m=19456 KiB`, `t=2`, `p=1`. Для
+аккаунта действует throttle после 5 неудачных попыток за 15 минут; дополнительно
+обязателен отдельный IP/network limiter. Его числовые defaults здесь не
+задаются.
+
+Mutating API использует session-bound synchronizer CSRF token, который
+ротируется при login, refresh и изменении привилегий, а также строгую
+`Origin`/`Host` проверку. Login, MFA, refresh и recovery имеют rate limits и
+audit events. Recovery допускается через одноразовые хешированные коды либо
+явное admin provisioning; silent MFA bypass запрещён. Audit retention для
+Constructor auth events — 365 дней. WebAuthn credential хранится как public
+credential metadata, не как private key. Числовые значения и security defaults
+зафиксированы в [версионированной Constructor Auth Policy v1](/spec/constructor-auth-policy.v1.json).
 
 Desktop `none` разрешён только для single-user local installation. Это не
 означает, что локальный Gateway Management API становится открытым: когда

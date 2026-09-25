@@ -2,6 +2,7 @@
   "version": "liapoldus.gateway.v1",
   "source": "https://liapoldus.github.io/spec/",
   "files": {
+    "constructor-auth-policy.v1.json": "sha256:18b4df97f7e1f5af0ffc65204b58b6ef2fdc92c5e7ac799ef7d3783bd83c3a68",
     "errors.json": "sha256:49cf802692cedbefd915f10c47b271fb62cedf1a39544caf3371ccfb85c34d43",
     "gateway.schema.json": "sha256:af1594e700c8fa63affc818da1c7007019f5a548ab268522f17f4d697673436f",
     "golden-vectors.json": "sha256:bb2c31c53fb44327a9c1e05ddf7adcd416cbc0ae25c12c3e5c9be164b2ab5f52",
