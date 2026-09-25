@@ -90,6 +90,11 @@ traces или diagnostic events.
 frames. Точные enums, JSON fields, sequence rules и size limits определяются
 только в `pluginprotocol`: [open-context schemas](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/stream-open-context.schema.json)
 и [HTTP response-start metadata](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/http-stream-response-metadata.schema.json).
+Порядок `Open`/data/`Close`, допустимые состояния для HTTP, WebSocket, SSE и
+L4, terminal completion и предельные значения закреплены в едином
+[Stream lifecycle contract](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/stream-lifecycle.json);
+server-side transport validator проверяет входящие и исходящие кадры по этому
+контракту.
 
 ### HTTP streaming request/response
 
