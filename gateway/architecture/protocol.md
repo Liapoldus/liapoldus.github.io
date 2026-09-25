@@ -79,11 +79,13 @@ identity context, L4 request и response actions. Не добавлять protob
 
 Лиаполдус Caddy handler берёт route-selected instance, capability и mode из
 нативного Caddyfile handler directive, удаляет запрещённые credentials из
-context, проверяет входящие cookies по allow-list instance/capability и
-вызывает `Call`. Response payload/action целиком валидируется до передачи в
-Caddy. Обычные и HttpOnly cookies применяются только через типизированные
-response actions; чувствительные значения не попадают в logs, errors, audit,
-traces или diagnostic events.
+context и вызывает `Call`. Нормативный cookie contract и фактический статус его
+интеграции в Gateway описаны отдельно на странице [Cookie boundary](cookies);
+wire/JSON contract принадлежит только `pluginprotocol`. Не считать наличие
+protocol schema доказательством реализованной runtime-поддержки: текущий
+handler пока блокирует входящий `Cookie` и отклоняет response с cookie actions.
+Чувствительные значения должны быть redacted в logs, errors, audit, traces и
+diagnostic events.
 
 ## Универсальный `Stream`
 
@@ -144,10 +146,11 @@ stream на datagram. TCP передаёт raw bytes, UDP сохраняет г�
 - Ошибка до response-start отображается в обычную типизированную Gateway
   ошибку. После HTTP headers, SSE body или WebSocket `101` заменить response
   невозможно: Caddy прекращает соответствующий stream/connection.
-- Response-start metadata и все response actions/cookies валидируются
-  атомарно до commit headers/upgrade. Ошибки и telemetry не содержат
-  Authorization, cookies, secrets, private keys, service keys или grant
-  handles.
+- Protocol contract требует атомарно валидировать response-start metadata и все
+  response actions/cookies до commit headers/upgrade. Статус интеграции cookie
+  в текущем Gateway runtime указан в [Cookie boundary](cookies). Ошибки и
+  telemetry не должны содержать Authorization, cookie values, secrets, private
+  keys, service keys или grant handles.
 
 ## Handshake и grants
 

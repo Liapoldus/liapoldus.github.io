@@ -39,11 +39,13 @@ request.
 Binding policy не возвращается в собственную Gateway YAML-модель, а конкретный
 plugin name не зашивается в core.
 
-Handler передаёт только allow-listed request context и явно выданные grants. Он
-не передаёт raw Authorization, неразрешённые cookies, filesystem paths, socket
-или raw secret. Plugin возвращает schema-validated response actions; Caddy
-handler проверяет и применяет их до response commit и остаётся владельцем
-публичного соединения.
+Handler передаёт ограниченный request context и явно выданные grants. Он не
+передаёт raw Authorization, filesystem paths, socket или raw secret. Целевой
+cookie allow-list и typed cookie actions описаны в [cookie boundary](/gateway/architecture/cookies);
+текущий Gateway handler пока исключает входящие cookies и отклоняет cookie
+response actions. Остальные response semantics принадлежат versioned
+`pluginprotocol` contracts. Caddy handler остаётся владельцем публичного
+соединения.
 
 Реализацию plugin не размещать в Gateway repository: protocol fixtures и
 plugin executable принадлежат plugin ecosystem.

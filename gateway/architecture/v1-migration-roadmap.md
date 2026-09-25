@@ -278,7 +278,7 @@ traversal.
 | 5. Caddy integration | Embedded и supervised external process; native directive, private snapshot sync, direct plugin handler; full Admin pass-through. | Одинаковые module manifest/semantics; Admin endpoint private; sync/load failure сохраняет прежние generations. |
 | 6. Group releases | Multipart upload, safe extraction, immutable revisions, `current`/`previous`, atomic full snapshot. | Конкурентная публикация, rollback, crash recovery, failure preserves active state. |
 | 7. Admin mutation safety | Checkpoint, drift detection, reconcile/restore и deploy block. | Нельзя затереть native mutations незаметно; восстановление после crash. |
-| 8. Plugins/security | Mixed local-supervised + remote replicas from explicit stable endpoint sets, per-replica mTLS identity, separate control/data client identities, scoped grants и прямой Caddy-to-plugin data path. | Per-replica endpoint/readiness/`DispatchApply` barrier, safe rollout/drain, no orchestrator API dependency, reconnect/no replay; certificate scope/rotation/revocation; no downgrade/peer traffic. См. [каноническое описание deployment](plugin-deployment). |
+| 8. Plugins/security | Mixed local-supervised + remote replicas from explicit stable endpoint sets, per-replica mTLS identity, separate control/data client identities, scoped grants, direct Caddy-to-plugin data path и plugin-owned cookie lifecycle за Gateway-owned boundary. | Per-replica endpoint/readiness/`DispatchApply` barrier, safe rollout/drain, no orchestrator API dependency, reconnect/no replay; certificate scope/rotation/revocation; no downgrade/peer traffic; cookie allow-list, typed ordinary/HttpOnly actions, atomic rejection и redaction. См. [deployment](plugin-deployment) и [cookie boundary](cookies). |
 | 9. Runtime parity | HTTP/TLS/ACME, HTTP/1.1–3, HTTP bidi, WebSocket, SSE, static, proxy, TCP/UDP Caddy-L4. | Оба build variants, macOS/Linux; Caddy-L4 и direct-dispatch gates обязательны, fallback запрещён. |
 | 10. Release readiness | Один Gateway product, контейнерные и операторские инструкции, Constructor integration. | `make check`, `go vet ./...`, `go build ./...`, Docker smoke и полный E2E/security suite. |
 
@@ -296,6 +296,7 @@ traversal.
 - [Безопасность и доступ](../configuration/security)
 - [Режимы подключения plugins](plugin-deployment)
 - [Единый plugin protocol v1](protocol)
+- [Gateway cookie boundary и статус runtime-интеграции](cookies)
 - [Caddy runtime и L4](../configuration/transports)
 - [Constructor — Gateway UI](../../constructor/integrations)
 - [Gateway OpenAPI](/spec/management.openapi.yaml)

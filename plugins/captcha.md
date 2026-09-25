@@ -26,8 +26,12 @@ settings. Browser body не может выбирать trusted provider/URL. Pr
 получается только через call-scoped grant; secret bytes не попадают в обычный
 Call JSON, response клиенту, logs, traces или audit.
 
-Cookie policy и ordinary/HttpOnly actions принадлежат plugin, проходят общей
-типизированной boundary и полностью redacted в Gateway/Caddy observability.
+Plugin владеет challenge/session cookie lifecycle. Gateway-owned входной
+allow-list и typed ordinary/HttpOnly response actions определяются общим
+[cookie contract](/gateway/architecture/cookies) и нормативными схемами
+`pluginprotocol`; это не отдельная CAPTCHA policy. Текущий Gateway handler ещё
+не передаёт входящие cookies и отклоняет cookie response actions, поэтому
+полный cookie flow остаётся незавершённым.
 
 Текущий skeleton не выполняет обращения к внешним providers и не реализует
 полный challenge/callback/session flow; production readiness не заявляется.
