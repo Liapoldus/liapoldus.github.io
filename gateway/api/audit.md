@@ -3,6 +3,15 @@
 Audit и durable operations хранятся в SQLite, а не в JSONL-файлах. Контракт
 полей и API pagination задан в [OpenAPI](/spec/management.openapi.yaml).
 
+> **Статус реализации core:** SQLite storage, retention и cursor pagination
+> работают. Для успешного `group.create` создание группы и audit row фиксируются
+> одной SQLite-транзакцией; если вставка audit row не удаётся, API возвращает
+> `503`, а группа не создаётся. Ошибки записи audit для неуспешных попыток пока
+> не передаются вызывающему коду. Audit остальных mutations и durable-operation
+> transitions, а также durable operations storage/API и атомарность других
+> mutations ещё не реализованы. Текущий статус и план — в
+> [roadmap Gateway v1](../architecture/v1-migration-roadmap#план-этапов-и-gates).
+
 Gateway audit фиксирует actor service-key/Controller-binding ID, action,
 resource type/ID, result, timestamp,
 request ID и применимые digests. Он не сохраняет Caddyfile/artifact contents,

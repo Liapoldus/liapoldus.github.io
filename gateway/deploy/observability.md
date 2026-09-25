@@ -4,6 +4,11 @@ Audit, durable operations, idempotency metadata и checkpoints хранятся 
 SQLite. Access/application logs и traces отправляются в явно настроенные
 sinks; Gateway не копирует payloads ради диагностики.
 
+> **Статус реализации core:** старые telemetry exporters удалены вместе с
+> прежним network runtime. Новые sinks для logs/traces и описанные ниже
+> metrics ещё предстоит подключить; это целевой deployment-контракт, а не
+> утверждение о текущих возможностях production `serve`. См. [roadmap Gateway v1](../architecture/v1-migration-roadmap#план-этапов-и-gates).
+
 Audit содержит actor, action, resource, operation/checkpoint IDs, safe
 digests, timestamp, result и request ID. Он не содержит Caddyfile/archive
 contents, Caddy Admin body, Authorization, secrets, private keys, cookies или
