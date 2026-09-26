@@ -27,11 +27,13 @@ Management API и control plane: публичные Caddy listeners не отк�
 Management API; после успешной подготовки Caddy snapshot Gateway открывает
 заданные Caddyfile listeners и переводит data plane в `ready`.
 
-**Текущий разрыв реализации:** первая публикация сейчас не работает: при пустом
-`system.current` нет активатора Caddy, а release service отклоняет публикацию
-без активатора. Для выполнения целевого поведения нужен lazy Caddy activator,
-который поднимает data plane только после проверки и успешной активации первой
-revision. До этого Gateway остаётся в `system-release-required`.
+**Текущий статус:** первая system revision публикуется из этого состояния через
+Management API. Lazy activator сначала валидирует candidate, затем запускает
+embedded Caddy при activation; TypeScript E2E проверяет сохранённый current
+pointer, `ready` и HTTP response с реального listener. Для external Caddy путь
+адаптации и запуска реализован, но отдельный first-release E2E/parity gate ещё
+не пройден. External Caddy с plugin instances остаётся fenced до синхронизации
+dispatch snapshot.
 
 Если указатель уже задан, но revision, immutable Caddyfile/artifact или digest
 отсутствуют либо не совпадают, это не bootstrap state: Gateway не открывает
