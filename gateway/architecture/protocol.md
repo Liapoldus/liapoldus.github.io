@@ -48,7 +48,8 @@ dual-stack, autodetection или insecure downgrade. Следующий protocol
 
 | RPC/поверхность | Вызов | Назначение |
 | --- | --- | --- |
-| `Manifest`, `ConfigSchema`, `ConfigApply`, `Shutdown` | Gateway → plugin | Контрольная плоскость instance и settings. |
+| `Bootstrap` | Gateway → plugin | Только служебные параметры runtime (например, scoped GrantBroker endpoint); не содержит application settings или secret values. |
+| `Manifest`, `ConfigSchema`, `ConfigApply`, `Shutdown` | Gateway → plugin | Контрольная плоскость instance. Gateway push-ит settings через `ConfigApply`; plugin не выполняет pull. |
 | `DispatchApply` | Gateway → каждая remote replica | Установка монотонной dispatch generation с точным scope и per-replica digest acknowledgement перед Caddy activation. |
 | `grpc.health.v1` | Gateway/оператор → plugin | Стандартный readiness/health contract. |
 | `Call` | Caddy handler → plugin | Обычный ограниченный request/response с versioned JSON payload. |
@@ -75,6 +76,15 @@ handler, но pre-activation validation опубликованной групп�
 обнаруживает replicas через API оркестратора, а один load-balanced Service не
 считается fan-out acknowledgement. Порядок обновления membership, rollout и
 drain нормативно описан в разделе [режимов подключения и восстановления](plugin-deployment).
+
+Порядок включения instance обязателен: typed `Bootstrap` для служебного
+окружения, `Manifest`, `ConfigSchema`, валидация сохранённых Gateway settings,
+push через `ConfigApply`, затем проверка `grpc.health.v1`. Успешный health до
+применения текущих settings не делает instance готовым. Settings передаются
+только в plugin protocol RPC, сохраняются Gateway-ом долговременно и живут в
+plugin только в памяти; после любого рестарта Gateway повторяет весь порядок.
+Secret bytes не входят ни в `Bootstrap`, ни в `ConfigApply`: plugin получает их
+только в пределах отдельного scoped `GrantBroker.RedeemGrant`.
 
 ## `Call`
 

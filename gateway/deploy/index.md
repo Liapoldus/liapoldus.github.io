@@ -29,11 +29,12 @@ release.
 
 `gateway.yaml` задаёт путь к локальной SQLite database и artifact root. SQLite
 содержит группы/revisions/pointers, plugin metadata, service-key verifiers,
-operations/idempotency, audit и Caddy checkpoints. Immutable Caddyfile и plugin
-settings revisions, frontend roots и checkpoint snapshots хранятся как файлы.
-При старте Gateway сверяет metadata/digests и гидратирует active generation в
-immutable in-memory snapshot; пользовательские запросы не читают SQLite или
-файлы. SQLite на сетевой filesystem не поддерживается.
+operations/idempotency, audit, plugin settings/revisions и Caddy checkpoints.
+Immutable Caddyfile revisions, frontend roots и checkpoint snapshots хранятся
+как файлы. При старте Gateway сверяет metadata/digests, загружает plugin
+settings из SQLite и гидратирует active generation в immutable in-memory
+snapshot; пользовательские запросы не читают SQLite или файлы. SQLite на
+сетевой filesystem не поддерживается.
 
 Backup должен согласованно включать online SQLite backup и immutable artifacts
 из одного snapshot boundary. ACME internal state остаётся под управлением

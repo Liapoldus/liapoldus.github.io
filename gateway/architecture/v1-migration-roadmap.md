@@ -47,7 +47,7 @@ plugin capabilities, безопасные границы, immutable releases, а
 | Plugins | Оставить generic runtime | Local-supervised и remote режимы задаются per instance и смешиваются; remote membership — явный набор отдельных endpoint-ов с unique identities и единым release/config digest. Подробности — [plugin deployment](plugin-deployment). |
 | TLS | Оставить Caddy-owned | Caddy/CertMagic — единственный ACME owner; domain readiness отдельно от активации конфигурации. |
 | L4 | Обязательный Caddy-L4 | Caddy-L4 входит в оба варианта и v1 conformance gate; Go `net` fallback не допускается. |
-| Persistence | Уточнить durable/runtime границу | SQLite хранит control-plane metadata/journal/pointers; immutable Caddyfile/plugin-settings revisions и большие artifacts — файлы; active runtime — in-memory snapshot. |
+| Persistence | Зафиксировать durable/runtime границу | SQLite хранит control-plane metadata, plugin settings/revisions, journal и pointers; immutable Caddyfile revisions и большие artifacts — файлы; active runtime — in-memory snapshot. |
 | `tls-issuer` | Удалить из активной системы | Не входит в бинарник, конфиги, active docs, tests, сборки и текущие TODO; прежний URL ведёт только на описание Caddy-owned TLS. Удалённый репозиторий/history не трогать. |
 
 ## Caddy build variants
@@ -168,9 +168,10 @@ expected runtime digest, audit и optimistic concurrency обязательны.
 
 ## Plugin instances и доверие
 
-Plugin instances управляются через Gateway API; SQLite хранит их IDs, state и
-active revision references, а plugin settings revisions сохраняются как
-immutable files. Group Caddyfile ссылается на instance по стабильному ID.
+Plugin instances управляются через Gateway API; SQLite хранит IDs, settings
+payloads, revisions, state и active references. Активные settings копируются в
+in-memory runtime snapshot и push-ятся plugin через `ConfigApply`. Group
+Caddyfile ссылается на instance по стабильному ID.
 Dispatch остаётся generic: core знает общий protocol и границы, но не знает
 конкретных плагинов, provider names или прикладной семантики до подключения
 declarative plugin contract.
@@ -235,7 +236,7 @@ immutable files/artifacts.
 | --- | --- |
 | Groups и current/previous | SQLite metadata; pointers обновляются транзакционно после успешной активации. |
 | Group revisions | SQLite IDs/digests/pointers + immutable Caddyfile и frontend archives в `artifacts.path`. |
-| Plugin instances/settings | SQLite metadata/digests/state + immutable settings revision files; secret values — только external references. |
+| Plugin instances/settings | SQLite metadata, settings payloads, revisions/digests/state; active settings — in-memory; secret values — только external references. |
 | Service keys | SQLite verifier/hash, role, lifecycle и metadata; исходный token не хранится. |
 | Operations/idempotency | SQLite, включая durable activation/recovery state и сроки retention. |
 | Audit | SQLite append-only events с retention; никаких тел запросов и секретов. |

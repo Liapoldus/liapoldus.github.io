@@ -188,21 +188,22 @@ pure-Go реализация без CGO, чтобы один Gateway build ос�
 migrations применяются при открытии базы. Это не меняет SQL/SQLite как внешний
 формат persistence и не позволяет приложениям-плагинам открывать Gateway DB.
 
-Caddyfile revisions, plugin settings revisions, frontend artifacts и
-необходимые checkpoint snapshots хранятся как content-addressed immutable
-files. SQLite сохраняет IDs, digests, revision metadata, active pointers и
-operation state; секреты представлены только внешними references. Сначала
-файл полностью записан во временный объект, fsync-нут и проверен, затем
-публикуется неизменяемым именем, после чего metadata transaction фиксирует
-ссылку. Файл-сирота после сбоя допустим и удаляется retention/GC; metadata,
-указывающая на отсутствующий или неверный digest, недопустима.
+Caddyfile revisions, frontend artifacts и необходимые checkpoint snapshots
+хранятся как content-addressed immutable files. SQLite сохраняет plugin settings
+payloads, instance metadata, revisions, digests, active pointers и operation
+state; secret values не сохраняются, только внешние references. Перед записью
+Caddyfile/artifact он полностью помещается во временный объект, fsync-ится и
+проверяется, затем публикуется под неизменяемым именем, после чего metadata
+transaction фиксирует ссылку. Файл-сирота после сбоя допустим и удаляется
+retention/GC; metadata, указывающая на отсутствующий или неверный digest,
+недопустима.
 
-После восстановления active generation Gateway загружает необходимые Caddyfile
-и plugin settings, собирает один immutable in-memory RuntimeSnapshot и
-передаёт его Caddy. Пользовательский request path читает только активный
-snapshot и runtime caches; SQLite и config/artifact files не открываются на
-каждый запрос. При обновлении candidate хранится отдельно до успешной
-activation; failed candidate не заменяет active generation.
+После восстановления active generation Gateway загружает Caddyfile из
+artifacts и plugin settings из SQLite, собирает один immutable in-memory
+RuntimeSnapshot и передаёт его Caddy. Пользовательский request path читает
+только активный snapshot и runtime caches; SQLite и config/artifact files не
+открываются на каждый запрос. При обновлении candidate хранится отдельно до
+успешной activation; failed candidate не заменяет active generation.
 
 Обязательные invariants:
 

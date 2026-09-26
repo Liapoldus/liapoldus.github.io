@@ -12,7 +12,7 @@
 | Ресурс | Источник истины | Область изменения |
 | --- | --- | --- |
 | Caddy groups/revisions | SQLite metadata/digests/pointers + immutable files | Group publish/rollback активирует полный in-memory Caddy snapshot. |
-| Plugin instances/settings | SQLite metadata/state + immutable settings revision files | Отдельные CRUD/apply операции; group rollback не меняет plugin settings. |
+| Plugin instances/settings | SQLite settings payload/revision/digest/state; active values copied into memory snapshot | Отдельные CRUD/apply операции; group rollback не меняет plugin settings. |
 | Service keys | SQLite verifier hash и lifecycle | Raw credential выдаётся только create/rotate один раз. |
 | Caddy checkpoints | SQLite metadata + immutable snapshot artifact | До каждой mutating Admin API операции. |
 | Operations/idempotency | SQLite | Durable polling/retry/recovery. |

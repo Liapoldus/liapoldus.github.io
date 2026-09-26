@@ -39,13 +39,17 @@ paths, listener sockets и grant handles нельзя писать в logs/event
    events и существующий L4 lifecycle. Уважайте `context.Context`, cancellation,
    per-stream limits, размер сообщения и gRPC flow control; не создавайте
    неограниченные внутренние очереди.
-5. Получайте loopback endpoint через `LIAPOLDUS_PLUGIN_ENDPOINT`, объявленный в
-   [launch contract](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/launch.json),
-   и открывайте его `transport.ListenLoopback`. Не открывайте listener на
-   `0.0.0.0` или публичном интерфейсе.
-6. Передавайте runtime settings через `ConfigApply`; применяйте их атомарно.
-   `ConfigSchema` описывает пользовательские settings и не должен содержать
-   raw secrets, которые Gateway выдаёт только как краткоживущий scoped grant.
+5. Для local supervised запуска принимайте унаследованный listener через
+   `transport.ListenInherited`; не читайте адрес из env/argv и не создавайте
+   публичный listener. Служебный GrantBroker endpoint получайте отдельным typed
+   Bootstrap RPC от Gateway. Bootstrap не содержит application settings или
+   secret values.
+6. Получайте runtime settings только push-вызовом Gateway через plugin protocol
+   `ConfigApply`; применяйте конфигурацию атомарно и держите активную версию в
+   памяти. Plugin не обращается к Gateway за конфигурацией и не читает локальные
+   application config files. `ConfigSchema` описывает пользовательские settings
+   и не должен включать raw secrets: Gateway выдаёт их только как краткоживущий
+   scoped grant.
 7. При остановке завершите активные RPC/streams и ответьте на `Shutdown`.
 
 Стандартный gRPC reflection зарегистрирован для диагностики loopback-сервера

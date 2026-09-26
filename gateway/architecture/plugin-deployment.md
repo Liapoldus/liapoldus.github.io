@@ -170,11 +170,16 @@ endpoint и допустимость dispatch generation. При потере л
 
 Порядок запуска instance:
 
-1. Supervisor создаёт ограниченный loopback endpoint и scoped GrantBroker
-   callback, затем запускает executable с минимальным environment.
-2. Gateway устанавливает gRPC connection, получает Manifest и config schema,
-   проверяет version/capabilities/modes, применяет settings и проверяет
-   `grpc.health.v1`.
+1. Supervisor создаёт ограниченный loopback listener и scoped GrantBroker
+   callback, затем запускает executable без application environment,
+   application config files и передачи application settings через argv.
+   Listener передаётся дочернему процессу как inherited file descriptor.
+2. Gateway устанавливает gRPC connection и через typed bootstrap RPC передаёт
+   только служебные параметры соединения/GrantBroker. Затем Gateway получает
+   Manifest и config schema, проверяет version/capabilities/modes, отправляет
+   актуальные settings plugin-у через plugin protocol RPC `ConfigApply` и
+   проверяет `grpc.health.v1`. Plugin не запрашивает конфигурацию у Gateway:
+   конфигурация всегда доставляется push-вызовом Gateway → plugin.
 3. Только готовый instance попадает в новый immutable dispatch generation;
    ошибка запуска или handshake сохраняет предыдущий active generation.
 4. При завершении/ошибке процесса Gateway закрывает его connection и помечает
@@ -182,8 +187,9 @@ endpoint и допустимость dispatch generation. При потере л
    unavailable; прочий трафик продолжает работу.
 5. Supervisor завершает процесс штатной командой и timeout-ом, затем при
    необходимости принудительно останавливает child process tree. Повторный
-   запуск использует bounded exponential backoff и заново выполняет handshake,
-   config apply и health до восстановления dispatch readiness.
+   запуск использует bounded exponential backoff и заново выполняет typed
+   bootstrap, handshake, `ConfigApply` с текущей версией settings и health до
+   восстановления dispatch readiness.
 
 После успешного control handshake Caddy module открывает собственный
 data-plane connection к тому же loopback endpoint. При restart plugin оба
@@ -217,6 +223,14 @@ Call/Stream — Caddy identity. Management trust roots,
 plugin workload trust roots и Caddy/ACME state разделены. Gateway не является
 CA. Private key монтируется из Docker/Kubernetes secret или operator-provided
 credential store, не попадает в SQLite, Caddyfile, logs, traces или API output.
+Plugin workload слушает единый protocol-defined `0.0.0.0:50051` внутри
+контейнера/хоста; внешний DNS/IP и Service port могут отличаться через port
+mapping, но Gateway endpoint остаётся фиксированным для каждой replica.
+Реализация server listener использует SDK `ListenRemoteTLS`; TLS certificate,
+private key и workload-only trust bundle передаются SDK как operational
+credentials от platform identity provider, а не как application settings,
+env или plugin Bootstrap fields. Канонический port/TLS contract —
+[remote-listener.json](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/protocol/v1/remote-listener.json).
 
 Во время rollout оркестратор не направляет новые connections на Pod, пока она
 не прошла собственную config apply и readiness. При каждом reconnect обе

@@ -13,10 +13,15 @@ actions и grants. Constructor не подключается к plugin напр�
 ## Создание instance
 
 Instance создаётся через Gateway Management API. SQLite хранит metadata
-instance, активную settings revision и digest; сами versioned settings
-сохраняются как неизменяемый файл. Settings валидируются по schema подключённого
-plugin. Traffic bindings задаются Caddyfile directive с ID instance и
-capability; настройки instance не включаются в group revision.
+instance, пользовательские settings и активную settings revision. Settings
+валидируются по schema подключённого plugin и входят в immutable in-memory
+runtime snapshot; request path не читает SQLite. Plugin не получает конфигурацию
+из собственного env, argv или application config file: Gateway передаёт её
+plugin-у push-вызовом `ConfigApply` по единому plugin protocol. Plugin хранит
+применённую версию только в памяти; после рестарта Gateway повторно отправляет
+последнюю активную версию до допуска instance в readiness. Traffic bindings
+задаются Caddyfile directive с ID instance и capability; настройки instance не
+включаются в group revision.
 
 | Область | Владелец |
 | --- | --- |
@@ -28,8 +33,7 @@ capability; настройки instance не включаются в group revis
 | Plugin Admin UI | Declarative plugin contract, rendered Constructor через Gateway |
 
 Gateway control manager применяет общие process limits, handshake, health,
-plugin settings и scoped-grant policy. Settings revision content остаётся в
-versioned files, а SQLite фиксирует metadata/digest и active pointer. Caddy handler применяет data-plane
+plugin settings и scoped-grant policy. Caddy handler применяет data-plane
 capability/route limits, вызывает plugin напрямую по gRPC, валидирует response
 actions и выполняет redaction; Management API не проксирует пользовательский
 traffic. Core не интерпретирует plugin settings и не содержит веток для
