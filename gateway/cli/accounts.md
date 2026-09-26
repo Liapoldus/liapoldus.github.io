@@ -1,8 +1,11 @@
 # Service keys
 
-CLI позволяет создать, rotate и revoke Management API service key. В v1 все
-ключи имеют роль platform-admin. Команды и API responses согласуются с
-[OpenAPI](../api/openapi) и общим [CLI contract](index).
+> **План:** команды CLI для управления service keys ещё не реализованы. Сейчас
+> единственная команда управления доступом — `gateway access bootstrap`.
+
+Целевая CLI-поверхность должна создавать, rotate и revoke Management API
+service key. В v1 все ключи имеют роль platform-admin. Команды и API
+responses согласуются с [OpenAPI](../api/openapi) и общим [CLI contract](index).
 
 Raw token выводится ровно один раз при create/rotate. В SQLite хранится только
 verifier/hash, идентификатор, имя, роль, статус и lifecycle metadata.
