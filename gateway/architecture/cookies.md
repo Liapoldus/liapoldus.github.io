@@ -25,10 +25,12 @@ Gateway. Единственный normative source для JSON contract — ре
 Политика входящих cookie относится ровно к паре plugin instance и capability.
 Сравнение имён точное и чувствительное к регистру; wildcard и регулярные
 выражения не поддерживаются. Перед `Call` или `Stream` разрешено передать только
-совпавшие пары, остальные исключаются. Для совпавших повторов сохраняются
-порядок и кратность; их интерпретация принадлежит plugin. Пустой allow-list
-ничего не передаёт. Сама политика остаётся локальной для Gateway/Caddy и не
-входит в plugin payload.
+совпавшие пары, остальные исключаются. Это правило применяется к HTTP
+capability, поддерживающей `Call`, `HTTP Stream`, WebSocket или SSE; для
+TCP/UDP-only capability cookie policy недопустима. Для совпавших повторов
+сохраняются порядок и кратность; их интерпретация принадлежит plugin. Пустой
+allow-list ничего не передаёт. Сама политика остаётся локальной для
+Gateway/Caddy и не входит в plugin payload.
 
 Исходящие cookie задаются только типизированными response actions. Каждое
 действие формирует отдельный `Set-Cookie`; plugin не задаёт его через общий
@@ -47,10 +49,10 @@ Policy validation, фильтрация запроса и проверка respo
 Изолированные Caddy `Call` и `Stream` handler integration tests проверяют
 передачу cookie только по allow-list и обработку typed response actions, включая
 `HttpOnly`; некорректный response не должен частично менять headers. `serve`
-загружает local plugin instances из SQLite, запускает runtime и передаёт dispatch
-bindings embedded Caddy. Однако Gateway-owned allow-list пока не хранится и не
-передаётся в dispatch snapshot. Поэтому сквозная установка или передача plugin
-cookie через production Gateway пока не подтверждена.
+читает inventory instances из SQLite, запускает локальные runtime и передаёт
+dispatch bindings embedded Caddy. Generic API регистрации/изменения plugin
+instances пока отсутствует; полный путь от чистой установки до настройки
+policy не подтверждён.
 
 ## Управление policy в Gateway v1
 
@@ -60,15 +62,22 @@ Caddyfile. Каждая запись адресуется парой `instanceId
 значений cookie — только разрешённые имена.
 
 Каноническая machine-readable поверхность —
-[`management.openapi.yaml`](/spec/management.openapi.yaml). Endpoint пока
-является целевым контрактом: наличие OpenAPI и этой спецификации не означает,
-что production handler или SQLite migration уже реализованы.
+[`management.openapi.yaml`](/spec/management.openapi.yaml). В core реализованы
+handler `GET`/`PUT`, сильный ETag/If-Match CAS, SQLite schema v3, audit в одной
+транзакции с policy CAS и embedded-Caddy activation с rollback при ошибке
+durable commit. Caddy принимает policy для capability с HTTP `Call`, HTTP Stream,
+WebSocket или SSE mode и отвергает TCP/UDP-only capability. Это ещё не полная
+production-приёмка: остаются child-process
+conformance для фактической фильтрации cookies и typed response actions,
+crash-recovery между activation и commit, rollback-failure fencing и
+external-Caddy snapshot synchronization. Текущий endpoint в external-варианте
+отвечает unavailable.
 
 - `GET /api/plugins/{instanceId}/cookie-policies/{capability}` возвращает
   `instanceId`, `capability`, `allowedNames`, `revision` и сильный `ETag` вида
   `"<revision>"`. Для ещё не созданной policy возвращается пустой allow-list с
   revision `0` и `ETag: "0"`. Instance и capability должны существовать;
-  capability сверяется с Manifest подключённого plugin.
+  capability и её HTTP invocation mode сверяются с Manifest подключённого plugin.
 - `PUT` на том же ресурсе принимает только `allowedNames` и обязательный
   `If-Match` со значением текущего `ETag`. Имена уникальны, сравниваются точно
   и чувствительно к регистру; wildcard и регулярные выражения запрещены.
@@ -92,8 +101,7 @@ durable CAS/audit завершается ошибкой после актива�
 подтвердить candidate generation. Gateway не должен сохранять policy отдельно
 от runtime и не должен считать успешной синхронизацию только конфигурации
 Caddyfile. До появления этого механизма endpoint остаётся недоступным в external
-variant. Эти требования — целевой контракт, а не утверждение о завершённом
-production endpoint.
+variant.
 
 Это ограничение относится к Liapoldus plugin dispatch, а не утверждает
 поведение произвольных native Caddy handlers. Внешний или Constructor session
