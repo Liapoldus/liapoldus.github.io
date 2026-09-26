@@ -10,10 +10,12 @@ in-memory snapshot. Ошибка восстановления не должна 
 Временно нездоровый plugin не должен блокировать несвязанные sites: unavailable
 получают только его bindings до reconnect, handshake, config apply и health.
 
-**Текущий разрыв реализации:** `serve` сейчас запускает Caddy из текущей
-`system` revision до вызова `ActivateCurrent`/`Recover`; реальный crash между
-активацией Caddy и фиксацией SQLite ещё не проверен. До закрытия этого пункта
-нельзя считать описанную startup-гарантию выполненной; детали — в
+**Текущий статус:** до открытия traffic listener `serve` восстанавливает pending
+release reservations в SQLite, затем через lazy activator загружает active
+snapshot. Если durable recovery завершается ошибкой, Gateway оставляет data
+plane закрытым и сообщает `recovery-required`; TS E2E проверяет этот fail-closed
+путь. Полный process-kill/crash matrix и external-Caddy parity остаются
+открытыми; детали — в
 [`core/TODO.md`](https://github.com/Liapoldus/core/blob/main/TODO.md).
 
 ## Первый запуск без активной system revision
