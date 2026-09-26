@@ -46,11 +46,54 @@ Policy validation, фильтрация запроса и проверка respo
 
 Изолированные Caddy `Call` и `Stream` handler integration tests проверяют
 передачу cookie только по allow-list и обработку typed response actions, включая
-`HttpOnly`; некорректный response не должен частично менять headers. Это
-подтверждает handler-level slice, но не production-путь через запущенный Gateway:
-`serve` пока не подключает сохранённые plugin instances/runtime dispatch к Caddy
-handlers. Поэтому сквозная установка или передача plugin cookie через
-production Gateway пока не подтверждена.
+`HttpOnly`; некорректный response не должен частично менять headers. `serve`
+загружает local plugin instances из SQLite, запускает runtime и передаёт dispatch
+bindings embedded Caddy. Однако Gateway-owned allow-list пока не хранится и не
+передаётся в dispatch snapshot. Поэтому сквозная установка или передача plugin
+cookie через production Gateway пока не подтверждена.
+
+## Управление policy в Gateway v1
+
+Allow-list — Gateway-owned policy, а не plugin setting и не директива
+Caddyfile. Каждая запись адресуется парой `instanceId + capability`, хранится в
+отдельной SQLite policy relation и имеет монотонную `revision`. В ней нет
+значений cookie — только разрешённые имена.
+
+Каноническая machine-readable поверхность —
+[`management.openapi.yaml`](/spec/management.openapi.yaml). Endpoint пока
+является целевым контрактом: наличие OpenAPI и этой спецификации не означает,
+что production handler или SQLite migration уже реализованы.
+
+- `GET /api/plugins/{instanceId}/cookie-policies/{capability}` возвращает
+  `instanceId`, `capability`, `allowedNames`, `revision` и сильный `ETag` вида
+  `"<revision>"`. Для ещё не созданной policy возвращается пустой allow-list с
+  revision `0` и `ETag: "0"`. Instance и capability должны существовать;
+  capability сверяется с Manifest подключённого plugin.
+- `PUT` на том же ресурсе принимает только `allowedNames` и обязательный
+  `If-Match` со значением текущего `ETag`. Имена уникальны, сравниваются точно
+  и чувствительно к регистру; wildcard и регулярные выражения запрещены.
+  Несовпадающий `If-Match` возвращает `412 Precondition Failed`, отсутствующий —
+  `428 Precondition Required`; ни один случай не меняет runtime или audit.
+- Успешное изменение создаёт audit event `plugin.cookie_policy.replace`, без
+  cookie values, secret references и содержимого plugin payload.
+
+PUT сериализуется с другими изменениями policy. Gateway строит и проверяет
+candidate dispatch generation, затем активирует её в Caddy. Только после
+успешной активации SQLite compare-and-swap фиксирует новую revision вместе с
+audit event; успешный ответ содержит новую revision и соответствующий `ETag`.
+Ошибка подготовки или активации сохраняет прежнюю policy и generation. Если
+durable CAS/audit завершается ошибкой после активации, Gateway восстанавливает
+прежний generation и не сообщает об успехе. При аварийном завершении между
+активацией и durable commit восстановление при запуске обязано поднять последнее
+зафиксированное поколение до открытия public listeners.
+
+Для external Caddy PUT возвращает `503 Service Unavailable`, пока закрытый
+механизм private immutable dispatch snapshot sync не способен подготовить и
+подтвердить candidate generation. Gateway не должен сохранять policy отдельно
+от runtime и не должен считать успешной синхронизацию только конфигурации
+Caddyfile. До появления этого механизма endpoint остаётся недоступным в external
+variant. Эти требования — целевой контракт, а не утверждение о завершённом
+production endpoint.
 
 Это ограничение относится к Liapoldus plugin dispatch, а не утверждает
 поведение произвольных native Caddy handlers. Внешний или Constructor session
@@ -60,11 +103,9 @@ cookie также не является cookie plugin и описывается 
 Подтверждённые handler slices и отсутствующая production composition сведены в
 [матрицу реализации core](/gateway/architecture/implementation#текущее-состояние-core).
 
-Будущая интеграция должна связать allow-list с выбранными instance и capability,
-проверять её до активации candidate dispatch configuration, фильтровать request
-до `Call`/`Stream`, а все response actions валидировать до commit. Неприемлемые
-policy/request/action должны завершаться безопасно и без частичного forwarding;
-сырой cookie value нельзя включать в ошибку. Это целевое поведение protocol
-contract, а не утверждение о завершённой production-интеграции. Оставшаяся работа
-перечислена в [roadmap Gateway v1](v1-migration-roadmap#план-этапов-и-gates) и
+Оставшаяся реализация должна загрузить durable allow-list в active dispatch
+generation, фильтровать request до `Call`/`Stream` и валидировать все response
+actions до commit. Неприемлемые policy/request/action завершаются безопасно и без
+частичного forwarding; сырой cookie value не включается в ошибку. Оставшаяся
+работа перечислена в [roadmap Gateway v1](v1-migration-roadmap#план-этапов-и-gates) и
 [`core/TODO.md`](https://github.com/Liapoldus/core/blob/main/TODO.md).

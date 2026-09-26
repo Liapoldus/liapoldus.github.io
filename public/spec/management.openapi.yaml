@@ -203,6 +203,53 @@ paths:
       parameters: [{ $ref: '#/components/parameters/PluginId' }]
       responses:
         '202': { description: Restart local process or refresh remote connection; remote process is not restarted by Gateway., content: { application/json: { schema: { $ref: '#/components/schemas/OperationReference' } } } }
+  /api/plugins/{instanceId}/cookie-policies/{capability}:
+    parameters:
+      - { $ref: '#/components/parameters/PluginInstanceId' }
+      - { $ref: '#/components/parameters/Capability' }
+    get:
+      operationId: getPluginCookiePolicy
+      description: >-
+        Reads the Gateway-owned cookie allow-list for one plugin instance and
+        capability. A policy that has never been written is returned as an
+        empty allow-list at revision 0. The strong ETag is the quoted decimal
+        revision. This policy contains cookie names only, never cookie values.
+      responses:
+        '200':
+          description: Current policy, including the default empty revision when absent.
+          headers:
+            ETag: { schema: { type: string }, description: Strong quoted decimal policy revision. }
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/PluginCookiePolicy' } }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      operationId: replacePluginCookiePolicy
+      description: >-
+        Replaces the allow-list using strong If-Match compare-and-swap. The
+        candidate dispatch generation is validated and activated before the
+        durable SQLite revision and audit event are committed. A failed commit
+        restores the prior active generation. Updates to a policy are
+        serialized. External Caddy returns unavailable until private immutable
+        dispatch snapshot synchronization is supported. Audit excludes cookie
+        values, plugin payloads and secret references.
+      parameters:
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/PluginCookiePolicyInput' } }
+      responses:
+        '200':
+          description: Policy is active and durably committed.
+          headers:
+            ETag: { schema: { type: string }, description: Strong quoted decimal revision after replacement. }
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/PluginCookiePolicy' } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '412': { description: If-Match revision is stale; no policy, dispatch generation or audit event is changed., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '428': { description: If-Match is required for every replacement., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '503': { description: Candidate activation or required external dispatch synchronization is unavailable; the prior active policy remains in effect., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
   /api/tls:
     get:
       operationId: listTls
@@ -277,6 +324,8 @@ components:
     GroupId: { name: groupId, in: path, required: true, schema: { type: string, pattern: '^[a-z][a-z0-9-]{0,62}$' } }
     RevisionId: { name: revisionId, in: path, required: true, schema: { type: string, pattern: '^[0-9a-f]{64}$' } }
     PluginId: { name: pluginId, in: path, required: true, schema: { type: string, pattern: '^[a-z][a-z0-9-]{0,62}$' } }
+    PluginInstanceId: { name: instanceId, in: path, required: true, schema: { type: string, pattern: '^[a-z][a-z0-9-]{0,62}$' } }
+    Capability: { name: capability, in: path, required: true, schema: { type: string, minLength: 1, maxLength: 128 } }
     CheckpointId: { name: checkpointId, in: path, required: true, schema: { type: string } }
     OperationId: { name: operationId, in: path, required: true, schema: { type: string } }
     KeyId: { name: keyId, in: path, required: true, schema: { type: string } }
@@ -328,6 +377,37 @@ components:
     PluginInput: { type: object, additionalProperties: false, required: [mode, settings], properties: { mode: { enum: [local, remote] }, binary: { type: string }, endpoint: { type: string }, tls: { type: object }, settings: { type: object }, grants: { type: object }, limits: { type: object } } }
     Plugin: { type: object, required: [id, mode, state, capabilities, settings], properties: { id: { type: string }, mode: { enum: [local, remote] }, state: { enum: [starting, ready, unhealthy, stopped] }, endpoint: { type: string }, capabilities: { type: array, items: { type: string } }, capabilityModes: { type: object, description: Modes attested by the plugin Manifest; consumers use this only for Caddyfile binding validation., additionalProperties: { type: array, items: { enum: [call, http-stream, websocket, sse, tcp, udp] } } }, settings: { type: object, description: Redacted settings. } } }
     PluginList: { type: object, required: [items, requestId], properties: { items: { type: array, items: { $ref: '#/components/schemas/Plugin' } }, requestId: { type: string } } }
+    PluginCookiePolicyInput:
+      type: object
+      additionalProperties: false
+      required: [allowedNames]
+      properties:
+        allowedNames:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            description: Exact case-sensitive cookie name; wildcard and regular-expression entries are forbidden.
+            pattern: >-
+              ^[!#$%&'*+.^_`|~0-9A-Za-z-]+$
+    PluginCookiePolicy:
+      type: object
+      additionalProperties: false
+      required: [instanceId, capability, allowedNames, revision]
+      properties:
+        instanceId: { type: string, pattern: '^[a-z][a-z0-9-]{0,62}$' }
+        capability: { type: string, minLength: 1, maxLength: 128 }
+        allowedNames:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            description: Exact case-sensitive cookie name; wildcard and regular-expression entries are forbidden.
+            pattern: >-
+              ^[!#$%&'*+.^_`|~0-9A-Za-z-]+$
+        revision: { type: integer, minimum: 0 }
     IdempotencyRequest: { type: object, additionalProperties: false, required: [idempotencyKey], properties: { idempotencyKey: { type: string, minLength: 16, maxLength: 128 } } }
     RevokeRequest: { type: object, additionalProperties: false, required: [idempotencyKey, serial, reason], properties: { idempotencyKey: { type: string, minLength: 16, maxLength: 128 }, serial: { type: string, minLength: 1 }, reason: { type: string, minLength: 1 } } }
     OperationReference: { type: object, required: [operationId, state, requestId], properties: { operationId: { type: string }, state: { enum: [pending, running] }, requestId: { type: string } } }

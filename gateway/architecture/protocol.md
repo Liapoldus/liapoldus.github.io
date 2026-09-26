@@ -101,7 +101,10 @@ context и вызывает `Call`. Нормативный cookie contract и ф
 интеграции в Gateway описаны отдельно на странице [Cookie boundary](cookies);
 wire/JSON contract принадлежит только `pluginprotocol`. Не считать наличие
 protocol schema доказательством реализованной runtime-поддержки: текущий
-handler пока блокирует входящий `Cookie` и отклоняет response с cookie actions.
+handler-level tests проверяют allow-list и typed cookie response actions, но
+production Gateway пока не загружает Gateway-owned policy из SQLite и не
+передаёт её в dispatch generation. Состояние и целевая Management API семантика
+описаны на странице [Cookie boundary](cookies).
 Чувствительные значения должны быть redacted в logs, errors, audit, traces и
 diagnostic events.
 
