@@ -3,6 +3,11 @@
 CLI — локальный операторский frontend к Gateway Management API и bootstrap
 diagnostics. Он не управляет traffic через собственную YAML route DSL.
 
+Сейчас реализованы только `gateway serve` и `gateway access bootstrap`.
+Перечисленные ниже status/config/group/caddy/accounts команды — целевая
+поверхность CLI, они пока не доступны. Не используйте эту страницу как список
+действующих команд.
+
 ## Область команд
 
 - serve/status/health: процесс, DB migration, Caddy build identity и drift;
@@ -20,5 +25,5 @@ revision/digest и audit. Точный набор команд, flags и exit co
 - [Bootstrap gateway.yaml](/gateway/configuration/bootstrap)
 - [Group Releases API](/gateway/api/groups)
 - [Service keys](accounts)
-- [Диагностика](inspect)
-- [Versions/rollback](versions)
+- [Планируемая диагностика](inspect)
+- [Планируемые group revisions и rollback](versions)

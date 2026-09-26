@@ -1,5 +1,8 @@
 # Group revisions и rollback
 
+> **План:** команды CLI из этой страницы ещё не реализованы. Group revisions и
+> rollback доступны через Management API; см. [Group Releases API](/gateway/api/groups).
+
 CLI просматривает current/previous revisions и запускает group rollback через
 Gateway Management API. Это не отдельная публикация Site resource.
 

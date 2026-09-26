@@ -3,13 +3,18 @@
 Запускает Gateway control plane, plugin runtime и выбранный Caddy build variant
 после bootstrap validation и SQLite migration/recovery.
 
-Перед открытием public traffic listeners Gateway проверяет Caddy build
-identity/modules, восстанавливает pending durable operations, сверяет digests
-immutable config/artifacts и гидратирует active generation в in-memory
-snapshot. Ошибка bootstrap, SQLite recovery, module compatibility или snapshot
-preparation не открывает traffic listeners и завершает процесс с typed startup
-error. Временно нездоровый plugin не блокирует несвязанные sites: unavailable
+Целевой startup-порядок: до открытия public traffic listeners Gateway проверяет
+Caddy build identity/modules, восстанавливает pending durable operations,
+сверяет digests immutable config/artifacts и гидратирует active generation в
+in-memory snapshot. Ошибка восстановления не должна открыть traffic listeners.
+Временно нездоровый plugin не должен блокировать несвязанные sites: unavailable
 получают только его bindings до reconnect, handshake, config apply и health.
+
+**Текущий разрыв реализации:** `serve` сейчас запускает Caddy из текущей
+`system` revision до вызова `ActivateCurrent`/`Recover`; реальный crash между
+активацией Caddy и фиксацией SQLite ещё не проверен. До закрытия этого пункта
+нельзя считать описанную startup-гарантию выполненной; детали — в
+[`core/TODO.md`](https://github.com/Liapoldus/core/blob/main/TODO.md).
 
 ## Первый запуск без активной system revision
 
@@ -18,9 +23,15 @@ error. Временно нездоровый plugin не блокирует не
 Management API и control plane: публичные Caddy listeners не открываются,
 `GET /api/status` возвращает `dataPlaneReadiness.state=not-ready` с причиной
 `system-release-required`. Это штатный bootstrap state, а не повреждённая БД.
-Оператор публикует первую валидную system revision через Management API; после
-успешной подготовки Caddy snapshot Gateway открывает заданные Caddyfile
-listeners и переводит data plane в `ready`.
+**Целевое поведение:** оператор публикует первую валидную system revision через
+Management API; после успешной подготовки Caddy snapshot Gateway открывает
+заданные Caddyfile listeners и переводит data plane в `ready`.
+
+**Текущий разрыв реализации:** первая публикация сейчас не работает: при пустом
+`system.current` нет активатора Caddy, а release service отклоняет публикацию
+без активатора. Для выполнения целевого поведения нужен lazy Caddy activator,
+который поднимает data plane только после проверки и успешной активации первой
+revision. До этого Gateway остаётся в `system-release-required`.
 
 Если указатель уже задан, но revision, immutable Caddyfile/artifact или digest
 отсутствуют либо не совпадают, это не bootstrap state: Gateway не открывает

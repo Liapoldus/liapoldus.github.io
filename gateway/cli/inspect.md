@@ -1,5 +1,9 @@
 # Проверка и диагностика
 
+> **План:** команды в таблице ещё не реализованы. Сейчас CLI принимает только
+> `serve` и `access bootstrap`; для состояния используйте действующие
+> Management API endpoints, описанные в [API](/gateway/api/operations).
+
 CLI — локальный операторский интерфейс для bootstrap/runtime status и доступа.
 Он не разбирает route DSL и не формирует собственную traffic config.
 
