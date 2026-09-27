@@ -117,12 +117,12 @@ rollback не затрагивает. Если `previous` отсутствует
 
 ## Drift и Admin API
 
-Публикация group release запрещена, пока есть `drift` от native Caddy Admin
-API. Ответ содержит status и checkpoint reference, но не raw sensitive
-payload. Администратор должен явно восстановить checkpoint либо вызвать
-reconcile к определённым group revision IDs. Reconcile требует expected
-runtime digest, preview и отдельной audit записи; произвольный JSON назад в
-Caddyfile не преобразуется.
+Целевой контракт запрещает публикацию group release при `drift` от native
+Caddy Admin API. Он также предусматривает redacted status/checkpoint reference,
+явный restore или reconcile к определённым group revision IDs с expected
+runtime digest и audit. Эти checkpoint/drift/reconcile функции пока не
+реализованы; см. [статус реализации](/gateway/architecture/implementation).
+Произвольный Caddy JSON не преобразуется обратно в Caddyfile.
 
 Канонический endpoint полного Caddy Admin pass-through и его ограничения
 описаны в [OpenAPI](openapi); публичная поверхность Caddy Admin API запрещена.

@@ -5,10 +5,11 @@ revisions. Сначала проверяются native Caddyfile и artifacts, 
 runtime, и только после успеха меняется активный snapshot и current/previous
 соответствующей группы.
 
-Caddy Admin mutations создают checkpoint. Если runtime перестал соответствовать
-group composition, publish/rollback блокируется до явного checkpoint restore
-или reconcile. Необратимая конвертация произвольного Admin JSON в Caddyfile не
-поддерживается.
+Целевой контракт требует checkpoint для Caddy Admin mutations и блокирует
+publish/rollback, если runtime расходится с group composition, пока оператор не
+выполнит явный checkpoint restore или reconcile. Эти Admin/checkpoint/drift
+функции пока не реализованы; см. [статус реализации](/gateway/architecture/implementation).
+Обратная конвертация произвольного Admin JSON в Caddyfile не поддерживается.
 
 ACME может выдать сертификат после активации. Состояние сертификата
 отслеживается отдельно по домену. См. [Control plane](../architecture/control-plane)

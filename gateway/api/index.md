@@ -19,7 +19,9 @@ API и использует Bearer token. Constructor roles остаются в 
 | [Audit](audit) | Durable redacted audit semantics. |
 | [OpenAPI](openapi) | Нормативная API schema без дублирования endpoint таблиц. |
 
-Полный Caddy Admin API доступен только как аутентифицированный Gateway
-pass-through; underlying Admin listener остаётся loopback/local IPC. Каждая
-мутация создаёт checkpoint до передачи запроса и может перевести control plane
-в `drift`, блокирующий group publish до явного reconcile/restore.
+Целевой контракт предусматривает полный Caddy Admin API через
+аутентифицированный Gateway pass-through, checkpoint перед мутацией и drift
+guard для group publish. Эти Admin/checkpoint/drift/reconcile функции пока не
+реализованы; актуальная матрица готовности — в
+[статусе реализации](/gateway/architecture/implementation). Сам underlying
+Caddy Admin listener должен оставаться loopback/local IPC.

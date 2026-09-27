@@ -101,10 +101,11 @@ permissions применяются к конкретной Gateway binding: на
 ## Health и Caddy Admin
 
 Unauthenticated health endpoint сообщает только process/readiness status и не
-раскрывает конфигурацию или inventory. Caddy Admin API доступен только через
-авторизованный Gateway pass-through; внешний Admin socket и plugin endpoints
-не становятся интерфейсами Constructor. Любая mutating Admin operation
-checkpoint-ится до применения, audit фиксирует metadata без тел и секретов.
+раскрывает конфигурацию или inventory. Целевой контракт ограничивает Caddy
+Admin API авторизованным Gateway pass-through; внешний Admin socket и plugin
+endpoints не становятся интерфейсами Constructor. Pass-through и checkpoint
+перед Admin mutation пока не реализованы. Audit не должен включать тела запросов
+и секреты. См. [статус реализации](/gateway/architecture/implementation).
 
 Схемы token create/rotate, auth failure и typed errors определены в
 [Gateway OpenAPI](/spec/management.openapi.yaml); пользовательские sessions и
