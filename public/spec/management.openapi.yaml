@@ -168,8 +168,9 @@ paths:
   /api/plugins:
     get:
       operationId: listPlugins
+      parameters: [{ $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
       responses:
-        '200': { description: Configured plugin instances, content: { application/json: { schema: { $ref: '#/components/schemas/PluginList' } } } }
+        '200': { description: Safe plugin inventory only; excludes settings, endpoints, binary paths, grants and secret references., content: { application/json: { schema: { $ref: '#/components/schemas/PluginList' } } } }
     post:
       operationId: createPlugin
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PluginInput' } } } }
@@ -181,8 +182,8 @@ paths:
       operationId: getPlugin
       parameters: [{ $ref: '#/components/parameters/PluginId' }]
       responses:
-        '200': { description: Plugin resource, content: { application/json: { schema: { $ref: '#/components/schemas/Plugin' } } } }
-        '404': { $ref: '#/components/responses/Problem' }
+        '200': { description: Same redacted inventory object returned by the list endpoint; no settings or connection/launch details., content: { application/json: { schema: { $ref: '#/components/schemas/PluginInventory' } } } }
+        '404': { description: No plugin instance exists for this identifier (`plugin_not_found`)., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
     put:
       operationId: updatePlugin
       parameters: [{ $ref: '#/components/parameters/PluginId' }, { $ref: '#/components/parameters/IfMatch' }]
@@ -375,8 +376,50 @@ components:
     CaddyState: { type: object, required: [drift, runtimeDigest, compositionDigest], properties: { drift: { type: boolean }, runtimeDigest: { type: string }, compositionDigest: { type: string }, latestCheckpointId: { type: [string, 'null'] } } }
     ReconcileRequest: { type: object, additionalProperties: false, required: [groupRevisions, idempotencyKey], properties: { groupRevisions: { type: object, additionalProperties: { type: string } }, idempotencyKey: { type: string, minLength: 16, maxLength: 128 } } }
     PluginInput: { type: object, additionalProperties: false, required: [mode, settings], properties: { mode: { enum: [local, remote] }, binary: { type: string }, endpoint: { type: string }, tls: { type: object }, settings: { type: object }, grants: { type: object }, limits: { type: object } } }
-    Plugin: { type: object, required: [id, mode, state, capabilities, settings], properties: { id: { type: string }, mode: { enum: [local, remote] }, state: { enum: [starting, ready, unhealthy, stopped] }, endpoint: { type: string }, capabilities: { type: array, items: { type: string } }, capabilityModes: { type: object, description: Modes attested by the plugin Manifest; consumers use this only for Caddyfile binding validation., additionalProperties: { type: array, items: { enum: [call, http-stream, websocket, sse, tcp, udp] } } }, settings: { type: object, description: Redacted settings. } } }
-    PluginList: { type: object, required: [items, requestId], properties: { items: { type: array, items: { $ref: '#/components/schemas/Plugin' } }, requestId: { type: string } } }
+    PluginInventory:
+      type: object
+      additionalProperties: false
+      description: >-
+        Redacted inventory object. Does not expose settings, endpoint, binary,
+        launch configuration, grants, TLS material, filesystem paths or secrets.
+      required: [id, mode, state, revision, capabilities, capabilityDescriptors]
+      properties:
+        id: { type: string, pattern: '^[a-z][a-z0-9-]{0,62}$' }
+        mode: { enum: [local, remote] }
+        state: { enum: [configured, starting, ready, degraded, failed] }
+        revision: { type: integer, minimum: 1 }
+        capabilities: { type: array, items: { type: string, minLength: 1, maxLength: 128 } }
+        capabilityDescriptors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [capability, modes]
+            properties:
+              capability: { type: string, minLength: 1, maxLength: 128 }
+              modes:
+                type: array
+                uniqueItems: true
+                items:
+                  enum: [INVOCATION_MODE_CALL, INVOCATION_MODE_HTTP_STREAM, INVOCATION_MODE_WEBSOCKET, INVOCATION_MODE_SSE, INVOCATION_MODE_TCP, INVOCATION_MODE_UDP]
+    Plugin:
+      type: object
+      required: [id, mode, state, capabilities, settings]
+      properties:
+        id: { type: string }
+        mode: { enum: [local, remote] }
+        state: { enum: [starting, ready, unhealthy, stopped] }
+        endpoint: { type: string }
+        capabilities: { type: array, items: { type: string } }
+        capabilityModes: { type: object, description: Modes attested by the plugin Manifest; consumers use this only for Caddyfile binding validation., additionalProperties: { type: array, items: { enum: [call, http-stream, websocket, sse, tcp, udp] } } }
+        settings: { type: object, description: Redacted settings. }
+    PluginList:
+      type: object
+      required: [items, nextCursor, requestId]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PluginInventory' } }
+        nextCursor: { type: [string, 'null'], description: Opaque offset cursor; pass unchanged to continue. }
+        requestId: { type: string }
     PluginCookiePolicyInput:
       type: object
       additionalProperties: false

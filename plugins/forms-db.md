@@ -1,15 +1,18 @@
 # forms-db
 
-> **Статус:** реализованы memory- и SQLite-хранилища, атомарное применение
-> настроек и проверка отправок по переданным JSON Schema Draft 2020-12.
-> Equality-фильтр по разрешённому top-level-полю schema и HMAC-защищённая
-> cursor pagination также реализованы. PostgreSQL/MySQL adapters и полное
-> выполнение declarative admin actions пока отсутствуют и не считаются
-> поддерживаемыми. Схемы не сохраняются в БД: их нужно передавать при каждом
-> применении конфигурации.
+> **Статус:** реализованы memory-, SQLite-, PostgreSQL- и MySQL-хранилища,
+> атомарное применение настроек и проверка отправок по переданным JSON Schema
+> Draft 2020-12. Equality-фильтр по разрешённому top-level-полю schema и
+> защищённая cursor pagination также реализованы. Проверки реальных PostgreSQL
+> и MySQL подключаются только при наличии DSN; без соответствующей переменной
+> окружения тест помечается `skipped`, поэтому обычный зелёный `go test ./...`
+> сам по себе не подтверждает подключение к серверу БД. Полная orchestration
+> declarative admin actions через Gateway/Constructor ещё не завершена. Схемы
+> не сохраняются в БД: их нужно передавать при каждом применении конфигурации.
 
-Плагин форм: приём и просмотр отправок веб-форм с хранением в памяти или SQLite.
-Эталонный пример плагина для [гайда по созданию плагинов](/gateway/architecture/guide).
+Плагин форм: приём и просмотр отправок веб-форм с memory-, SQLite-, PostgreSQL-
+или MySQL-хранилищем. Эталонный пример плагина для
+[гайда по созданию плагинов](/gateway/architecture/guide).
 
 Репозиторий: **отдельный git-репозиторий** плагина — свой Go-модуль,
 не в репозитории ядра gateway. Бинарник собирается из этого репозитория.
@@ -96,10 +99,12 @@ logical key через индивидуальные scoped grants. После р
 
 ## Конфиг instance
 
-Поддерживаются `memory` и `sqlite`. `memory` — значение по умолчанию и не
-сохраняет записи после перезапуска. SQLite сохраняет их в указанном файле.
-Настройки PostgreSQL и MySQL пока не поддерживаются реализацией, даже если
-названия этих драйверов присутствуют в схеме формы настроек.
+Поддерживаются драйверы `memory`, `sqlite`, `postgres` и `mysql`. `memory` —
+значение по умолчанию и не сохраняет записи после перезапуска. SQLite сохраняет
+их в указанном файле; PostgreSQL и MySQL подключаются через DSN, полученный по
+Gateway-scoped grant. Код содержит SQL adapters для обоих драйверов. Реальные
+integration tests подключаются только если заданы `FORMS_DB_POSTGRES_DSN` и/или
+`FORMS_DB_MYSQL_DSN`; при отсутствии DSN соответствующий тест явно пропускается.
 
 Пример SQLite:
 
@@ -111,13 +116,15 @@ tablePrefix: form_
 
 | Ключ | Назначение | По умолчанию |
 | --- | --- | --- |
-| `driver` | `memory` или `sqlite` | `memory` |
-| `dsn` | путь к файлу БД при `sqlite`; для `memory` не используется | — |
+| `driver` | `memory`, `sqlite`, `postgres` или `mysql` | `memory` |
+| `dsn` | Для SQLite — путь к файлу БД; для PostgreSQL/MySQL — opaque Gateway secret reference. Для `memory` не используется | — |
 | `tablePrefix` | префикс таблиц плагина | `form_` |
 
-`dsn` указывает путь SQLite относительно рабочего окружения процесса плагина.
-Используйте постоянный volume, если данные должны переживать пересоздание
-контейнера.
+Для SQLite путь `dsn` разрешается относительно рабочего окружения процесса
+плагина; используйте постоянный volume, если данные должны переживать
+пересоздание контейнера. Для PostgreSQL/MySQL settings содержат только opaque
+secret reference: Gateway выдаёт revision-scoped grant, а plugin получает
+реальный DSN отдельно и держит его в памяти активного storage adapter.
 
 Декларация плагина и привязка capability к маршруту — общий синтаксис
 [«Обзор и настройка»](/plugins/).
@@ -137,9 +144,13 @@ go vet ./...
 go test ./...
 ```
 
-Gateway child-process smoke пока не предоставляется: прежний скрипт строил
-конфигурацию с удалёнными `listeners/routes` и не проверял текущую Caddyfile
-архитектуру. E2E будет добавлен после production runtime composition в core.
+`core/tests/integration/serve-local-plugin-products.test.ts` собирает настоящий
+forms-db binary и запускает его как local child process через Gateway `serve` и
+embedded Caddy. Тест вызывает `POST /submit` и проверяет сохранённую отправку;
+он намеренно использует `memory` driver. Это подтверждает local process,
+settings/dispatch и unary call, но не SQL-backed Gateway grant flow, удалённый
+plugin/mTLS или declarative admin-action orchestration. PostgreSQL/MySQL live
+integration покрываются отдельными plugin tests только при заданных DSN.
 
 ## Страницы в Constructor
 
