@@ -48,11 +48,14 @@ Policy validation, фильтрация запроса и проверка respo
 
 Изолированные Caddy `Call` и `Stream` handler integration tests проверяют
 передачу cookie только по allow-list и обработку typed response actions, включая
-`HttpOnly`; некорректный response не должен частично менять headers. `serve`
-читает inventory instances из SQLite, запускает локальные runtime и передаёт
-dispatch bindings embedded Caddy. Generic API регистрации/изменения plugin
-instances пока отсутствует; полный путь от чистой установки до настройки
-policy не подтверждён.
+`HttpOnly`; некорректный response не должен частично менять headers. Production
+`serve` восстанавливает policy из SQLite и передаёт dispatch bindings embedded
+либо supervised external Caddy. Child-process E2E проверяет фактическую
+фильтрацию и ordinary/`HttpOnly` actions в embedded-варианте; отдельный E2E с
+настоящим custom external Caddy проверяет, что успешный `PUT` меняет policy в
+активном runtime до ответа API. Generic API регистрации/изменения plugin
+instances пока отсутствует, поэтому полный путь от чистой установки до
+настройки policy не подтверждён.
 
 ## Управление policy в Gateway v1
 
@@ -63,15 +66,17 @@ Caddyfile. Каждая запись адресуется парой `instanceId
 
 Каноническая machine-readable поверхность —
 [`management.openapi.yaml`](/spec/management.openapi.yaml). В core реализованы
-handler `GET`/`PUT`, сильный ETag/If-Match CAS, SQLite schema v3, audit в одной
-транзакции с policy CAS и embedded-Caddy activation с rollback при ошибке
-durable commit. Caddy принимает policy для capability с HTTP `Call`, HTTP Stream,
-WebSocket или SSE mode и отвергает TCP/UDP-only capability. Это ещё не полная
-production-приёмка: остаются child-process
-conformance для фактической фильтрации cookies и typed response actions,
-crash-recovery между activation и commit, rollback-failure fencing и
-external-Caddy snapshot synchronization. Текущий endpoint в external-варианте
-отвечает unavailable.
+handler `GET`/`PUT`, сильный ETag/If-Match CAS, SQLite schema v3 и audit в одной
+транзакции с policy CAS. Перед CAS candidate dispatch generation активируется
+в Caddy; если durable commit не проходит, Gateway восстанавливает прежнее
+поколение. Embedded-вариант заменяет Caddy app в активном процессе. External
+вариант собирает полный candidate config с обновлёнными plugin bindings и
+передаёт его через закрытый private Admin API/Unix socket; ответ `/load` должен
+подтвердить активацию до SQLite commit. Caddy принимает policy для capability с
+HTTP `Call`, HTTP Stream, WebSocket или SSE mode и отвергает TCP/UDP-only
+capability. Общая production-приёмка ещё не завершена: остаются crash-recovery
+между activation и commit, проверка rollback-failure fencing, полный
+embedded/external parity и общий security/conformance gate.
 
 - `GET /api/plugins/{instanceId}/cookie-policies/{capability}` возвращает
   `instanceId`, `capability`, `allowedNames`, `revision` и сильный `ETag` вида
@@ -96,12 +101,15 @@ durable CAS/audit завершается ошибкой после актива�
 активацией и durable commit восстановление при запуске обязано поднять последнее
 зафиксированное поколение до открытия public listeners.
 
-Для external Caddy PUT возвращает `503 Service Unavailable`, пока закрытый
-механизм private immutable dispatch snapshot sync не способен подготовить и
-подтвердить candidate generation. Gateway не должен сохранять policy отдельно
-от runtime и не должен считать успешной синхронизацию только конфигурации
-Caddyfile. До появления этого механизма endpoint остаётся недоступным в external
-variant.
+Для external Caddy `503 Service Unavailable` означает, что private Admin
+snapshot sync недоступна либо отклонила candidate. В этом случае прежняя policy
+и SQLite revision остаются активными. Синхронизируется весь Caddy runtime config,
+включая Liapoldus dispatch app и cookie policy; одного Caddyfile недостаточно.
+Если SQLite CAS/audit не удаётся после принятого `/load`, Gateway посылает
+прежний snapshot обратно в Caddy и не возвращает успешный `PUT`. Real custom
+external-Caddy E2E с fault injection проверяет этот путь: после отказа SQLite
+revision/ETag остаются прежними и публичный запрос снова проходит с прежним
+allow-list.
 
 Это ограничение относится к Liapoldus plugin dispatch, а не утверждает
 поведение произвольных native Caddy handlers. Внешний или Constructor session
