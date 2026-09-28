@@ -1,27 +1,34 @@
 # Gateway Management API
 
-Management API управляет группами Caddyfile revisions, plugin instances,
-доступом, операциями и аудитом. Он не обслуживает пользовательский traffic и
-не принимает Gateway route DSL.
+Management API управляет Core desired-state: plugin instances, settings,
+установкой локальных releases в supervised profile, external endpoints,
+interaction policies, access, operations и audit. Он не проксирует public
+traffic, не предоставляет Caddy Admin API и не содержит Caddy-specific route,
+group или TLS endpoints.
 
-Полный контракт: [`management.openapi.yaml`](/spec/management.openapi.yaml).
-Management API доступен только на отдельном listener. Web Constructor backend
-использует private HTTPS+mTLS и отдельный Bearer `platform-admin` token на
-каждую Gateway binding; desktop входит через ограниченный SSH tunnel к loopback
-API и использует Bearer token. Constructor roles остаются в Constructor; см.
-[каноническую модель доступа](authentication).
+## Поверхность API
 
-| Раздел | Контракт |
+| Область | Назначение |
 | --- | --- |
-| [Аутентификация](authentication) | Web mTLS, desktop SSH bridge, Gateway service tokens и Constructor authorization boundary. |
-| [Group releases](groups) | Multipart Caddyfile/archive, revisions, idempotency и rollback. |
-| [Ресурсы и операции](operations) | Status, plugin instances, TLS, checkpoints, drift и operations. |
-| [Audit](audit) | Durable redacted audit semantics. |
-| [OpenAPI](openapi) | Нормативная API schema без дублирования endpoint таблиц. |
+| Plugins | Instance metadata, Manifest/ConfigSchema, settings JSON, endpoints и mode-specific lifecycle. |
+| Plugin installation | TUF-каталог и установка выбранного signed release только в supervised profile. |
+| Interactions | Explicit caller→target/capability/mode policy с CAS, durable operation и audit. |
+| Admin Surface | Общая авторизованная граница для plugin-owned management actions и UI descriptors. |
+| Operations | Polling durable operations и generation/replica readiness. |
+| Access/Audit | Service-key lifecycle, operator actor и append-only audit. |
 
-Целевой контракт предусматривает полный Caddy Admin API через
-аутентифицированный Gateway pass-through, checkpoint перед мутацией и drift
-guard для group publish. Эти Admin/checkpoint/drift/reconcile функции пока не
-реализованы; актуальная матрица готовности — в
-[статусе реализации](/gateway/architecture/implementation). Сам underlying
-Caddy Admin listener должен оставаться loopback/local IPC.
+В external profile install и process lifecycle операции недоступны. Обе формы
+API имеют одну authorization policy; точные схемы и status/error catalog — в
+[OpenAPI](../../spec/management.openapi.yaml) и
+[errors contract](../../spec/errors.json).
+
+## Удалённые поверхности
+
+Старые `/api/groups`, `/api/caddy/*`, `/api/caddy-state/*` и `/api/tls/*` не
+являются частью нового v1. Caddy traffic settings сохраняются через generic
+plugin config JSON, а сертификаты, site artifacts и `current/previous`
+управляются Caddy plugin Admin Surface. Старые страницы оставлены как
+совместимые маршруты документации, но описывают удалённый API.
+
+Подробно: [аутентификация](authentication),
+[plugin configuration](config) и [operations](operations).

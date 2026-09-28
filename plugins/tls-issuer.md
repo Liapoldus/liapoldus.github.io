@@ -1,6 +1,9 @@
 # Старый адрес документации `tls-issuer`
 
-Этот URL сохранён для старых ссылок; `tls-issuer` не является компонентом
-Gateway v1. ACME и жизненным циклом сертификатов Caddy-managed доменов владеет
-Caddy/CertMagic. Текущая модель описана в [архитектуре control plane](/gateway/architecture/control-plane)
-и [контракте TLS operations](/gateway/api/operations#tls-operations).
+Эта страница сохранена только для совместимости со старыми ссылками.
+`tls-issuer` исключён из Gateway v1. ACME/CertMagic lifecycle принадлежит
+единственному Caddy plugin; конфигурация приходит из Core SQLite через общий
+plugin settings API и `ConfigApply`. Специальных Caddy TLS endpoints в Core нет.
+
+См. [целевую архитектуру Gateway](/gateway/architecture/target) и
+[HTTP runtime boundary](/gateway/configuration/http-runtime).

@@ -1,11 +1,10 @@
-# Traffic configuration
+# Traffic settings
 
-Маршруты и серверные блоки не задаются через gateway.yaml. Gateway v1
-принимает native Caddyfile fragments в group release и передаёт их совместимому
-Caddy runtime на адаптацию/проверку.
+Это сохранённый URL прежней страницы о нативных Caddyfile group releases.
+В целевом v1 пользовательский traffic задаётся через Caddy plugin settings
+JSON schema, сохраняемые Core в SQLite и push-имые через `ConfigApply`. Core
+не принимает Caddyfile fragments и не имеет самостоятельной route DSL.
 
-Семантика нативного Caddyfile определяется документацией Caddy. Liapoldus
-добавляет только необходимые узкие modules для plugin dispatch и immutable
-frontend roots; эти модули не образуют отдельную route DSL. Group publication,
-plugin binding validation и atomic activation определяет
-[Group Releases API](/gateway/api/groups).
+Нормативные границы: [конфигурация](index),
+[Caddy plugin architecture](../architecture/target) и
+[plugin settings API](../api/config).

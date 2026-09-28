@@ -1,78 +1,42 @@
 # Развёртывание Gateway
 
-Gateway поставляется как один Liapoldus server process. Constructor — отдельный
-desktop/web-продукт, plugins остаются отдельными binaries/services. Caddy имеет два
-варианта запуска: embedded в Gateway process либо compatible external binary,
-который Gateway запускает и supervises как child process.
+Gateway Core — один процесс с локальной SQLite. Выбирается один глобальный
+profile: `supervised` или `external`; смешанный режим не поддерживается.
+Параметры bootstrap задаются в [`gateway.yaml`](../configuration/yaml-reference),
+а целевые границы описаны в [архитектуре v1](../architecture/target).
 
-## Выбор Caddy build
+## Supervised
 
-Оба build variants обязательны для v1 и используют общий Management API и
-одинаковый Liapoldus data-plane handler:
+Core размещается на доверенном host. Он скачивает TUF-проверенные plugin
+packages в локальный immutable release store, запускает локальные процессы и
+управляет их lifecycle. SQLite и package/artifact directory должны находиться
+на persistent local filesystem; Core не поддерживает active-active и не
+использует network filesystem для собственной SQLite.
 
-- embedded: Caddy и Liapoldus/Caddy-L4 modules включены в Gateway executable;
-- external: Gateway запускает указанный совместимый Caddy binary отдельным
-  процессом.
+## External/orchestrated
 
-External binary обязан иметь зафиксированные совместимые Liapoldus modules и
-Caddy-L4; обычный Caddy не поддерживается. Gateway проверяет build/module
-identity до открытия traffic listeners и передаёт external runtime config и
-immutable dispatch snapshots через закрытый Admin API на permissioned Unix
-socket. Сам handler вызывает plugin напрямую по gRPC; Management API не
-проксирует пользовательские запросы. Caddy Admin listener не публикуется в
-host/container network. Gateway supervises external Caddy, перезапускает child
-с bounded backoff и выставляет data-plane readiness отдельно от Management
-readiness. Оба variants проходят общий parity suite; Caddy-L4 failure блокирует
-release.
+Core разворачивается одной replica; внешние plugin workloads — отдельно в
+Docker/Kubernetes или как standalone processes. Operator задаёт каждому
+instance его endpoint и TLS identity. Core не подключается к Docker/Kubernetes
+API, не публикует plugin install/start/stop/restart endpoints и не становится
+leader для реплик.
 
-## Хранилище
+Caddy plugin в v1 всегда одна replica. Внешний workload должен иметь persistent
+volume для ACME/CertMagic данных и опубликованных site releases; deployment
+не должен пересоздавать пустое хранилище при рестарте. Core передаёт Caddy
+settings из SQLite через `ConfigApply`; сам plugin строит Caddy runtime
+configuration и слушает public ports.
 
-`gateway.yaml` задаёт путь к локальной SQLite database и artifact root. Целевая
-модель хранения помещает в SQLite группы/revisions/pointers, plugin metadata,
-service-key verifiers, operations/idempotency, audit, plugin settings/revisions
-и Caddy checkpoint metadata. Immutable Caddyfile revisions, frontend roots и
-checkpoint snapshots хранятся как файлы. Полное checkpoint-хранилище и
-reconciliation пока не реализованы; см. [статус реализации](/gateway/architecture/implementation).
-Целевая последовательность старта: Gateway сверяет metadata/digests, загружает
-plugin settings из SQLite и гидратирует active generation в immutable in-memory
-snapshot; пользовательские запросы не читают SQLite или файлы. Полный
-production crash-recovery пока не подтверждён. SQLite на сетевой filesystem не
-поддерживается.
+## Сеть и порты
 
-Backup должен согласованно включать online SQLite backup и immutable artifacts
-из одного snapshot boundary. ACME internal state остаётся под управлением
-Caddy/CertMagic.
+Management listener отделён от пользовательских listener-ов Caddy. В
+supervised profile процесс Caddy получает требуемый OS grant для выбранных
+public ports; Core не запускается от root и не передаёт Caddy socket activation.
+В Docker/Kubernetes ports публикуются через инфраструктуру. Plugin protocol
+listeners не должны быть доступны извне разрешённого workload network.
 
-## Сеть и безопасность
-
-Публичный traffic слушается только Caddy. Management listener отделён. Web
-Constructor backend подключается только из private network/VPN по HTTPS+mTLS и
-отдельному Bearer platform-admin token для каждого Gateway. Desktop Constructor
-использует short-lived SSH certificate через OpenSSH/bastion, ограниченный
-forwarding к loopback Management API; внутри tunnel проверяются TLS server
-identity и Bearer token. Caddy Admin доступен только Gateway по permissioned
-Unix socket и не публикуется через
-container port, Kubernetes Service/Ingress, host ingress или reverse proxy.
-
-Plugin mode задаётся на instance. Local mode использует supervised process и
-назначенный loopback endpoint. Remote mode подключается к стабильному Service
-по TLS/mTLS; внешняя среда запускает и рестартует workload. Каждая replica
-имеет unique identity, привязанную к logical instance; Ready replicas должны
-иметь одинаковые release/config digests, а Gateway повторяет handshake на
-каждом новом connection. Gateway не запускает remote plugin и не replay-ит
-неопределённый Call. Plugin workload CA и Management CA разделяются; identities
-ротируются внешним CA.
-
-## Container
-
-Embedded variant работает в одном контейнере Gateway. External variant
-содержит совместимый Caddy binary в том же image либо в ограниченно доступном
-каталоге на той же машине/Pod; Gateway supervises его lifecycle. Это два
-процесса в одном deployment unit, но Caddy control endpoint остаётся private
-permissioned Unix socket, а не отдельной публичной службой. Gateway process
-работает non-root; database, artifacts и ACME state находятся в отдельных
-persistent mounts с ограниченными правами.
-
-Bootstrap описан в [схеме gateway.yaml](/gateway/configuration/bootstrap),
-plugin modes — в [архитектуре подключения plugins](/gateway/architecture/plugin-deployment),
-а общий порядок миграции — в [roadmap](/gateway/architecture/v1-migration-roadmap).
+Секреты, ключи и сертификаты нельзя помещать в YAML или environment с
+application settings. Management TLS references задаются через file refs;
+remote workload identity поступает через protocol SDK PEM provider или SPIFFE
+Workload API. Подробная boundary — в
+[security configuration](../configuration/security).

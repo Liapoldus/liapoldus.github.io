@@ -1,51 +1,48 @@
-# Безопасность Gateway
+# Границы безопасности Gateway
 
-Эта страница кратко фиксирует trust boundaries конфигурации. Полный контракт
-Management authentication, Constructor roles и desktop bridge описан в
-[Аутентификации Management API](/gateway/api/authentication); здесь правила не
-дублируются.
+## Management API
 
-## Сетевые поверхности
+Management listener не размещается на public Caddy listeners. TLS server identity
+обязателен всегда. Web Controller соединяется по private HTTPS с mTLS и отдельным
+Bearer service credential на binding; credential остаётся на backend и не
+передаётся browser. Для desktop доступа используется ограниченный SSH
+port-forward к loopback Management API; SSH policy запрещает shell, SFTP и agent
+forwarding, а bearer хранится в OS credential store. Core авторизует каждую
+операцию, пишет audit и не раскрывает token повторно.
 
-- Публичные HTTP/TLS/L4 listener-ы принадлежат Caddy и не обслуживают
-  Management API.
-- Management API имеет отдельный listener. Web Constructor backend подключается
-  только из private network/VPN по HTTPS+mTLS и Bearer token.
-- Desktop Constructor открывает SSH port-forward через внешний OpenSSH/bastion
-  к loopback Management API; tunnel не даёт shell или произвольного forwarding.
-  Внутри tunnel проверяются TLS server identity и Gateway Bearer token.
-- Caddy Admin API external process привязан к permissioned Unix socket, доступному
-  Gateway process; embedded variant использует внутренний adapter. Socket/API
-  не публикуется через host port, Docker/Kubernetes Service, Ingress или
-  reverse proxy.
-- Plugin endpoints доступны только из разрешённой plugin/Caddy network policy.
-  Прямой plugin-to-plugin traffic запрещён.
+## Plugin workload
 
-## Plugin trust
+`pluginprotocol` реализует mTLS для всех обычных plugin control/data
+connections. Management trust и workload trust раздельны. В supervised profile
+первичная local identity/pin exchange идёт только по приватному inherited
+bootstrap pipe; после этого plaintext plugin RPC запрещён. В external profile
+SDK поддерживает read-only PEM identity и SPIFFE Workload API. Core не является
+CA и не получает plugin private keys.
 
-Local plugin запускается Gateway Supervisor на назначенном loopback endpoint.
-Remote plugin подключается по стабильному Docker/Kubernetes Service endpoint с
-TLS/mTLS; процессом, replicas, readiness и restart policy владеет внешняя
-среда. Каждая Pod имеет уникальную externally-issued workload identity,
-связанную с logical plugin instance. Все Ready replicas обязаны иметь один
-совместимый release/Manifest/settings digest; новая gRPC connection заново
-проверяет сертификат и protocol handshake. Management CA, plugin workload CA и
-Caddy/ACME state разделены; Gateway не является CA и не имеет insecure fallback.
+Remote trust использует externally issued identities и signed CRL bundles.
+Неверная цепочка, issuer, подпись, срок, номер или отозванный serial закрывает
+новый handshake. Обновление CRL закрывает существующие каналы и требует нового
+handshake; insecure downgrade запрещён. Подробности wire contract — только в
+[pluginprotocol](https://github.com/Liapoldus/pluginprotocol).
 
-Потеря одного plugin instance деградирует только связанные Caddy bindings.
-Неопределённый unary Call не повторяется автоматически; оборванный Stream
-закрывается и не переносится между replicas. Полный lifecycle и recovery
-описан в [режимах подключения plugin](/gateway/architecture/plugin-deployment).
+## Plugin interactions и secrets
 
-## Секреты и audit
+Межплагинный вызов разрешён только явным Core policy edge
+`caller → target/capability/mode`; default — deny. SDK строит outbound clients
+из подтверждённого `DispatchApply` peer directory. Core не проксирует payload.
 
-Plaintext secrets запрещены в Caddyfile revisions, Gateway API bodies, SQLite,
-external Caddy control payloads, logs, traces и audit. Config содержит только
-внешние secret references. Constructor credentials и plugin workload
-credentials никогда не экспортируются в UI. Ошибки безопасны и redacted;
-Admin audit хранит actor binding, method, normalized path, operation/checkpoint
-IDs и результат, но не request/response bodies или sensitive headers.
+`ConfigApply` содержит versioned JSON и opaque secret references, но не secret
+bytes. Grant имеет scope instance/revision/call; plugin держит разрешённое
+значение только в памяти и очищает его после срока действия. Raw secrets,
+private keys, bearer, cookies, grants, request bodies и приватные filesystem
+paths запрещены в логах, errors, traces и audit.
 
-Сертификатная готовность отслеживается отдельно по домену. TLS/ACME ownership и
-Caddy trust configuration заданы в
-[архитектуре control plane](/gateway/architecture/control-plane).
+## Process and artifact boundaries
+
+Supervised package допускается только после TUF signature, digest, platform и
+protocol compatibility checks; произвольные URLs не принимаются. Plugin
+process не получает Core SQLite credentials или доступ к базе. Caddy plugin
+имеет собственный persistent directory для сертификатов и site releases, но
+его settings source of truth остаётся Core SQLite. В external profile lifecycle
+процессов контролирует operator, а Management API не выдаёт lifecycle/install
+операции.

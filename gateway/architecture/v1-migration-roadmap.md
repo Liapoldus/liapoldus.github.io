@@ -1,307 +1,128 @@
-# План перепроектирования Gateway v1
+# План перепроектирования и реализации Gateway v1
 
-Эта страница задаёт последовательность перехода и критерии готовности. Она не
-заменяет технические контракты: детали Caddyfile, bootstrap-конфигурации,
-Management API, хранения и развёртывания описаны в канонических документах,
-связанных в разделе [Нормативные документы](#нормативные-документы).
+Это канонический межрепозиторный roadmap. Он задаёт порядок миграции от текущей
+кодовой базы к [целевой архитектуре Gateway](target). Все утверждения о новом
+поведении — цель и acceptance contract, а не доказательство, что оно уже
+реализовано. Текущее evidence ведётся отдельно в
+[матрице реализации](implementation) и репозиторных TODO:
+[Core](https://github.com/Liapoldus/core/blob/main/TODO.md),
+[pluginprotocol](https://github.com/Liapoldus/pluginprotocol/blob/main/TODO.md).
 
-## Цель и границы продукта
+## Цель и неизменяемые рамки
 
-Gateway v1 — Liapoldus control plane с отдельным Management listener и один из
-двух Caddy data-plane вариантов. В embedded-варианте Caddy входит в Gateway
-process; external-вариант запускается Gateway как отдельный supervised child
-на том же host/container/Pod. Плагины остаются отдельными процессами/сервисами.
-Constructor — отдельный desktop/web-продукт и единственный UI настройки;
-один Constructor может управлять несколькими независимыми Gateways.
+- Один Gateway Core — единственный control plane и единственный writer своего
+  SQLite desired state. Core не обслуживает public traffic.
+- Caddy — отдельный plugin process/binary, содержащий Caddy и Caddy-L4. Он
+  один в v1, получает JSON settings push-вызовом `ConfigApply`, сам применяет
+  runtime и слушает public ports.
+- На одну установку Core выбирается ровно один global profile: `supervised`
+  либо `external`. Первый владеет install/process lifecycle; второй подключается
+  к operator-managed plugin workloads и не имеет install/restart API.
+- Core остаётся plugin-agnostic. Capabilities, invocation modes, schemas,
+  grants, gRPC control/data contracts и SDK-owned workload mTLS принадлежат
+  [pluginprotocol](https://github.com/Liapoldus/pluginprotocol).
+- Configurations Core хранятся в SQLite; runtime использует immutable
+  in-memory generations. Plugin-specific runtime/application data остаются в
+  storage plugin-а. PostgreSQL, S3, Core HA и multi-replica Caddy не входят в v1.
+- Constructor и `react-lib` заморожены до готовности Gateway v1. Не менять их
+  source/TODO и не включать их функциональность в текущие этапы.
+- Старые конфиги и API обратной совместимости не требуют; старые URL docs,
+  если нужны ссылкам, сохраняются как короткие указатели до отдельного решения.
 
-Настройка трафика выполняется нативным Caddyfile. Gateway не создаёт второй
-язык маршрутов, не оборачивает Caddy-конфигурацию в собственную DSL и не
-поддерживает `site.yaml` либо YAML `includes`. Собственный API Gateway
-управляет bootstrap/runtime metadata, группами, plugin instances, доступом,
-операциями и аудитом. Management API никогда не проксирует пользовательский
-HTTP/L4 request. Полный native Caddy Admin API доступен оператору через
-защищённый Gateway pass-through, но underlying Admin endpoint никогда не
-публикуется напрямую.
+## Архитектурные рабочие потоки
 
-Liapoldus сохраняет продуктовые гарантии: авторизацию и аудит, декларативные
-plugin capabilities, безопасные границы, immutable releases, атомарное
-применение и пару `current`/`previous`. Caddy — HTTP/TLS/L4 runtime, а не
-публичная поверхность управления Liapoldus.
+### Settings и SQLite
 
-Порядок обязателен: сначала документация и нормативные контракты, затем их
-сборка и проверка; только после этого — отдельные красные TypeScript-тесты и
-реализация. До завершения документационного gate production-код не меняется.
+`Management API → auth/CAS/schema validation → durable candidate + operation
+в SQLite → protocol ConfigApply каждой обязательной replica → exact
+revision/digest ACK → SQLite active pointer + immutable in-memory snapshot`.
 
-## Карта изменений
+Это не distributed ACID transaction. Apply внутри каждой replica атомарен;
+Core фиксирует active generation после необходимых ACK, компенсирует уже
+обновившиеся replicas прежней revision и оставляет unresolved operation
+неготовой при неуспехе компенсации. После restart Core восстанавливает только
+committed desired state и применяет его заново. Полная state machine, crash
+points и backup описаны в [control-plane design](control-plane).
 
-| Область | Решение | Целевое состояние |
+### Plugin startup и settings push
+
+Оба профиля используют общий порядок protocol `Bootstrap → Manifest →
+ConfigSchema → ConfigApply → DispatchApply → grpc.health.v1 readiness`. Settings
+не поступают plugin-у через environment, argv, application file или pull API.
+Local process получает inherited protocol listener и private identity
+bootstrap; external process получает identity от своего deployment security
+plane. Детали принадлежат [plugin deployment](plugin-deployment) и
+[`pluginprotocol`](https://github.com/Liapoldus/pluginprotocol).
+
+### Прямые plugin interactions
+
+Core сохраняет explicit deny-by-default `caller → target/capability/mode`
+policy, но capability payload передаётся напрямую по mTLS между plugin-ами.
+`DispatchApply` доставляет полный generation/peer identity directory каждой
+replica; балансируемый endpoint не подменяет per-replica acknowledgement.
+
+## Последовательность этапов
+
+Каждый этап выполняется законченными вертикальными slices: сначала тест,
+показывающий отсутствующее требование, затем реализация и точечные проверки.
+Публичный contract меняется только в его репозитории-владельце. Новый этап не
+маскирует незелёный предыдущий gate.
+
+| Этап | Конкретный результат | Gate перехода |
 | --- | --- | --- |
-| Constructor | Оставить отдельным продуктом | Web backend проверяет Constructor users/roles и связывается с Gateway по private mTLS+Bearer; desktop использует SSH bridge к loopback API; credentials остаются server-side/OS credential store. |
-| Gateway | Перепроектировать | Один серверный процесс с SQLite control-plane и Caddy runtime; один из двух Caddy build variants. |
-| Traffic config | Заменить | Нативный Caddyfile; без route DSL Gateway, `site.yaml` и YAML includes. |
-| Bootstrap config | Сузить | `gateway.yaml` задаёт только state/artifact paths, Management API bind/trust и вариант/путь Caddy. |
-| Group releases | Ввести | Неизменяемые revisions из Caddyfile fragment и одного frontend `.tar.gz`; `current`/`previous` — SQLite pointers. |
-| Caddy Admin API | Защитить и проксировать | Полный native pass-through через authenticated Gateway boundary; embedded — in-process adapter, external — permissioned Unix socket, оба недоступны снаружи. |
-| Data-plane dispatch | Заменить request path | Liapoldus handler в Caddy вызывает plugin напрямую; Gateway хранит desired state и синхронизирует immutable dispatch generations. |
-| Plugin protocol | Расширить v1 | Оставить JSON `Call`, расширить gRPC `Stream` на HTTP bidi, WebSocket, SSE и L4; wire/schema source только в `pluginprotocol`. |
-| Plugins | Оставить generic runtime | Local-supervised и remote режимы задаются per instance и смешиваются; remote membership — явный набор отдельных endpoint-ов с unique identities и единым release/config digest. Подробности — [plugin deployment](plugin-deployment). |
-| TLS | Оставить Caddy-owned | Caddy/CertMagic — единственный ACME owner; domain readiness отдельно от активации конфигурации. |
-| L4 | Обязательный Caddy-L4 | Caddy-L4 входит в оба варианта и v1 conformance gate; Go `net` fallback не допускается. |
-| Persistence | Зафиксировать durable/runtime границу | SQLite хранит control-plane metadata, plugin settings/revisions, journal и pointers; immutable Caddyfile revisions и большие artifacts — файлы; active runtime — in-memory snapshot. |
-| `tls-issuer` | Удалить из активной системы | Не входит в бинарник, конфиги, active docs, tests, сборки и текущие TODO; прежний URL ведёт только на описание Caddy-owned TLS. Удалённый репозиторий/history не трогать. |
+| 0. Инвентаризация | Для каждого target repo зафиксировать HEAD/branch/status/remotes, ownership всех dirty/untracked файлов, baseline и карту `оставить / адаптировать / заменить / удалить`; отдельно перечислить текущий Core Caddy runtime как миграционный долг. | Ни один чужой файл/commit не потерян; удаление подтверждено через runtime/import/build/test/docs search. |
+| 1. Архитектура и контракты | Свести VitePress, OpenAPI, bootstrap schema, errors, settings metadata и ER-модель к одному target: singleton Core/SQLite, два global profiles, generic plugin lifecycle, Caddy plugin, access boundaries, storage/recovery. `pluginprotocol` остаётся единственным wire owner. | `npm run build`; ссылки/sidebar/contracts согласованы; нет активных promise про Caddy-in-Core, Caddy Admin pass-through или `/api/groups`/`/api/tls` в Core. |
+| 2. `pluginprotocol` SDK | Сформировать рекомендуемый Go API для typed unary/stream handlers, lifecycle server/client, ConfigApply manager, grants, direct peer clients, mTLS providers и CRL/reconnect. Сохранить v1 namespace и additive compatibility policy. | TypeScript conformance + child-process tests: local listener/bootstrap, JSON schema vectors, ConfigApply/DispatchApply, TLS/CRL, cancellation/backpressure/shutdown, macOS/Linux. |
+| 3. Core durable model | Удалить переходную plugin-specific persistence; привести SQLite к generic instances/replicas/config revisions/policies/operations/keys/audit, CAS, idempotency, append-only audit, migrations и source-owned `.sql`. Implement immutable snapshot builder. | Black-box TS: schema migration, validation, stale CAS, audit, no secret persistence, restart snapshot, immutable file digest and request-path no DB reads. |
+| 4. Config operations и recovery | Подключить Management mutations к candidate/journal/ConfigApply/exact ACK/pointer commit; ввести compensation, `current/previous`, per-replica generation, fault injection и backup/restore. | Process-level TS E2E crash/kill/reopen at each journal boundary; no false success and no active dangling pointer. |
+| 5. Supervised lifecycle | Реализовать TUF bootstrap/rotation, catalog identity selection, signature/digest/platform/protocol checks, safe extraction, immutable releases, inherited listener/bootstrap, bounded supervision/restart/backoff/shutdown and release rollback. | Malicious archive/signature/downgrade tests; actual child process restart; application settings absent from argv/env/files; committed config reapplied before Ready. |
+| 6. External/orchestrated lifecycle | Реализовать explicit per-replica endpoint/identity set, PEM/SPIFFE connection, control/data identity separation, mTLS/CRL, reconnect, config+dispatch barrier, rollout/drain visibility. Core never talks to Docker/Kubernetes API. | Docker/Compose and Kubernetes-style fixtures prove replica-bound ACK, failed replica degradation, no replay, no downgrade, removal/drain and readiness after Core reconnect. |
+| 7. Generic interactions/security | Подключить policy CAS, deny-by-default direct peer client, scoped secret grants/redemption, redaction, cookie allow-list/action boundary, generic Admin Surface/access/audit and per-request authorization. | Allowed/denied direct calls, stale identity, CRL revocation, one-time/config-scoped grants, normal/HttpOnly cookies, atomic response rejection and zero secret leaks. |
+| 8. Caddy plugin | Начальный `plugins/caddy` module/binary создан: принимает versioned native Caddy JSON через `ConfigApply`, валидирует и активирует runtime. Далее перенести HTTP/TLS/HTTP2/3, proxy/static/WebSocket/SSE, TCP/UDP и plugin dispatch; добавить remote lifecycle, persistent recovery и собственную Admin Surface. | Один Caddy child process в обоих deployment profiles; полный smoke HTTP/TLS/ACME/L4/concurrency/restart; persistent ACME/site data; `current/previous` activation/rollback; direct plugin dispatch. |
+| 9. Удаление Core legacy | После replacement gates убрать из Core Caddy dependencies/build, old network runtime, Caddy adapters/API/state, old group/site/TLS contracts and dead tests/fixtures. SQL и typed internal errors привести к target rules; mirrors обновлять только из owner source. | Search/build graph доказывают отсутствие Caddy runtime в Core; `make check`, `go vet`, staticcheck, Linux/macOS builds и Docker smoke зелёные. |
+| 10. V1 readiness | Свести cross-repository scenarios, security review, backup/restore, failure matrix, runbooks и operator examples; проверить каждую acceptance row на поддержанном deployment matrix. | Полностью зелёна [acceptance matrix](../configuration/acceptance); никакая незакрытая строка не заменяется обещанием TODO. |
 
-## Caddy build variants
+## Failure semantics, rollout и data retention
 
-Оба варианта обязательны и используют один Gateway runtime, один API, один
-формат bootstrap-конфигурации и одну семантику. Публикация v1 блокируется,
-пока оба не пройдут общий parity suite.
+- Plugin, не прошедший Manifest/schema/config/generation/health проверки, остаётся
+  вне Ready set. Невозможность одной replica ухудшает только её зависимости.
+- Ни `Call` с неизвестным результатом, ни оборванный `Stream` не replay-ятся при
+  reconnect/restart.
+- Supervisor рестартует только local processes в `supervised`. В `external`
+  restart/rollout/drain делает оркестратор; Core обновляет desired membership и
+  проверяет acknowledgements.
+- Core durable pointer меняется только после полного предусмотренного ACK
+  barrier. Compensation failure оставляет operation degraded/fenced, не
+  подменяется success.
+- Config revisions и plugin packages неизменяемы; garbage collection запрещён,
+  пока объект достижим из current/previous, active replica или незавершённой
+  operation.
+- Core database backup и Caddy plugin volume backup независимы и должны иметь
+  согласованные generation metadata; один из них не восстанавливает данные
+  другого.
 
-| Вариант | Запуск | Требования |
+## Source of truth по репозиториям
+
+| Область | Source | TODO |
 | --- | --- | --- |
-| `embedded` | Liapoldus Gateway бинарник содержит Caddy и требуемые модули. | Один исполняемый Gateway process; Caddy не является sidecar. |
-| `external` | Gateway запускает заданный оператором custom Caddy binary. | Binary должен содержать совместимые Liapoldus Caddy app/module и Caddy-L4; обычный upstream Caddy не поддерживается. |
+| Normative Gateway architecture, public Management OpenAPI/errors/bootstrap schema | [liapoldus.github.io](https://liapoldus.github.io/gateway/architecture/target) | [Migration roadmap](https://liapoldus.github.io/gateway/architecture/v1-migration-roadmap) |
+| SQLite, lifecycle composition, CLI/API implementation | [core](https://github.com/Liapoldus/core) | [core/TODO.md](https://github.com/Liapoldus/core/blob/main/TODO.md) |
+| `.proto`, gRPC SDK, plugin JSON contracts and vectors | [pluginprotocol](https://github.com/Liapoldus/pluginprotocol) | [pluginprotocol/TODO.md](https://github.com/Liapoldus/pluginprotocol/blob/main/TODO.md) |
+| Caddy runtime, его settings schema и site/certificate state | Начальный workspace module `plugins/caddy` | Перенос ownership ещё не завершён; remote lifecycle и канонический Git remote не настроены. Остаток этапа 8 отслеживается в Core TODO и этом roadmap. |
+| CAPTCHA/forms/identity behavior | Corresponding active plugin repository; no product-specific branches in Core | Their lifecycle remains deferred unless needed for generic conformance. |
+| Constructor and React SDK | Frozen separate products | No source/TODO work before Gateway v1 completion. |
 
-Custom binary собирается штатным `xcaddy` механизмом из зафиксированных версий
-и digest. External variant — отдельный Caddy process в том же deployment unit,
-запускаемый и supervises Gateway. Gateway использует Admin API на permissioned
-Unix socket для передачи полной Caddy config и immutable dispatch snapshots.
-Caddy handler вызывает plugins напрямую, без Gateway data-plane proxy. При
-сбое Caddy child Gateway перезапустит только его и пометит data-plane readiness
-unhealthy. `gateway.yaml`
-выбирает variant и, только для `external`, путь к binary. Версии, module
-inventory и parity matrix публикуются в build manifest.
+SQL text belongs in Core-owned `.sql` source embedded at build time, never in
+configuration assets. Internal failures use typed Go errors; public status,
+error codes, payload shapes, defaults, command flags and user-facing diagnostics
+remain versioned contracts. Contract assets are static data, not Go source.
 
-## Bootstrap и traffic configuration
+## Definition of v1 complete
 
-`gateway.yaml` — малый bootstrap-файл. Его исчерпывающая схема и defaults
-задаются в [`gateway.schema.json`](/spec/gateway.schema.json). В нём нет
-маршрутов, listeners публичного трафика, upstreams, сайтов, политик,
-plugin-specific settings, `site.yaml` или include-механизма.
-
-Bootstrap владеет следующими классами настроек:
-
-1. `state.path` — путь к SQLite-файлу и локальному служебному состоянию.
-2. `artifacts.path` — каталог неизменяемых Caddyfile revisions и frontend
-   release-файлов.
-3. `management` — bind API, TLS server identity, management trust roots,
-   authentication policy и безопасные пределы запросов.
-4. `caddy` — `embedded`/`external`, а для external — путь к совместимому
-   custom binary и его ожидаемый module manifest/digest.
-
-Caddyfile остаётся нативным форматом Caddy. Gateway управляет тем, какие
-неизменяемые group fragments входят в собранный snapshot, и разрешает только
-описанные Liapoldus runtime modules для direct plugin dispatch и immutable
-frontend roots. `liapoldus_plugin` в Caddyfile связывает route с instance,
-capability и mode; это не отдельная Gateway route DSL. Валидацию и адаптацию
-выполняет совместимый Caddy runtime.
-
-## Группы и публикация revisions
-
-Все группы активны одновременно. `system` — специальная группа глобальных
-Caddy options. Каждая application group содержит один Caddyfile fragment и
-не более одного frontend archive с одним или несколькими корнями вида
-`frontends/<id>/...`. Группа ссылается на plugin instances только по ID и
-capability; значения plugin settings принадлежат отдельному plugin API и в
-revision группы не копируются.
-
-Единственная операция создания revision:
-`POST /api/groups/{id}/releases` (`multipart/form-data`). Части запроса:
-
-| Часть | Формат | Обязательное содержимое |
-| --- | --- | --- |
-| `metadata` | `application/json` | `idempotencyKey`, `expectedCurrentRevision`; для `system` дополнительно применяются глобальные права. |
-| `caddyfile` | `text/plain; charset=utf-8` | Один group fragment; пустой fragment допустим только для явно разрешённой пустой app group. |
-| `artifact` | `application/gzip` | Ровно один `.tar.gz`; может содержать ноль или несколько разрешённых frontend roots. |
-
-Revision immutable и адресуется SHA-256 digest canonical metadata, fragment и
-artifact. Загрузка ограничена до распаковки и при извлечении: compressed size,
-uncompressed size, entry count, compression ratio, path length и nesting depth
-ограничены контрактом. Запрещены absolute/traversal paths, links, special
-files, duplicate/case-colliding paths и неподдерживаемые типы. Распаковка идёт
-в private staging; неполный upload, validation error или конфликт не меняют
-активное состояние.
-
-`current` и `previous` — revision IDs в SQLite, не обязательные filesystem
-symlinks. Публикация сначала проверяет multipart, архив и Caddyfile через
-совместимый Caddy adapter, сохраняет immutable candidate и durable operation
-journal, компилирует полный in-memory snapshot и только затем активирует один
-новый Caddy generation. Ошибка activation оставляет active snapshot и оба
-pointer прежними, но сохраняет failed/staged candidate для диагностики.
-Успех перемещает старый `current` в `previous`, а новый revision в `current`.
-Rollback повторно активирует `previous` группы с тем же prepare/activate
-протоколом; он не изменяет plugin settings.
-
-Публикации сериализуются per group. `expectedCurrentRevision` проверяется в той
-же транзакционной границе, что и pointer update. Один idempotency key с тем же
-actor и digest возвращает исходный operation; тот же key с другим содержимым
-даёт conflict. Прерванная активация восстанавливается при старте из durable
-operation/checkpoint state и не допускает смешанного runtime/filesystem state.
-
-## Caddy Admin API и согласованность состояния
-
-Gateway предоставляет полный pass-through native Caddy Admin API без
-перевода request/response JSON в собственную route model. Прокси доступен
-только после Management API authentication и authorization и пишет audit
-metadata без тел, содержащих secrets. Caddy Admin API привязан к loopback или
-локальному IPC, никогда не публикуется наружу, не получает отдельный внешний
-credential endpoint и не обходится прямым сетевым маршрутом.
-
-Каждая Admin API mutation сериализуется и перед применением сохраняет
-global checkpoint, включающий runtime snapshot и состав group revisions.
-Checkpoint содержит необходимые для восстановления данные и не содержит
-plaintext secrets. Read-only Admin вызовы не создают checkpoint.
-
-Ручные native mutations могут создать runtime, который невозможно представить
-как набор текущих group revisions. Это состояние называется `drift`. При
-drift Gateway:
-
-- продолжает обслуживать уже активный runtime;
-- блокирует group publish/rollback, чтобы новая group операция случайно не
-  затёрла невидимые изменения;
-- показывает drift status, checkpoint ID и audit actor через Management API;
-- требует явного `reconcile` к выбранному полному group composition либо
-  `restore` checkpoint;
-- не обещает обратную генерацию Caddyfile из произвольного native JSON.
-
-Reconcile — атомарная замена полного Caddy snapshot, поэтому его preview,
-expected runtime digest, audit и optimistic concurrency обязательны.
-
-## Plugin instances и доверие
-
-Plugin instances управляются через Gateway API; SQLite хранит IDs, settings
-payloads, revisions, state и active references. Активные settings копируются в
-in-memory runtime snapshot и push-ятся plugin через `ConfigApply`. Group
-Caddyfile ссылается на instance по стабильному ID.
-Dispatch остаётся generic: core знает общий protocol и границы, но не знает
-конкретных плагинов, provider names или прикладной семантики до подключения
-declarative plugin contract.
-
-| Режим | Процесс | Транспорт и lifecycle |
-| --- | --- | --- |
-| `local` | Запускает/supervises Gateway | Назначенный loopback endpoint; handshake/config apply/health до dispatch readiness; bounded restart/backoff. |
-| `remote` | Docker, Kubernetes или операторский process manager | Явный desired set индивидуальных стабильных endpoints и mTLS; per-replica identity привязана к logical instance; внешняя среда владеет restart/rollout. Правила membership/barrier/drain — в [канонической странице deployment](plugin-deployment). |
-
-Плагин не соединяется напрямую с другим плагином. Пользовательский capability
-traffic идёт `Caddy handler → plugin`; Gateway заранее выбирает разрешённый
-instance/capability, подготавливает dispatch snapshot и владеет scoped grants.
-Все endpoints active desired set имеют совместимые release/Manifest/settings
-digests; каждый новый gRPC channel проходит TLS/protocol handshake. Gateway не
-использует load-balanced Service как доказательство per-replica readiness и не
-зависит от API Docker/Kubernetes. Подробная последовательность membership,
-rollout и drain дана на [канонической странице deployment](plugin-deployment).
-Gateway reconnect-ится без replay Call с неизвестным исходом; потерянный Stream
-закрывается. Только связанные с нездоровым instance bindings деградируют,
-остальной traffic продолжает работать. Management и plugin workload trust roots
-раздельны; внешняя CA/operator выпускает per-replica identities и выполняет
-rotation/rolling restart. Один launch contract применим к standalone binary,
-Docker и Kubernetes.
-
-Constructor вызывает только Gateway Management API и не открывает соединение к
-plugin. Для UI service credentials хранятся в системном credential store и
-доступны React-коду только через узкий Go backend bridge.
-
-## Management API и безопасность
-
-Management API никогда не размещается на публичном traffic listener. Web
-Constructor backend достигает Gateway по private HTTPS с mTLS и отдельным
-Bearer token для каждой binding. Desktop bridge использует short-lived SSH
-certificate через внешний OpenSSH/bastion, ограниченный port-forward к
-loopback API; затем TLS server verification и Bearer token. Gateway хранит
-только verifier/hash и имеет единственную роль `platform-admin`; человеческие
-роли и environment-scoped permissions живут в Constructor DB. Constructor web
-имеет OIDC + обязательный local WebAuthn challenge либо local-password +
-короткоживущий JWT + WebAuthn; desktop single-user mode `none` не отключает
-Gateway token authorization. Browser никогда не получает Gateway credentials.
-Raw token показывается только один раз при bootstrap/create/rotate.
-
-Management TLS identity, desktop SSH CA и trust roots не переиспользуются для
-plugin mTLS.
-Plaintext секреты запрещены в Caddyfile, API bodies, SQLite, logs, traces и
-audit. Конфигурации принимают только внешние secret references, разрешаемые
-Gateway при применении; ответы, errors и audit полностью redacted. В частности,
-Admin API proxy audit фиксирует actor, method, normalized path, request ID,
-result/checkpoint, но не payload/headers/secret values.
-
-## SQLite и файлы
-
-SQLite — долговременное хранилище metadata и activation/recovery state и
-использует foreign keys, WAL, `busy_timeout`, транзакции и versioned migrations.
-База находится на локальной файловой системе Gateway; сетевые filesystem
-database mounts не поддерживаются. Runtime config полностью гидратируется в
-immutable in-memory snapshot; request path не читает DB или files. Backup
-делается через SQLite online backup API вместе с согласованным snapshot
-immutable files/artifacts.
-
-| Данные | Владелец и хранение |
-| --- | --- |
-| Groups и current/previous | SQLite metadata; pointers обновляются транзакционно после успешной активации. |
-| Group revisions | SQLite IDs/digests/pointers + immutable Caddyfile и frontend archives в `artifacts.path`. |
-| Plugin instances/settings | SQLite metadata, settings payloads, revisions/digests/state; active settings — in-memory; secret values — только external references. |
-| Service keys | SQLite verifier/hash, role, lifecycle и metadata; исходный token не хранится. |
-| Operations/idempotency | SQLite, включая durable activation/recovery state и сроки retention. |
-| Audit | SQLite append-only events с retention; никаких тел запросов и секретов. |
-| Caddy checkpoints | SQLite metadata + immutable snapshot artifact, необходимый для restore. |
-| TLS/ACME internal state | Владение Caddy/CertMagic в защищённом state area; не дублировать ACME аккаунт в Gateway. |
-
-ER-модель является частью канона и хранится как исходник
-[`diagrams/gateway-control-plane.mmd`](/diagrams/gateway-control-plane.svg).
-Schema migrations обязаны сохранять ссылки current/previous и immutable
-revision rows; удаление revision, на который ссылается pointer или checkpoint,
-запрещено.
-
-## TLS и L4
-
-Caddy/CertMagic — единственный владелец ACME issuance, challenges, renewal и
-сертификатного состояния. DNS-01 provider modules статически включаются при
-сборке. Список DNS-провайдеров не фиксируется до инвентаризации требований.
-Валидный Caddy snapshot активируется без ожидания ACME; готовность и ошибки
-сертификата отслеживаются отдельно по домену. Caddy Admin API наружу не
-открывается. Domain renew/revoke доступны только через Liapoldus API,
-описываемый в [OpenAPI](../api/openapi).
-
-Caddy-L4 ([исходный проект](https://github.com/mholt/caddy-l4)) обязателен в embedded и external variant и проходит один полный
-conformance gate для TCP/UDP relay, limits, cancellation, reload и обеих
-платформ. Успех нельзя заменить проверкой только сборки. Caddy-L4 помечен
-экспериментальным; если gate не пройден, v1 остаётся заблокированным до
-исправления/совместимого релиза. Fallback на Go `net` или `gnet` не вводится.
-P2P в v1 означает relay к заданному peer без discovery, rendezvous или NAT
-traversal.
-
-## План этапов и gates
-
-| Этап | Результат | Обязательный gate |
-| --- | --- | --- |
-| 0. Инвентаризация | Зафиксированы dirty/untracked изменения и проверки каждого репозитория; пользовательская работа сохранена. | Read-only status/diff до правок. |
-| 1. Документация | Русскоязычный канон: Caddyfile, группы, API, in-memory runtime/SQLite durability, security modes, plugin orchestration/replicas, оба Caddy variants, Constructor и deployment. | VitePress build; устранены противоречия и устаревшие страницы. |
-| 2. Contracts | Bootstrap/OpenAPI/security contracts и v1 Stream schemas/vectors обновлены в их source repositories. | Schema/OpenAPI validation; digest manifest согласован; plugin wire source только в `pluginprotocol`. |
-| 3. Test baseline | Отдельная TS unit/integration/E2E спецификация Caddy direct dispatch и всех Stream modes. | Сначала red tests; нет Go `*_test.go` в production packages. |
-| 4. Bootstrap/control plane | Минимальный `gateway.yaml`, SQLite metadata, config files, in-memory snapshots, Management auth, keys, audit и operations. | Startup hydration/crash recovery, redaction, web mTLS+Bearer и SSH-forwarded access tests; audit pagination в stable append-sequence order, opaque cursor, limit 50/100 и 90-дневный retention. |
-| 5. Caddy integration | Embedded и supervised external process; native directive, private snapshot sync, direct plugin handler; full Admin pass-through. | Одинаковые module manifest/semantics; Admin endpoint private; sync/load failure сохраняет прежние generations. |
-| 6. Group releases | Multipart upload, safe extraction, immutable revisions, `current`/`previous`, atomic full snapshot. | Конкурентная публикация, rollback, crash recovery, failure preserves active state. |
-| 7. Admin mutation safety | Checkpoint, drift detection, reconcile/restore и deploy block. | Нельзя затереть native mutations незаметно; восстановление после crash. |
-| 8. Plugins/security | Mixed local-supervised + remote replicas from explicit stable endpoint sets, per-replica mTLS identity, separate control/data client identities, scoped grants, direct Caddy-to-plugin data path и plugin-owned cookie lifecycle за Gateway-owned boundary. | Per-replica endpoint/readiness/`DispatchApply` barrier, safe rollout/drain, no orchestrator API dependency, reconnect/no replay; certificate scope/rotation/revocation; no downgrade/peer traffic; cookie allow-list в отдельной SQLite policy на пару instance/capability, `GET`/`PUT` с strong ETag/`If-Match` CAS и audit, активация candidate dispatch generation до durable commit с rollback; typed ordinary/HttpOnly actions, atomic rejection и redaction. Cookie PUT через embedded и external Caddy уже покрыт runtime tests; остаются rollback-failure/crash recovery и общий parity/security gate. См. [deployment](plugin-deployment) и [cookie boundary](cookies). |
-| 9. Runtime parity | HTTP/TLS/ACME, HTTP/1.1–3, HTTP bidi, WebSocket, SSE, static, proxy, TCP/UDP Caddy-L4. | Оба build variants, macOS/Linux; Caddy-L4 и direct-dispatch gates обязательны, fallback запрещён. |
-| 10. Release readiness | Один Gateway product, контейнерные и операторские инструкции, Constructor integration. | `make check`, `go vet ./...`, `go build ./...`, Docker smoke и полный E2E/security suite. |
-
-Для каждого кодового инкремента сначала создаются отдельные красные TypeScript
-тесты под `tests/`, затем минимальная реализация. Изменения не публикуются и не
-коммитятся без отдельного запроса. Завершённые этапы отмечаются в TODO
-соответствующего репозитория; общий порядок и архитектура остаются только здесь.
-
-## Нормативные документы
-
-- [Архитектура Gateway и control plane](control-plane)
-- [Bootstrap `gateway.yaml`](../configuration/bootstrap)
-- [Management API и Caddy Admin API](../api/)
-- [Group Releases API](../api/groups)
-- [Безопасность и доступ](../configuration/security)
-- [Режимы подключения plugins](plugin-deployment)
-- [Единый plugin protocol v1](protocol)
-- [Gateway cookie boundary и статус runtime-интеграции](cookies)
-- [Caddy runtime и L4](../configuration/transports)
-- [Constructor — Gateway UI](../../constructor/integrations)
-- [Gateway OpenAPI](/spec/management.openapi.yaml)
-- [Gateway bootstrap schema](/spec/gateway.schema.json)
-- [TODO core](https://github.com/Liapoldus/core/blob/main/TODO.md)
-- [TODO pluginprotocol](https://github.com/Liapoldus/pluginprotocol/blob/main/TODO.md)
-- [TODO Constructor](https://github.com/Liapoldus/Constructor/blob/main/todo.md)
+Gateway v1 is complete only when all rows in
+[acceptance](../configuration/acceptance) pass, including: SQLite and Core
+restart recovery; supervised TUF install and rollback; external per-replica
+mTLS/CRL/DispatchApply barrier; direct plugin interaction; secrets/cookies and
+redaction; Caddy HTTP/TLS/ACME/L4, site release persistence/rollback; failure
+isolation; Management authorization/audit; macOS/Linux build targets; full Core
+and protocol test gates. A green unit/build subset is not sufficient.

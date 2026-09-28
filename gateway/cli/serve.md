@@ -1,51 +1,22 @@
-# serve
+# `gateway serve`
 
-Запускает Gateway control plane, plugin runtime и выбранный Caddy build variant
-после bootstrap validation и SQLite migration/recovery.
+`gateway serve` открывает Core Management listener, восстанавливает единственный
+SQLite desired state и подключает plugins выбранного глобального профиля.
+Supervised profile запускает локальные процессы; external profile только
+подключается к уже запущенным workloads.
 
-Целевой startup-порядок: до открытия public traffic listeners Gateway проверяет
-Caddy build identity/modules, восстанавливает pending durable operations,
-сверяет digests immutable config/artifacts и гидратирует active generation в
-in-memory snapshot. Ошибка восстановления не должна открыть traffic listeners.
-Временно нездоровый plugin не должен блокировать несвязанные sites: unavailable
-получают только его bindings до reconnect, handshake, config apply и health.
+Startup считается готовым после восстановления SQLite/journal, загрузки
+active in-memory snapshot, Manifest/schema/identity checks и подтверждения
+активных `ConfigApply`/`DispatchApply` generations. Caddy — отдельный plugin
+process, не часть Gateway бинарника. В v1 его instance ровно один; Core не
+создаёт Caddy runtime и не принимает public traffic.
 
-**Текущий статус:** до открытия traffic listener `serve` восстанавливает pending
-release reservations в SQLite, затем через lazy activator загружает active
-snapshot. Если durable recovery завершается ошибкой, Gateway оставляет data
-plane закрытым и сообщает `recovery-required`; TS E2E проверяет этот fail-closed
-путь. Полный process-kill/crash matrix и external-Caddy parity остаются
-открытыми; детали — в
-[`core/TODO.md`](https://github.com/Liapoldus/core/blob/main/TODO.md).
+Если config candidate не применился, прежняя revision остаётся active. Если
+недоступен один plugin, Core остаётся ready в degraded состоянии, а связанные
+с ним capabilities сообщают bounded unavailable. Невосстановимая ошибка
+SQLite или generation journal блокирует Management readiness.
 
-## Первый запуск без активной system revision
-
-Новая SQLite содержит обязательную `system` group, но её `current` pointer
-изначально пуст. В этом состоянии `serve` поднимает только защищённый
-Management API и control plane: публичные Caddy listeners не открываются,
-`GET /api/status` возвращает `dataPlaneReadiness.state=not-ready` с причиной
-`system-release-required`. Это штатный bootstrap state, а не повреждённая БД.
-**Целевое поведение:** оператор публикует первую валидную system revision через
-Management API; после успешной подготовки Caddy snapshot Gateway открывает
-заданные Caddyfile listeners и переводит data plane в `ready`.
-
-**Текущий статус:** первая system revision публикуется из этого состояния через
-Management API. Lazy activator сначала валидирует candidate, затем запускает
-embedded Caddy при activation; TypeScript E2E проверяет сохранённый current
-pointer, `ready` и HTTP response с реального listener. Для external Caddy путь
-адаптации и запуска реализован, но отдельный first-release E2E/parity gate ещё
-не пройден. External Caddy с plugin instances остаётся fenced до синхронизации
-dispatch snapshot.
-
-Если указатель уже задан, но revision, immutable Caddyfile/artifact или digest
-отсутствуют либо не совпадают, это не bootstrap state: Gateway не открывает
-traffic listeners и сохраняет доступ только к защищённой Management API для
-диагностики и восстановления. Нельзя автоматически подменять повреждённую
-revision пустым Caddyfile или сбрасывать `current`/`previous`.
-
-Graceful shutdown прекращает принимать новые Management/traffic requests,
-завершает bounded in-flight calls, корректно останавливает local-supervised
-plugins и закрывает Caddy runtime. External Caddy останавливается как
-supervised child. Remote plugins не получают process Shutdown: Gateway
-закрывает только свои соединения. Call с неизвестным исходом не replay-ится,
-живой Stream закрывается и не мигрирует на другую replica.
+Bootstrap fields описаны в [gateway.yaml reference](../configuration/yaml-reference),
+а полная lifecycle model — в
+[target architecture](../architecture/target) и
+[plugin deployment](../architecture/plugin-deployment).

@@ -1,15 +1,17 @@
-# OpenAPI
+# OpenAPI Management API
 
-Единственный machine-readable целевой Management API contract v1 —
-[management.openapi.yaml](/spec/management.openapi.yaml). Он включает
-аутентификацию, group release/rollback, Caddy Admin pass-through, drift,
-checkpoints, plugin instances, TLS operations, operations, audit и service keys.
-Спецификация описывает требуемую поверхность API, а не только уже подключённые
-core handlers. Сверяйте реализованное покрытие и незавершённые integration gates
-с [матрицей реализации Gateway](/gateway/architecture/implementation#текущее-состояние-core)
-и [core TODO](https://github.com/Liapoldus/core/blob/main/TODO.md).
+Машиночитаемый Gateway contract находится в
+[public/spec/management.openapi.yaml](/spec/management.openapi.yaml).
+Единственные Core endpoints управляют plugin desired state, settings apply,
+TUF installation только в supervised profile, interaction/cookie policies,
+Admin Surface, operations, access и audit.
 
-Описания endpoint в других страницах не должны расходиться с OpenAPI. Полный
-Caddy Admin API представлен как native pass-through; поскольку native payloads
-не принадлежат Liapoldus DTO, spec намеренно не копирует Caddy request/response
-schemas.
+В новой v1 schema нет `/api/groups`, `/api/caddy/*`, `/api/caddy-state/*`,
+`/api/tls/*` и `/api/sites`. Caddy plugin traffic settings передаются как
+versioned plugin JSON через generic `ConfigApply`; site releases и сертификаты
+управляются plugin Admin Surface. Caddy Admin API не проксируется Management
+API.
+
+API требует TLS и Bearer authorization; web Controller дополнительно
+подключается по mTLS. Public error semantics находятся в
+[errors.json](/spec/errors.json).

@@ -1,81 +1,17 @@
-# Bootstrap `gateway.yaml`
+# Bootstrap contract
 
-`gateway.yaml` — небольшой startup contract, а не описание traffic routes.
-Его полная схема: [`gateway.schema.json`](/spec/gateway.schema.json). Все
-listeners, sites, proxy rules, TLS automation и L4 configuration задаются
-нативным Caddyfile, который хранится в group revisions.
+Подробная reference-страница переехала в
+[справочник `gateway.yaml`](yaml-reference). Bootstrap задаёт только то, что
+нужно самому единственному Core для старта: SQLite path, локальный package
+store, глобальный plugin execution profile, Management TLS и параметры
+trusted catalog.
 
-## Область bootstrap
+Plugin settings, endpoints, interaction policies и Caddy traffic JSON
+редактируются через Management API и сохраняются в SQLite. Они не находятся в
+`gateway.yaml`, `site.yaml`, Caddyfile или YAML includes. Machine-readable
+схема — [gateway.schema.json](/spec/gateway.schema.json).
 
-Разрешены только четыре блока:
-
-| Блок | Назначение |
-| --- | --- |
-| `state` | SQLite database path и служебные параметры долговременного состояния. |
-| `artifacts` | Корень immutable group revisions, uploads и checkpoints. |
-| `management` | Отдельный bind API, TLS server identity, optional clientCA для non-loopback mTLS и request limits. |
-| `caddy` | `embedded` либо `external`; для external — путь к compatible custom Caddy binary и проверяемый build identity. |
-
-Не допускаются `includes`, переменные/подстановки общего назначения, sites,
-listeners, routes, upstreams, plugin declarations/settings, `site.yaml`,
-route/policy DSL и локальные secret values. Неизвестное поле отклоняется.
-
-## Минимальный пример
-
-```yaml
-state:
-  path: ./data/gateway.db
-artifacts:
-  path: ./data/artifacts
-management:
-  listen: 127.0.0.1:9090
-  tls:
-    certificate: file:/run/secrets/gateway-management.crt
-    key: file:/run/secrets/gateway-management.key
-caddy:
-  variant: embedded
-```
-
-Для любого Management bind обязательны TLS server certificate/key и
-Bearer-аутентификация. Service-key verifiers и их lifecycle metadata хранятся
-в SQLite; отдельного verifier-файла или raw key в YAML нет. Первичный ключ
-создаётся локальной командой `gateway access bootstrap`, а raw token выводится
-только один раз. Команда разрешена, когда в БД нет ни одного active,
-неотозванного service key; проверка условия и вставка verifier выполняются
-атомарно в SQLite. Отозванные записи сохраняются для аудита и не блокируют
-локальное восстановление доступа. До создания хотя бы
-одного действующего ключа все
-авторизованные Management endpoints закрыты (`401`); анонимный fallback
-запрещён. Для literal loopback IP (`127.0.0.0/8` или `::1`) `clientCA`
-не указывается: Desktop SSH bridge подключается только через restricted
-OpenSSH/bastion port-forward и проверяет server identity. Для любого другого
-bind, включая hostname и wildcard address, необходимы private network/VPN,
-`clientCA` для mTLS и Bearer authorization одновременно.
-Публичный
-interface или публичный website listener для Management API запрещён. При `external`
-`caddy.binary` должен указывать на совместимый Liapoldus custom build; обычный
-Caddy без требуемых app/module и Caddy-L4 будет отклонён при startup.
-
-Этот пример показывает форму, но не устанавливает production defaults.
-Required fields, типы, defaults, форматы reference и validation semantics
-определяет schema. Секреты остаются вне YAML и передаются только как ссылки на
-файлы/внешнее secret management.
-
-Относительные `state.path`, `artifacts.path`, `caddy.binary` и пути внутри
-`file:` secret references разрешаются относительно каталога того
-`gateway.yaml`, который был передан CLI, а не относительно текущего рабочего
-каталога процесса. Символические ссылки не меняют базовый каталог разрешения;
-после разрешения runtime фиксирует абсолютные пути для данного запуска.
-
-## Изменения и перезапуск
-
-`gateway.yaml` читается до открытия traffic listeners. Bootstrap settings не
-редактируются Caddy Admin API и не являются group release. Изменение `state`
-или `artifacts` требует остановки процесса и backup/migration процедуры;
-смена Management bind/trust либо Caddy build variant требует контролируемого
-restart. Нельзя молча переключать active DB или принимать downgrade на другой
-Caddy module manifest.
-
-Полный Caddyfile может изменяться отдельно через group API. Для ручной локальной
-работы оператор может использовать Caddyfile файлы, но установленный runtime
-всегда принимает только целую validated group composition.
+Изменение bootstrap применяется контролируемым restart Core; изменения plugin
+config проходят durable `ConfigApply` operation без ручного редактирования
+файлов. См. [ConfigApply lifecycle](../architecture/control-plane) и
+[Security](security).

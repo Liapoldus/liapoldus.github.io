@@ -58,8 +58,10 @@ health check, schema validation или authorization на capability boundary.
 
 ## Проверки plugin
 
-Plugin repository проверяет generated API и совместимость с
-`pluginprotocol/contracts/`. Обязательны тесты: корректный handshake, неверная
+Каждый plugin repository владеет тестами и versioned contracts своего Manifest,
+settings, capabilities, ошибок и admin surface. `pluginprotocol` проверяется на
+совместимость с generic wire/control/transport contracts и передаёт capability
+payload как opaque JSON. Обязательны тесты: корректный handshake, неверная
 capability/payload, typed error, unary timeout/cancellation, обе стороны
 bidirectional stream, backpressure, stream cancellation, закрытие во время
 активного RPC и restart процесса. Транспортные wire-hex golden tests заменены

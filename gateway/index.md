@@ -1,24 +1,24 @@
 # Liapoldus Gateway
 
-Liapoldus Gateway — control plane с Management API, CLI и SQLite desired state.
-Caddy исполняет весь public HTTP/TLS и TCP/UDP traffic. Встроенный или
-supervised external Caddy handler вызывает plugins напрямую по gRPC; Gateway
-Management API не проксирует пользовательские запросы.
+Gateway — единичный control-plane процесс. Core хранит desired service
+configuration в SQLite и передаёт плагины versioned JSON через `ConfigApply`.
+Public traffic обслуживает отдельный Caddy plugin; Management API не
+проксирует traffic и не встраивает Caddy.
 
-Constructor остаётся отдельным desktop/web-продуктом и единственным UI
-настройки; web-пользователи и environment-scoped роли принадлежат Constructor.
-Traffic настраивается native Caddyfile, а bootstrap gateway.yaml содержит
-только state/artifact paths, Management bind/trust и Caddy build variant.
-Plugins остаются отдельными процессами и подключаются через общий protocol.
+В v1 Core использует один из глобальных профилей: `supervised` управляет
+локальными plugin releases/processes, `external` подключается к workloads,
+которыми управляет оператор. Caddy — отдельный singleton plugin в обоих
+профилях. Constructor остаётся отдельным продуктом и сейчас заморожен.
 
-| Задача | Канон |
+| Область | Канон |
 | --- | --- |
-| Bootstrap | [Минимальный gateway.yaml](/gateway/configuration/bootstrap) |
-| Traffic и releases | [Group Releases API](/gateway/api/groups) |
-| Management и Caddy Admin pass-through | [API/OpenAPI](/gateway/api/) |
-| Безопасность/deployment | [Security](configuration/security), [Deployment](deploy/) |
-| Архитектура и полный roadmap | [Architecture](architecture/) |
+| Bootstrap | [Минимальный `gateway.yaml`](configuration/yaml-reference) |
+| Configurations | [SQLite и ConfigApply](architecture/control-plane) |
+| Plugin modes | [Supervised и external](architecture/plugin-deployment) |
+| API | [Gateway Management API](api/) |
+| Security/deployment | [Security](configuration/security), [Deployment](deploy/) |
+| Архитектура и этапы | [Целевой контракт](architecture/target), [Roadmap](architecture/v1-migration-roadmap) |
 
-Старая Gateway-specific YAML route DSL, site.yaml и /api/sites не входят в
-v1. Полный порядок миграции и критерии готовности зафиксированы в
-[roadmap](/gateway/architecture/v1-migration-roadmap).
+Корневая source of truth документации не обещает совместимость прежних
+Caddy/group endpoints, native Caddyfile management или bootstrap Caddy build
+variants.

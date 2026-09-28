@@ -1,33 +1,50 @@
-# API-границы
+# API boundaries экосистемы
 
-| API | Владелец | Потребитель | Назначение |
+| Surface | Владелец | Клиенты | Назначение |
 | --- | --- | --- | --- |
-| Constructor API | Constructor | desktop UI и automation | Проекты, Git bindings, snapshots, builds и deployment workflow Constructor. |
-| Gateway Management API | Gateway | Constructor, CLI, CI | Caddy groups/revisions, plugin instances, access, checkpoints, TLS operations, audit и operations. |
-| Native Caddy Admin API | Embedded Caddy или supervised external Caddy | Только Gateway Admin adapter | Private local configuration/control; публичный доступ запрещён. |
-| Plugin Admin contract | Plugin через Gateway | Constructor | Declarative UI, health, status, actions и schema-bound metadata. |
-| Plugin IPC | pluginprotocol | Gateway control manager ↔ plugin и Caddy data-plane handler ↔ plugin | gRPC lifecycle, Call, Stream и grants; Constructor не использует этот API. |
+| Gateway Management API | Core | Constructor backend, CLI, CI/operator | Общие plugin instances, generic JSON settings, endpoints, install lifecycle согласно execution profile, interaction policies, operations, access и audit. |
+| Plugin protocol | `pluginprotocol` | Core и plugins | Versioned lifecycle/control, `ConfigApply`, `DispatchApply`, capability `Call`/`Stream`, grants и workload mTLS. |
+| Plugin Admin Surface | Core как защищённый фасад, plugin как владелец capability | Constructor backend | Schema-ограниченные административные страницы и actions; browser не соединяется с plugin напрямую. |
+| Public traffic | Caddy plugin | Browser, TCP/UDP clients, upstream services | HTTP/TLS/L4 обработка и direct plugin dispatch по разрешённым protocol edges. |
+| Caddy runtime management | Caddy plugin | Только сам Caddy plugin | Производная внутренняя runtime-конфигурация; не является публичным Core API или независимым source of truth. |
 
-Constructor работает с Gateway через Management REST API. Traffic изменяется
-нативным Caddyfile в group release, а не через старый config API или local
-route model. Liapoldus Caddy handler вызывает plugin напрямую; Gateway
-Management API не является traffic proxy. Frontend archives включаются в тот
-же multipart group release.
-Group rollback не меняет plugin settings.
+## Конфигурация и desired state
 
-## Контракты экранов Constructor
+Core — один экземпляр и единственный источник желаемой конфигурации всех
+сервисов. Он сохраняет versioned JSON revisions и active pointers в SQLite,
+строит immutable in-memory snapshot и передаёт конфигурацию plugins push-вызовом
+`ConfigApply`. Plugin не обращается к Core за конфигом, а применяет полученную
+revision в своём процессе и подтверждает её digest.
 
-| Возможность | Gateway contract |
-| --- | --- |
-| Workspace и состояние runtime | status, Caddy build identity, group current/previous, drift и durable operations. |
-| Редактор traffic | native Caddyfile fragments, validation/adaptation и full-composition preview. |
-| Publish/rollback | multipart release, expected revision, idempotency, operation polling и immutable frontend roots. |
-| Advanced Caddy control | authenticated pass-through, checkpoint-before-mutation, audit, explicit reconcile/restore. |
-| Plugin settings | generic plugin instance API и plugin-owned settings schema; не часть group revision. |
-| Plugin Admin pages | fixed namespaced Gateway API, authorization, schema validation, redaction и audit. |
-| TLS | per-domain readiness и Caddy-managed renew/revoke operations. |
-| Credentials | OS credential store через Go desktop backend; renderer не сохраняет raw service key. |
+Caddy traffic configuration — JSON settings Caddy plugin, а не Caddyfile,
+group-release API или отдельная route DSL Core. Плагин может внутри себя
+производить Caddy runtime JSON/Caddyfile-подобные данные, но они производны от
+Core revision и не управляются независимо.
 
-UI не создаёт workaround, если endpoint отсутствует; он показывает явно
-read-only status/gap. Единственные endpoint schemas — опубликованный
-[Gateway OpenAPI](/gateway/api/openapi).
+## Runtime profiles
+
+Один profile действует на весь Core:
+
+- `supervised`: Core устанавливает только доверенные TUF package releases и
+  supervises локальные процессы;
+- `external`: operator/container orchestrator управляет процессами, Core
+  подключается к заданным endpoints и управляет только desired settings,
+  protocol generations и health.
+
+В v1 Caddy plugin имеет одну replica и отдельное persistent filesystem для
+ACME/site runtime data. Core хранит свою конфигурацию в SQLite; Caddy plugin
+хранит свои сертификаты и immutable site releases отдельно. PostgreSQL и S3 не
+требуются для control-plane конфигурации.
+
+## Безопасность и ошибки
+
+Management API отделён от public traffic. Controller backend использует
+private HTTPS с mTLS и binding-specific Bearer credential; desktop использует
+ограниченный SSH port-forward к loopback API. Plugin-to-plugin calls идут
+напрямую, только при явной caller→target/capability/mode policy и mTLS; Core не
+пересылает payload.
+
+Все management errors используют единый versioned Problem Details contract;
+внутренние Go errors не копируются в публичные сообщения. Auth data, секреты,
+cookie values, grants и capability payloads не включаются в errors, logs или
+audit.

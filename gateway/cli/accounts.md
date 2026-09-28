@@ -16,4 +16,6 @@ Rotation атомарно заменяет credential; revoke блокирует
 Desktop Constructor сохраняет свой Gateway token в OS credential store через
 Go backend. Web Constructor backend хранит отдельный token для каждой Gateway
 binding только в server-side secret storage; browser его не получает.
-Изменение key никогда не требует редактировать Caddyfile или group revision.
+Изменение key не требует редактировать plugin settings: security credentials
+управляются отдельными Management API/CLI операциями и не включаются в
+`ConfigApply` payload.

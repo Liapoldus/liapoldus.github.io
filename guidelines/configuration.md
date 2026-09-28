@@ -1,14 +1,17 @@
 # Конфигурация
 
 Configuration отделяется от кода, описывается versioned schema и валидируется
-до применения. Secret хранится как reference, не inline value в Git/fixtures.
-Gateway bootstrap содержит только state/artifact paths, Management transport/trust
-и Caddy build variant. Traffic settings — native Caddyfile group revisions,
-а plugin instances управляются через Gateway API, не через bootstrap YAML.
-Полный snapshot активируется атомарно; schema error не меняет обслуживаемый
-трафик.
+до применения. Секреты ссылаются по opaque references; plaintext values не
+включаются в Git, logs, API responses или fixtures.
 
-Внешние assets/contracts доступны только разрешённым infrastructure или
-presentation adapters, не domain model. Gateway API управляет plugin settings:
-неизменяемая версия settings хранится отдельным файлом, а SQLite содержит её
-ID, digest и lifecycle metadata. Schema задаёт подключённый plugin.
+У Gateway один Core instance и SQLite как единственный долговременный источник
+desired-конфигурации всех сервисов. Plugin settings — versioned JSON revisions
+в SQLite; Core проверяет их по подключённому Manifest/ConfigSchema, строит
+immutable in-memory snapshot и передаёт полный документ plugin через
+`ConfigApply`. Плагины не читают application settings из environment, argv или
+локальных конфигурационных файлов и не запрашивают настройки у Core.
+
+`gateway.yaml` содержит только bootstrap самого Core. Public traffic и Caddy-L4
+исполняет отдельный Caddy plugin; его traffic configuration также приходит как
+JSON settings от Core. Внутренний runtime artifact Caddy является производным и
+не служит независимым источником истины.

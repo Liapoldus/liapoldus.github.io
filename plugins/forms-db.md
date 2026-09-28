@@ -28,8 +28,9 @@
 
 ## Business contract
 
-Канонические JSON Schema requests/responses и mapping typed errors — в
-<a href="/spec/plugin-contracts.json" target="_blank" rel="noopener">plugin-contracts.json</a>.
+Канонические JSON Schema requests/responses и mapping typed errors принадлежат
+forms-db plugin и хранятся в его `contracts/v1/`. Общий protocol SDK переносит
+эти payloads как opaque JSON и не содержит forms-db contract.
 `site` Gateway берёт из route target, а не от клиента.
 
 ### `forms.submit`
@@ -43,7 +44,7 @@
 
 Конфигурация instance передаёт `schemas` как объект, где ключ — имя схемы, а
 значение — JSON Schema. Поддерживается Draft 2020-12; имя должно соответствовать
-`^[a-z][a-z0-9_-]{0,63}$`. Gateway хранит plugin settings и валидирует их по
+`^[a-z][a-z0-9_-]{0,63}$`. Core хранит desired plugin settings в SQLite и валидирует их по
 schema, но не передаёт plugin-у secret bytes или локальные file paths. Для SQL
 DSN конфигурация содержит только opaque secret reference; Gateway прикладывает к
 `ConfigApply` instance/revision-scoped grant, по которому plugin отдельно
@@ -53,8 +54,9 @@ redeem-ит DSN через GrantBroker. DSN живёт только в памя�
 все используемые определения должны находиться внутри самой схемы (например,
 в `$defs`). `ConfigApply` сначала компилирует все схемы и готовит новое
 хранилище, и только затем атомарно заменяет активную конфигурацию. При ошибке
-активные настройки и хранилище остаются без изменений. Список схем пока живёт
-только в памяти процесса и не восстанавливается из SQLite.
+активные настройки и хранилище остаются без изменений. Plugin держит применённую
+revision в памяти; после рестарта Core повторно отправляет durable active
+revision до того, как instance считается готовым.
 
 ### `forms.list`
 
@@ -106,12 +108,15 @@ Gateway-scoped grant. Код содержит SQL adapters для обоих д�
 integration tests подключаются только если заданы `FORMS_DB_POSTGRES_DSN` и/или
 `FORMS_DB_MYSQL_DSN`; при отсутствии DSN соответствующий тест явно пропускается.
 
-Пример SQLite:
+Пример JSON settings payload, отправляемого Core через `ConfigApply` (это не
+локальный application-config файл plugin):
 
-```yaml
-driver: sqlite
-dsn: data/forms.db
-tablePrefix: form_
+```json
+{
+  "driver": "sqlite",
+  "dsn": "data/forms.db",
+  "tablePrefix": "form_"
+}
 ```
 
 | Ключ | Назначение | По умолчанию |
@@ -120,19 +125,18 @@ tablePrefix: form_
 | `dsn` | Для SQLite — путь к файлу БД; для PostgreSQL/MySQL — opaque Gateway secret reference. Для `memory` не используется | — |
 | `tablePrefix` | префикс таблиц плагина | `form_` |
 
-Для SQLite путь `dsn` разрешается относительно рабочего окружения процесса
-плагина; используйте постоянный volume, если данные должны переживать
-пересоздание контейнера. Для PostgreSQL/MySQL settings содержат только opaque
-secret reference: Gateway выдаёт revision-scoped grant, а plugin получает
-реальный DSN отдельно и держит его в памяти активного storage adapter.
+Для SQLite путь `dsn` разрешается внутри plugin-owned data directory; используйте
+постоянный volume, если данные должны переживать пересоздание контейнера. Для
+PostgreSQL/MySQL settings содержат только opaque secret reference: Core выдаёт
+instance/revision-scoped grant при конфигурировании, а plugin получает реальный
+DSN отдельно и держит его в памяти активной revision до её замены или остановки.
 
 Декларация плагина и привязка capability к маршруту — общий синтаксис
 [«Обзор и настройка»](/plugins/).
 
 `admin.surface.get` возвращает декларативную страницу из единственного
-[forms-db v1 contract в `pluginprotocol`](https://github.com/Liapoldus/pluginprotocol/blob/main/contracts/forms-db/v1/admin-surface.json);
-Go adapter читает её через embedded read-only filesystem модуля. Плагин не
-дублирует JSON-контракт у себя.
+plugin-owned `contracts/v1/admin-surface.json`; Go adapter читает её из
+embedded assets этого плагина.
 
 ## Локальная проверка
 
@@ -144,9 +148,12 @@ go vet ./...
 go test ./...
 ```
 
-`core/tests/integration/serve-local-plugin-products.test.ts` собирает настоящий
-forms-db binary и запускает его как local child process через Gateway `serve` и
-embedded Caddy. Тест вызывает `POST /submit` и проверяет сохранённую отправку;
+Текущий legacy smoke `core/tests/integration/serve-local-plugin-products.test.ts`
+собирает настоящий forms-db binary и запускает его как local child process
+через Gateway `serve` и embedded Caddy. Это историческое свидетельство
+текущего кода, не целевой архитектуры; его заменит smoke отдельного Caddy
+plugin process и общего pluginprotocol SDK. Тест вызывает `POST /submit` и
+проверяет сохранённую отправку;
 он намеренно использует `memory` driver. Это подтверждает local process,
 settings/dispatch и unary call, но не SQL-backed Gateway grant flow, удалённый
 plugin/mTLS или declarative admin-action orchestration. PostgreSQL/MySQL live
@@ -192,5 +199,4 @@ write-only field. Save отправляет новый `plugins.<instance>.setti
 напрямую. После успешного apply Gateway invalidates surface cache and
 Constructor refreshes schema/status.
 
-Reference surface fixture —
-[`forms-db/v1/admin-surface.json`](https://github.com/Liapoldus/pluginprotocol/tree/main/contracts/forms-db/v1).
+Reference surface fixture: plugin-owned `contracts/v1/admin-surface.json`.

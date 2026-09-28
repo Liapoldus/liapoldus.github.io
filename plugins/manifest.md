@@ -1,24 +1,22 @@
 # Manifest и capabilities
 
-Manifest объявляет identity/version, capability names и поддерживаемые modes,
-settings schema,
-protocol requirements и optional declarative Admin Surface. Capability —
-минимальная операция, которую Gateway разрешает подключённому instance;
-manifest не является произвольной RPC над public request.
+Подробный Manifest, settings schema и invocation-mode contract принадлежат
+подключённому plugin и
+[pluginprotocol](https://github.com/Liapoldus/pluginprotocol). Manifest
+объявляет идентичность/release и capability→modes; Core проверяет объявленную
+schema и поддерживаемый mode, но не содержит специальных условий для
+конкретных plugins.
 
-Instance создаётся через Gateway Management API. Gateway сохраняет generic
-instance metadata, endpoint, grants, settings revision ID и digest в SQLite;
-неизменяемое содержимое settings revision хранится в versioned file. До
-применения Gateway проверяет settings по manifest schema. Продуктовые plugin
-schemas остаются в pluginprotocol или владеющем plugin contract; core не
-содержит дубликатов.
+Instance metadata и desired settings принадлежат Core. Settings JSON
+проверяется по Manifest/ConfigSchema, сохраняется versioned revision в SQLite
+и push-ится plugin-у через `ConfigApply` до readiness. Plugin не читает
+application environment/config files и не делает pull request за settings.
 
-Traffic binding указывается в native Caddyfile handler directive с instance ID,
-capability и mode. Gateway сопоставляет объявленные Manifest modes с group
-revision до activation. Для syntax и atomic group release см.
-[Control plane](/gateway/architecture/control-plane) и
-[Group Releases API](/gateway/api/groups).
+Routing и capabilities связываются через traffic JSON settings Caddy plugin,
+а не native Caddyfile или Gateway route DSL. Caddy plugin строит свою runtime
+конфигурацию и напрямую вызывает разрешённые plugin instances.
 
-Полные protobuf и JSON contract sources принадлежат
-[pluginprotocol](https://github.com/Liapoldus/pluginprotocol); эта документация
-не копирует их тела.
+Wire schema и examples не копируются в эту документацию; каноническая модель
+описана в [целевой архитектуре Gateway](../gateway/architecture/target),
+[plugin deployment](../gateway/architecture/plugin-deployment) и
+[plugin Admin Pages](admin-pages).

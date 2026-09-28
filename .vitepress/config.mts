@@ -203,6 +203,7 @@ export default defineConfig({
               { text: 'Обзор и настройка', link: '/plugins/' },
               { text: 'Архитектура и lifecycle', link: '/plugins/architecture' },
               { text: 'Manifest и capabilities', link: '/plugins/manifest' },
+              { text: 'Caddy plugin', link: '/plugins/caddy' },
               { text: 'Identity plugin', link: '/plugins/identity' },
               { text: 'Admin UI contract', link: '/plugins/admin-ui-contract' },
               { text: 'Admin pages', link: '/plugins/admin-pages' },

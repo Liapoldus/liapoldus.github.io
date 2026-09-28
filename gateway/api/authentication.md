@@ -1,113 +1,44 @@
-# Аутентификация Management API
+# Аутентификация и доступ Management API
 
-Management API отделён от публичного Caddy traffic и не проксирует
-пользовательские запросы. Нормативные HTTP schemas и typed responses
-опубликованы в [OpenAPI](/spec/management.openapi.yaml). Gateway авторизует
-только собственный административный principal `platform-admin`; пользователи
-и бизнес-роли Constructor в Gateway не переносятся.
+Management API — отдельная control-plane поверхность Core. Все операции
+авторизуются на сервере; браузер не получает Gateway service credential. До
+готовности Gateway v1 Core имеет одну системную роль `platform-admin` и не
+дублирует user/RBAC model Constructor.
 
-## Два доверенных способа удалённого доступа
+## Web Controller
 
-| Клиент | Сетевой путь | Аутентификация Gateway |
-| --- | --- | --- |
-| Web Constructor backend | Private HTTPS/VPN прямо к Gateway Management listener | mTLS клиента плюс отдельный Bearer `platform-admin` service token для каждой Gateway binding |
-| Desktop Constructor | Go bridge → внешний OpenSSH/bastion → SSH local port-forward к loopback Management listener | Короткоживущий SSH user certificate на tunnel; внутри tunnel — TLS server verification и Bearer `platform-admin` token |
-| Локальные операторские команды | Loopback Management listener | Bearer service token; первичный bootstrap только на host Gateway |
+Backend Controller устанавливает private HTTPS connection к Management API с
+mTLS и отдельным Bearer service credential для каждой Gateway binding. В
+каждом запросе Gateway проверяет Bearer authorization и клиентскую TLS
+identity. Controller передаёт user identity/permissions только как
+аудируемый actor context; Gateway остаётся ответственным за свою системную
+авторизацию. Token никогда не выдаётся JavaScript/browser и хранится backend-ом
+в защищённом secret store.
 
-Browser никогда не соединяется напрямую с Gateway и не получает Management
-certificate/private key или Bearer token. Web backend хранит отдельный service
-token и mTLS client identity для каждой привязки Gateway в защищённом
-server-side secret store. В Constructor DB находятся только безопасные
-metadata/references, не credential values.
+## Desktop
 
-Desktop SSH bridge не запускает SSH server внутри Gateway. OpenSSH/bastion
-проверяет short-lived user certificate и ограничивает его port-forward только
-к конкретному Gateway Management loopback endpoint. Shell, command execution,
-SFTP, agent/X11 forwarding и произвольные destination запрещены. SSH identity
-не заменяет Gateway Bearer authorization; server TLS проверяется и внутри
-tunnel. Gateway Management API не слушает public site listener.
+Desktop использует ограниченный SSH port-forward через внешний OpenSSH/bastion
+к loopback Management listener. SSH policy разрешает только port forwarding и
+запрещает shell, SFTP и agent forwarding. Go bridge проверяет TLS identity
+удалённого Gateway и передаёт краткоживущий Bearer credential из OS credential
+store. Отсутствие пользовательского login разрешено только для single-user
+desktop; удалённый Gateway всё равно требует полноценную service
+authorization.
 
-Web Constructor сначала аутентифицирует оператора и проверяет Constructor
-permissions, затем backend отправляет разрешённый запрос к связанному Gateway.
-Роль и environment binding сверяются для каждой операции по принципу
-deny-by-default. Gateway видит Controller binding как administrative actor;
-Constructor audit дополнительно фиксирует конкретного пользователя, его роль,
-environment, действие, target Gateway, operation и результат. Передача
-пользовательской identity в доверенном actor assertion не вводится.
+## Bootstrap, rotation и audit
 
-## Service tokens Gateway
+Первый `platform-admin` credential создаётся локальным bootstrap command и
+показывается ровно один раз. SQLite хранит только verifier и metadata.
+Management API поддерживает issuance, rotation и revocation; отозванный key не
+может продолжать работать через кэш. Каждая успешная и неуспешная mutation
+записывает actor, binding, action, resource, result и request ID в audit; raw
+credentials и TLS material туда не попадают.
 
-Каждый Gateway сохраняет одну роль `platform-admin`, но Constructor получает
-отдельный token для каждой Gateway binding, например отдельный для dev и
-production. Raw token генерируется локальным bootstrap или CLI/API create и
-показывается один раз; Gateway хранит verifier/hash, ID, состояние и lifecycle
-metadata в SQLite. Ни token, ни Authorization header не попадают в logs,
-traces, audit payloads, browser storage или crash reports.
+Management TLS roots отделены от plugin workload roots и Caddy ACME state.
+Для web подключения используется private network/VPN плюс mTLS и Bearer; для
+desktop tunnel удалённого Gateway — аналогичный trust boundary без требования
+настраивать mTLS непосредственно в desktop app.
 
-Первый token создаётся локально командой
-`gateway access bootstrap` при отсутствии в SQLite любого active,
-неотозванного service key и доступе к host state directory. Проверка условия
-и запись verifier атомарны; revoked records остаются для аудита и не мешают
-восстановлению. Удалённый клиент не может выполнить bootstrap. После импорта
-credential в серверное secret storage Constructor операции create/rotate/revoke
-выполняются только с действующей административной identity. Rotation создаёт
-новый token, а старый отзывается по документированной операции; потеря
-credential требует локального bootstrap/recovery, а не автоматического
-анонимного self-service.
-
-Verifier records и lifecycle metadata сервисных ключей хранятся только в
-SQLite, защищённой правами state directory. До первой локальной команды
-bootstrap Management API не принимает анонимные запросы: любые защищённые
-endpoints fail-closed с `401`; исключение составляет только минимальный
-unauthenticated `/healthz` без inventory и конфигурации. `/api/status` остаётся
-Bearer-protected.
-
-Management CA, Constructor backend client identity, plugin workload CA и
-Caddy/ACME state принадлежат разным trust domains. Gateway не выпускает
-сертификаты. mTLS handshake с неверным/отозванным сертификатом закрывается до
-HTTP и не подменяется Bearer-only fallback. SSH tunnel mode не требует
-desktop client mTLS identity, но не ослабляет TLS server verification или
-Bearer authorization.
-
-## Аутентификация пользователей Constructor
-
-Пользовательские web sessions принадлежат Constructor, а не Gateway:
-
-- OIDC login использует внешний provider; локальная запись пользователя
-  связывается по стабильной паре `iss` + `sub`. Неизвестный subject не получает
-  роль до явного provisioning.
-- После OIDC login Constructor выполняет обязательный WebAuthn/passkey
-  challenge. OIDC access/refresh tokens и Gateway credentials не выдаются
-  React renderer.
-- Local web mode проверяет хэш пароля, затем требует WebAuthn/passkey и
-  выпускает короткоживущий Constructor JWT. Refresh credential ротируется при
-  использовании; recovery требует отдельного подтверждённого flow и
-  audit event.
-- В обоих web modes browser получает session/JWT только в `Secure`, `HttpOnly`,
-  `SameSite` cookie; mutation endpoints требуют CSRF защиты, точных Origin/Host
-  проверок и rate limits. JWT и refresh values не помещаются в localStorage,
-  sessionStorage или URL.
-- Constructor desktop в single-user local режиме не показывает login и не
-  заводит пользовательские roles. Этот режим разрешён только для локального
-  loopback/Wails приложения; он не превращает remote Gateway в unauthenticated
-  service.
-
-Роли и permission assignments хранятся в БД Constructor. Environment-scoped
-permissions применяются к конкретной Gateway binding: например,
-`deploy.dev` не разрешает публикацию на binding с environment `prod`. Видимость
-кнопок в UI не является границей безопасности; backend проверяет permission
-перед каждым management use case.
-
-## Health и Caddy Admin
-
-Unauthenticated health endpoint сообщает только process/readiness status и не
-раскрывает конфигурацию или inventory. Целевой контракт ограничивает Caddy
-Admin API авторизованным Gateway pass-through; внешний Admin socket и plugin
-endpoints не становятся интерфейсами Constructor. Pass-through и checkpoint
-перед Admin mutation пока не реализованы. Audit не должен включать тела запросов
-и секреты. См. [статус реализации](/gateway/architecture/implementation).
-
-Схемы token create/rotate, auth failure и typed errors определены в
-[Gateway OpenAPI](/spec/management.openapi.yaml); пользовательские sessions и
-Constructor RBAC описаны в [модели Constructor](/constructor/governance) и
-[модели данных](/constructor/data-model).
+Полная структура bootstrap и plugin credential границ находится в
+[Security configuration](../configuration/security) и
+[целевой архитектуре](../architecture/target).

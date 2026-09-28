@@ -1,14 +1,17 @@
-# Практические примеры Gateway
+# Примеры Gateway
 
-Примеры используют минимальный bootstrap gateway.yaml и native Caddyfile group
-releases. Gateway-specific route YAML, site.yaml и includes больше не
-поддерживаются. Ключи и лимиты задаются только опубликованными schemas.
+Прежние примеры нативного Caddyfile/group API сохранены как URL-указатели и не
+являются активным v1 contract. Новая traffic configuration задаётся
+versioned JSON settings Caddy plugin, хранится Core в SQLite и применяется
+через `ConfigApply`.
 
-- [Простой HTTP site и reverse proxy](simple-site) — нативные Caddyfile
-  primitives и publication boundary.
-- [TLS и management access](tls) — Caddy ownership и разделение traffic/API.
-- [Plugin integrations](forms) — граница Gateway dispatch.
-- [TCP/UDP relay](tcp) и [UDP/P2P relay](udp-p2p) — L4 scope v1.
+- [Plugin configuration](../api/config) — общий CAS/settings apply lifecycle.
+- [Plugin deployment](../architecture/plugin-deployment) — supervised и
+  external profiles.
+- [Транспорты](../configuration/transports) — HTTP/TLS/WebSocket/SSE и
+  Caddy-L4.
+- [Целевая архитектура](../architecture/target) — ownership, persistence и
+  security invariants.
 
-Основные API: [Group Releases](/gateway/api/groups),
-[Management OpenAPI](/gateway/api/openapi).
+Конкретная JSON traffic schema публикуется Caddy plugin-ом и не дублируется в
+Core docs.

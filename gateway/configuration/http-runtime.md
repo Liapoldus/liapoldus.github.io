@@ -1,18 +1,23 @@
 # HTTP runtime boundary
 
-HTTP/HTTPS, HTTP/2/3, reverse proxy, static serving, WebSocket, TLS и ACME
-исполняет совместимый Caddy runtime. Канонический traffic config — native
-Caddyfile group composition, не gateway.yaml DSL. Gateway не копирует в
-собственную схему стандартные Caddy HTTP semantics.
+HTTP/HTTPS, HTTP/2/3, TLS, reverse proxy, static serving, WebSocket, SSE и L4
+исполняет отдельный Caddy plugin с Caddy-L4. Core не встраивает Caddy и не
+обслуживает пользовательский traffic.
 
-Gateway владеет Management API, авторизацией операций, group activation,
-immutable frontend roots, plugin lifecycle, подготовкой dispatch snapshots,
-grants и audit. Caddy Liapoldus handler исполняет direct plugin dispatch,
-применяет route/stream limits и redaction; он не обращается к Management API,
-application use cases или SQLite. Две Liapoldus Caddyfile directives,
-`liapoldus_frontend` и `liapoldus_plugin`, описаны в
-[control plane](/gateway/architecture/control-plane#liapoldus-caddyfile-handlers).
+Единственный source of truth настроек — versioned JSON Caddy plugin в SQLite
+Core. Core schema-validates документ по Manifest/ConfigSchema, но не разбирает
+его продуктовые поля, а отправляет полную revision через `ConfigApply`. Caddy
+plugin преобразует JSON в свою runtime-конфигурацию и применяет её атомарно.
+Файл Caddyfile или внутренний Caddy JSON, если они используются внутри plugin,
+являются производными runtime-данными и не редактируются независимо.
 
-Если Caddy не может адаптировать fragment или подготовить snapshot, текущий
-runtime/current/previous остаются без изменений. HTTP behavior variants
-покрываются parity conformance suite из [acceptance matrix](acceptance).
+Caddy plugin напрямую принимает public traffic и напрямую вызывает разрешённые
+plugins по mTLS. Он не обращается к Management API Core за пользовательскими
+запросами; Core остаётся control plane для конфигураций, grants, общих policy,
+operations и audit. В v1 разрешён ровно один active Caddy instance, а его
+ACME/site runtime state сохраняется на собственном persistent filesystem.
+
+Поведение и границы HTTP plugin actions описывает единственный
+[pluginprotocol source](https://github.com/Liapoldus/pluginprotocol). Состав
+v1-проверок приведён в [acceptance matrix](acceptance), а целевая архитектура —
+в [каноническом документе](../architecture/target).

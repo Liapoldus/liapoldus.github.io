@@ -1,11 +1,12 @@
-# Upstream и балансировка
+# Upstream и balancing
 
-Gateway не вводит YAML-модель upstream-ов. HTTP reverse proxy и TCP/UDP
-upstreams задаются native Caddyfile и доступными в выбранном custom Caddy build
-modules. Конкретную семантику proxy/load balancing определяет используемый
-Caddyfile module; Liapoldus отвечает за сборку, проверку и атомарную активацию
-group snapshot.
+Core не имеет собственной модели upstream-ов и не принимает native Caddyfile.
+Traffic settings задаются JSON-схемой Caddy plugin и хранятся Core в SQLite;
+plugin компилирует их в runtime configuration. Разрешённые backend fields и
+behavior будут нормативно закреплены в versioned Caddy plugin schema, не в
+Gateway-specific YAML DSL.
 
-Для ограничений двух вариантов Caddy и parity gate см.
-[архитектуру control plane](/gateway/architecture/control-plane)
-и [матрицу приёмки](acceptance).
+Плагины вызываются по explicit Core interaction policies напрямую через
+`pluginprotocol`, а не становятся произвольными network upstreams. См.
+[транспорты](transports), [plugin interactions](../architecture/control-plane)
+и [target architecture](../architecture/target).

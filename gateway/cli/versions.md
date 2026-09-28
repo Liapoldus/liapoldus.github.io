@@ -1,16 +1,17 @@
-# Group revisions и rollback
+# Версии plugins и releases сайтов
 
-> **План:** команды CLI из этой страницы ещё не реализованы. Group revisions и
-> rollback доступны через Management API; см. [Group Releases API](/gateway/api/groups).
+В supervised profile Core устанавливает plugin releases из TUF-подписанного
+каталога по `publisher/name/version`. Он хранит package в локальном immutable
+release directory и активную версию; переход на предыдущую установленную
+версию выполняется только после проверки package/protocol compatibility.
+Произвольные URLs и неподписанные binaries не принимаются.
 
-CLI просматривает current/previous revisions и запускает group rollback через
-Gateway Management API. Это не отдельная публикация Site resource.
+В external profile binary versions и rollbacks выполняет Docker/Kubernetes или
+operator. Core не устанавливает и не перезапускает удалённые процессы; он
+показывает observed Manifest/release digest и desired/applied config generation.
 
-Group publication принимает Caddyfile и необязательный frontend tar.gz через
-[Group Releases API](/gateway/api/groups). SQLite хранит revision IDs и
-current/previous pointers; files immutable. Rollback активирует полный Caddy
-snapshot и связанный frontend root group, не меняя plugin settings.
-
-Любая операция требует CAS/idempotency и оставляет active pointers без
-изменений при validation, conflict или activation error. Поля и exit/error
-mapping задаются CLI/API contract до implementation.
+Site releases принадлежат Caddy plugin, а не Core registry. Plugin хранит
+immutable artifact releases и pointers `current/previous` на своём persistent
+filesystem и меняет их через собственную Admin Surface. API details — в
+[plugin configuration](../api/config) и
+[целевой архитектуре](../architecture/target).

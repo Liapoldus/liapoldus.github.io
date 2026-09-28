@@ -1,23 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://liapoldus.github.io/spec/http-runtime.json",
-  "title": "Liapoldus Gateway traffic runtime boundary",
+  "title": "Liapoldus Gateway plugin traffic boundary",
   "version": "1.0.0",
-  "trafficConfiguration": "Native Caddyfile fragments in group revisions; Gateway does not define a route DSL.",
-  "runtime": "Compatible Caddy handles HTTP/1.1, HTTP/2, HTTP/3, TLS, reverse proxy, static serving, WebSocket, SSE and ACME.",
-  "l4": "Caddy-L4 handles TCP/UDP relay and direct plugin streams; mandatory conformance applies to embedded and external Caddy variants.",
+  "core": "A single Gateway Core stores desired plugin configuration in SQLite, exposes Management API, supervises local plugins only in supervised profile and does not serve or proxy public traffic.",
+  "caddyPlugin": {
+    "process": "One separate Caddy plugin instance per Gateway in v1; Caddy and Caddy-L4 are built into the plugin, never into Core.",
+    "configSource": "Versioned plugin JSON settings stored by Core and pushed with ConfigApply; the plugin compiles JSON into its private Caddy runtime configuration.",
+    "protocols": ["HTTP/1.1", "HTTP/2", "HTTP/3", "TLS", "WebSocket", "SSE", "TCP", "UDP"],
+    "l4": "Caddy-L4 handles TCP/UDP relay with mandatory conformance; no Go-net fallback.",
+    "persistentState": "ACME/CertMagic state and site releases use the Caddy plugin persistent filesystem; current/previous site release pointers remain plugin-owned.",
+    "listeners": "Caddy plugin opens its own public listeners. Core does not embed Caddy, launch a second Caddy binary or pass public listener sockets."
+  },
   "pluginDataProtocol": {
-    "call": "Caddy Liapoldus handler calls the plugin directly using existing versioned JSON contracts.",
+    "call": "Generic unary Call carries the existing versioned JSON contracts.",
     "stream": ["http-bidirectional-stream", "websocket-messages", "structured-sse-events", "tcp", "udp"],
-    "routeBinding": "Native Caddyfile handler binds instance, capability and invocation mode; Manifest declares supported modes and Gateway validates before activation.",
+    "registration": "pluginprotocol Go SDK offers typed capability handler registration without one protobuf RPC per capability.",
     "managementApiInRequestPath": false,
-    "externalDispatch": "Gateway supervises external Caddy and synchronizes an authenticated immutable dispatch snapshot over private local Admin API/IPC."
+    "pluginToPlugin": "Plugins call explicitly allowed peer instances directly over pluginprotocol gRPC/mTLS; Core distributes policy and is not a payload proxy."
   },
-  "ownership": {
-    "caddy": ["public listeners", "HTTP protocol runtime", "TLS/ACME", "Caddyfile adaptation", "direct plugin data dispatch", "HTTP response commit"],
-    "gateway": ["management authorization", "group revisions", "plugin lifecycle", "dispatch snapshot preparation", "grants", "audit", "redaction", "atomic activation"]
-  },
-  "activation": "Gateway validates and prepares one complete composition from all active group revisions before activating it. Failed activation leaves the previous snapshot and current/previous pointers unchanged.",
-  "adminApi": "Native Caddy Admin API is loopback/local IPC only. External requests use authenticated Gateway pass-through with checkpointing and drift protection.",
-  "frontends": "Frontend files are immutable roots bundled into the same group revision as its Caddyfile fragment."
+  "activation": "Core persists candidate JSON revision and operation in SQLite, pushes it to required plugin replicas, commits the active pointer only after exact acknowledgements and compensates failed partial application with the previous revision.",
+  "configuration": "User traffic and plugin-specific configuration are never read from SQLite per request; Core serves active in-memory generations.",
+  "ha": "Core is one instance and Caddy is one active v1 instance; PostgreSQL, S3 and Caddy shared-storage HA are not required."
 }

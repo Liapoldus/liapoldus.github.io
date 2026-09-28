@@ -3,27 +3,21 @@
 Audit и durable operations хранятся в SQLite, а не в JSONL-файлах. Контракт
 полей и API pagination задан в [OpenAPI](/spec/management.openapi.yaml).
 
-> **Статус реализации core:** SQLite storage, retention и cursor pagination
-> работают. Для успешного `group.create` создание группы и audit row фиксируются
-> одной SQLite-транзакцией; если вставка audit row не удаётся, API возвращает
-> `503`, а группа не создаётся. Для неуспешной попытки событие записывается до
-> ответа; при ошибке append API возвращает `503 audit_unavailable` вместо
-> исходного `400`/`409`. Audit остальных mutations и durable-operation
-> transitions, а также durable operations storage/API и атомарность других
-> mutations ещё не реализованы. Текущий статус и план — в
-> [roadmap Gateway v1](../architecture/v1-migration-roadmap#план-этапов-и-gates).
+> **Статус:** описанная ниже поверхность — нормативная цель Gateway v1; она не
+> является утверждением, что вся реализация уже готова. Проверенные gates и
+> открытые работы перечислены в [roadmap Gateway v1](../architecture/v1-migration-roadmap#план-этапов-и-gates).
 
 Gateway audit фиксирует actor service-key/Controller-binding ID, action,
-resource type/ID, result, timestamp,
-request ID и применимые digests. Он не сохраняет Caddyfile/artifact contents,
-Admin API request/response bodies, Authorization, secrets, private keys,
-cookies, plugin payloads или grant handles. Для Admin mutations записываются
-method, normalized path, checkpoint reference и результат без тела.
+resource type/ID, result, timestamp, request ID и применимые digests. Он не
+сохраняет конфигурационные документы целиком, package/artifact contents,
+Authorization, secrets, private keys, cookies, plugin payloads или grant
+handles. Для конфигурационных mutations фиксируются operation ID, revision,
+digest и результат без тела.
 
-Операции group publish/rollback, Caddy checkpoint restore/reconcile, plugin
-lifecycle и TLS renew/revoke сохраняют state, idempotency fingerprint,
-timestamps и safe result/problem. После restart операция восстанавливается или
-явно помечается failed/recovery-required; она не теряется в памяти процесса.
+Операции `ConfigApply`, `DispatchApply`, plugin install/lifecycle и plugin-owned
+Admin Surface actions сохраняют state, idempotency fingerprint, timestamps и
+safe result/problem. После restart операция восстанавливается или явно
+помечается failed/recovery-required; она не теряется в памяти процесса.
 
 Для web-операций Gateway видит только authenticated Constructor binding;
 Constructor audit связывает тот же operation ID с end-user, role, environment

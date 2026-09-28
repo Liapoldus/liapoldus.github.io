@@ -1,27 +1,17 @@
-# Транспорты Gateway
+# Public transports
 
-## HTTP и TLS
+HTTP/1.1, HTTP/2/3, TLS, WebSocket, SSE и TCP/UDP relay обслуживает отдельный
+`plugins/caddy` process, собранный вместе с Caddy и Caddy-L4. Core не
+принимает public requests и не реализует traffic sockets. В v1 у одного Core
+допускается ровно одна active Caddy replica.
 
-HTTP/HTTPS, HTTP/2/3, reverse proxy, static serving, WebSocket и ACME
-исполняются совместимым Caddy runtime. Его конфигурация задаётся native
-Caddyfile, входит в активные group revisions и проходит embedded/external
-parity gate. HTTP streaming request/response, WebSocket и SSE используют
-Liapoldus handler module и прямой gRPC `Stream` к plugin; Gateway Management
-API не находится в пользовательском request path. Caddy Admin API остаётся
-внутренним и недоступным с публичного интерфейса.
+Caddy-specific JSON settings хранятся в Core SQLite и push-ятся через
+`ConfigApply`; Caddy plugin преобразует их в runtime-конфигурацию. Это не
+Caddyfile API и не вторая Gateway route DSL. Публичные порты открывает сам
+plugin; Docker/Kubernetes задаёт Service/host publication, supervised install
+получает только необходимые OS grants.
 
-## L4
-
-Gateway v1 использует [Caddy-L4](https://github.com/mholt/caddy-l4) за Liapoldus adapter для TCP/UDP relay и direct plugin streams. Это
-обязательный компонент обоих Caddy build variants. Caddy-L4 экспериментален,
-поэтому расширенный conformance suite — блокирующий release gate. При провале
-v1 не объявляется готовым; переход на Go net или gnet fallback не допускается.
-
-L4 в v1 — relay к заранее заданному peer/upstream; peer discovery, rendezvous,
-hole punching и NAT traversal не обещаются. TCP stream соответствует одному
-соединению; UDP сохраняет datagram boundaries. Лимиты, timeouts, cancellation,
-reload и поведение при partial failure должны совпадать между embedded и
-external variant.
-
-Точные conformance cases собраны в [Acceptance matrix](acceptance), а module
-build policy — в [Control plane](/gateway/architecture/control-plane).
+Caddy-L4 — обязательный TCP/UDP implementation, его conformance блокирует v1;
+fallback на Go `net`/`gnet` не предусматривается. P2P означает только relay к
+заданному peer, без discovery или NAT traversal. См.
+[Acceptance](acceptance) и [целевую архитектуру](../architecture/target).

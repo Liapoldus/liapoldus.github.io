@@ -1,30 +1,24 @@
-# Acceptance matrix Gateway v1
+# Матрица проверки Gateway v1
 
-Все тесты должны проверять два Caddy build variants: embedded и compatible
-external custom build. Обычный Caddy без Liapoldus modules и Caddy-L4 не
-принимается. Caddy-L4 conformance failure блокирует v1; fallback implementation
-не используется.
+Это нормативные replacement gates для перехода на
+[целевую архитектуру](../architecture/target). Прохождение старых embedded/
+external-Caddy тестов не считается приёмкой новой модели.
 
-| Область | Обязательные сценарии |
+| Область | Обязательное доказательство |
 | --- | --- |
-| Bootstrap | Только state/artifacts/management/caddy; unknown fields, includes, site.yaml и traffic DSL отклоняются. |
-| Persistence | SQLite migration, FK, transactions, backup/restore, process kill, crash recovery и локальный storage. |
-| Group releases | Multipart metadata + Caddyfile + optional single tar.gz; digest/limits, hostile archives, CAS/idempotency, concurrent publish, current/previous, rollback. |
-| Snapshot | Caddy adapt/load failures, listener conflicts, partial activation failure; прежний snapshot/pointers остаются согласованными. |
-| Admin API | Полный native pass-through, loopback-only underlying listener, auth, checkpoint-before-mutation, drift detection, deploy block, explicit reconcile/restore. |
-| Access | Web backend private HTTPS+mTLS plus per-Gateway Bearer token; desktop SSH-forwarded loopback plus TLS server verification and Bearer; one-time reveal, rotation/revocation and redaction. |
-| Constructor | OIDC/local-JWT/desktop-no-login modes, WebAuthn, role/environment checks, multiple independent Gateway bindings, credentials excluded from browser. |
-| Plugins | Mixed local-supervised and remote Service-backed instances; unique Pod identity mapped to logical instance; each new connection repeats TLS/Manifest/health handshake; no replay, downgrade or peer traffic. |
-| Direct dispatch | Caddy handler → plugin gRPC is verified in both Caddy variants; request/response bodies never pass through Management API, SQLite or config files. External dispatch snapshot sync uses private permissioned Unix socket and is atomic. |
-| Recovery | Active immutable generation is hydrated to memory; DB pointers and artifact digests reconcile before listener activation; one unavailable plugin degrades only its bindings. |
-| `Call`/`Stream` | Existing JSON `Call` stays compatible; Stream covers HTTP bidi upload/download, WebSocket accept/subprotocol/message boundaries, SSE events and existing L4 lifecycle. |
-| Stream safety | Actual byte counting including chunked, message bounds, backpressure, per-instance/route concurrency, idle/max-duration, cancellation and response-start failure semantics. |
-| Data safety | No plaintext secrets in Caddyfile/DB/API response/Admin payload/audit/logs/traces; no raw Admin request bodies in audit; cookies and grants redacted. |
-| HTTP/TLS | HTTP/1.1, HTTP/2, HTTP/3, native Caddyfile, TLS, ACME readiness async by domain, static/proxy/WebSocket/SSE. |
-| L4 | TCP/UDP relay, datagram/message boundaries, bounds, timeouts, cancellation, reload, concurrency, both Caddy variants, macOS/Linux. |
-| Release delivery | Embedded Gateway binary/container; external variant launches and supervises only a compatible custom Caddy child process; no public Caddy Admin endpoint. |
+| Bootstrap | `gateway.yaml` принимает только Core state/package paths, один global execution profile, Management bind/TLS и доверенный TUF source. Старые Caddy variants, routes, `site.yaml`, includes и plugin application settings отвергаются. |
+| SQLite/config | Полная candidate JSON revision имеет CAS/idempotency/audit; operation journal переживает restart/crash; current/previous pointers и immutable files не расходятся; runtime view строится в памяти. |
+| `ConfigApply` | Core push-ит schema-valid versioned JSON каждому требуемому endpoint; plugin atomic-apply делает exact revision/digest ACK; compensation не выдаёт ложный success; secret bytes отсутствуют. |
+| Supervised plugins | Только TUF-trusted catalog identity; подпись/digest/rollback/platform/compatibility/safe extraction проверены; inherited listener/bootstrap, process restart/backoff/shutdown и release rollback подтверждены real child-process E2E. |
+| External plugins | Core не имеет install/start/stop/restart и Docker/Kubernetes client; explicit per-replica endpoints/identities проходят mTLS, handshake/config/dispatch/health; failed replica изолируется, reconnect не replay-ит Call. |
+| Plugin protocol | Typed unary/stream handlers; local identity bootstrap; remote PEM/SPIFFE mTLS; signed CRL rotation/revocation; exact ConfigApply/DispatchApply; deadlines, cancellation, backpressure, message boundaries и close-races имеют executable conformance. |
+| Plugin interactions | Deny-by-default caller→target/capability/mode; полный `DispatchApply` generation получает identity-bound ACK от каждой ожидаемой replica; direct calls работают, запрещённые/stale identities отклоняются, Core не proxy-ит payload. |
+| Cookies и HTTP actions | Входящие cookies проходят per-instance/capability allow-list; ordinary и HttpOnly actions валидируются атомарно; response-start до headers/101 не частичен; утечки cookie/action values отсутствуют во всех diagnostics. |
+| Caddy plugin | Ровно одна replica и один plugin binary с Caddy-L4; ConfigApply JSON→runtime apply атомарен; HTTP/1.1–3, TLS/ACME, static/proxy, WebSocket negotiation/messages, SSE, TCP/UDP проходят real child-process tests. |
+| Caddy storage/Admin Surface | ACME/CertMagic и immutable site artifacts переживают process/container restart на persistent storage; `current`/`previous` и rollback согласованы; site upload проверяется по digest/архиву/manifest. Все Caddy actions идут через generic authorized plugin Admin Surface. |
+| Management security | API закрыт от public traffic; authorization выполняется для каждого запроса, аудит redacted; web service credential остаётся backend-only; desktop SSH ограничен loopback port-forward; management/workload roots раздельны. |
+| Recovery/backup | Kill/reopen tests закрывают каждый Core journal crash point; восстановление plugin-specific site/certificate data независимо от Core SQLite backup; незавершённые поколения остаются fenced. |
+| Platform | `make check`, `go vet ./...`, `make staticcheck-u1000`, Linux/macOS builds и Docker smoke отдельно для `supervised` и `external` deployments проходят. |
 
-Implementation uses black-box TypeScript unit/integration/E2E under separate
-tests directories. Every increment starts with a red test. Milestone gates:
-VitePress build, make check, go vet ./..., go build ./..., macOS/Linux builds,
-Docker smoke and all conformance/security tests.
+Производственный readiness не объявляется, пока любой обязательный gate
+остаётся непроверенным. Полный план этапов см. в [roadmap](../architecture/v1-migration-roadmap).

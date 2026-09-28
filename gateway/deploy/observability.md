@@ -1,27 +1,23 @@
 # Логи, аудит и наблюдаемость
 
-Audit, durable operations, idempotency metadata и checkpoints хранятся в
-SQLite. Access/application logs и traces отправляются в явно настроенные
-sinks; Gateway не копирует payloads ради диагностики.
+Core SQLite хранит durable operations, idempotency metadata, generation ACKs,
+service-key metadata и audit. Access/application logs и traces выдаются через
+явно подключённые sinks; Core не копирует request bodies или plugin payloads
+ради диагностики.
 
-> **Статус реализации core:** старые telemetry exporters удалены вместе с
-> прежним network runtime. Новые sinks для logs/traces и описанные ниже
-> metrics ещё предстоит подключить; это целевой deployment-контракт, а не
-> утверждение о текущих возможностях production `serve`. См. [roadmap Gateway v1](../architecture/v1-migration-roadmap#план-этапов-и-gates).
+Audit фиксирует actor/binding, action, resource, operation ID, digest,
+timestamp, result и request ID. Он не содержит settings plaintext, Caddy
+runtime config, Authorization, secrets, private keys, cookie values или grant
+handles.
 
-Audit содержит actor, action, resource, operation/checkpoint IDs, safe
-digests, timestamp, result и request ID. Он не содержит Caddyfile/archive
-contents, Caddy Admin body, Authorization, secrets, private keys, cookies или
-grant handles. Retention и backup задаются deployment policy и SQLite
-maintenance procedure.
+Metrics отражают singleton Core readiness, SQLite/storage health, supervised
+process lifecycle, external endpoint/connectivity, desired/applied config и
+interaction generations, per-replica ACK, operation age, Caddy plugin health,
+ACME readiness по домену и L4 stream health. Labels не должны содержать raw
+credentials, private endpoints, request payload, cookie values или grants.
 
-Metrics должны различать Gateway process/readiness, Caddy build variant/module
-identity, active groups, current revisions, drift, operations, plugin
-connectivity, certificate readiness by domain и storage exhaustion. Labels не
-содержат credential, raw endpoint secrets, request body, cookie values или
-grant handles.
-
-Caddy и Gateway logs разделяются по компонентам, но obey одной redaction
-policy. Container не экспортирует Caddy Admin port. См.
-[security boundary](/gateway/configuration/security) и
-[control-plane storage](/gateway/architecture/control-plane#sqlite-и-файлы).
+Caddy plugin logs отделены от Core logs, но используют общую redaction policy.
+Caddy Admin port не публикуется; его API не является операторской или
+observability поверхностью. Незавершённые реализации отмечены в
+[roadmap](../architecture/v1-migration-roadmap) и
+[`core/TODO.md`](https://github.com/Liapoldus/core/blob/main/TODO.md).

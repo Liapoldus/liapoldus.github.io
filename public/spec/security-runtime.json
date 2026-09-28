@@ -3,51 +3,43 @@
   "$id": "https://liapoldus.github.io/spec/security-runtime.json",
   "title": "Liapoldus Gateway security runtime contract",
   "version": "1.0.0",
+  "core": {
+    "instances": 1,
+    "desiredConfigStore": "SQLite on persistent local filesystem; immutable in-memory runtime generations; no database reads on the user traffic path.",
+    "profiles": ["supervised", "external"],
+    "profileMixing": false,
+    "externalLifecycle": "Core does not install, start, stop or restart externally managed plugin processes."
+  },
   "management": {
-    "loopback": "Management API may bind loopback; local CLI/desktop SSH forwarding requires Bearer service key and TLS server verification.",
-    "webConstructor": "A trusted web Constructor backend connects only over private HTTPS with mTLS and a separate Bearer platform-admin token per Gateway binding.",
-    "desktopConstructor": "Desktop uses an external OpenSSH/bastion short-lived user certificate restricted to port-forwarding into loopback Management API; the tunnel still uses TLS server verification and Bearer authorization.",
+    "publicTrafficProxy": false,
+    "webController": "Private HTTPS, client mTLS and a distinct Bearer service credential per binding; credentials never enter a browser.",
+    "desktop": "Restricted SSH port-forward to loopback Management API with TLS server verification and Bearer from OS credential store; no shell/SFTP/agent forwarding.",
     "roles": ["platform-admin"],
-    "userAuthorization": "Constructor owns human users, roles, environment-scoped permissions and per-user audit; Gateway authenticates only the Controller binding principal.",
-    "rawKey": "Service key plaintext is returned once during create/rotate; only a verifier/hash is persisted.",
-    "trustRoots": "Management client trust roots and plugin workload trust roots MUST be distinct.",
-    "health": "Unauthenticated health endpoint exposes process health only and no configuration or runtime inventory."
+    "userAuthorization": "Constructor owns human users and permissions; Core authenticates and audits the Controller binding principal.",
+    "rawKey": "Service-key plaintext is returned once; only verifier/metadata is persisted.",
+    "health": "Unauthenticated health reveals process health only, not config or plugin inventory."
   },
-  "caddyAdmin": {
-    "bind": "permissioned-unix-socket-for-external-or-in-process-for-embedded",
-    "publicExposure": false,
-    "externalProcess": "Gateway launches and supervises the configured compatible Caddy binary; Caddy Admin API/IPC is authenticated and private to Gateway.",
-    "dispatchSync": "External Caddy receives immutable dispatch generations before activation; sync failure leaves active Caddy and dispatch generations unchanged.",
-    "gatewayPassThrough": "Authenticated Management API pass-through preserves native Caddy payloads.",
-    "mutation": "Every mutation creates a durable checkpoint before forwarding and writes metadata-only audit.",
-    "drift": "Unrepresentable runtime changes block group publish/rollback until explicit checkpoint restore or full-composition reconcile.",
-    "reverseConversion": "Arbitrary Caddy JSON is never converted back to Caddyfile automatically."
+  "pluginWorkload": {
+    "protocol": "All plugin control and direct peer data connections use pluginprotocol gRPC/mTLS after bootstrap.",
+    "localBootstrap": "Ephemeral process identities and exact pins are exchanged only through a private inherited bootstrap pipe; plaintext RPC is not a fallback.",
+    "externalCredentials": ["read-only PEM provider", "SPIFFE Workload API"],
+    "certificateAuthority": "Core is not a workload CA; external CA/operator provisions remote identities and signed CRL bundles.",
+    "trustRoots": "Management and plugin workload trust roots are distinct.",
+    "revocation": "Invalid/missing/stale signed CRL fails closed; CRL update closes active channels; no insecure downgrade.",
+    "secretDelivery": "ConfigApply carries opaque references only; secret bytes are delivered only through scoped grants.",
+    "interactionPolicy": "Core distributes explicit caller-to-target/capability/mode allow edges; default deny; direct peer gRPC is not proxied by Core.",
+    "recovery": "Reconnect repeats identity/manifest/config/dispatch checks; unknown Call outcomes are not replayed and disconnected Streams are closed."
   },
-  "plugins": {
-    "local": "Gateway supervises a plugin process on an assigned loopback endpoint.",
-    "remote": "A stable Service endpoint uses TLS/mTLS; each externally issued workload-replica identity maps to one logical plugin instance.",
-    "clientIdentities": "Remote Gateway control RPCs and Caddy data-plane Call/Stream use distinct workload client identities and scopes; the plugin rejects RPCs outside the identity scope.",
-    "replicas": "Ready replicas share protocol, release, Manifest and settings digests; every new gRPC connection repeats TLS validation and handshake.",
-    "recovery": "Gateway reconnects without replaying a unary Call with unknown outcome; an interrupted Stream closes and is not migrated to another replica.",
-    "degradedMode": "An unavailable plugin degrades only its bound routes; unrelated routes remain available.",
-    "dataPath": "Caddy Liapoldus handler calls the plugin directly; Gateway Management API never proxies user request bodies.",
-    "grantBroker": "Only a narrow plugin-to-Gateway scoped-secret redemption callback is permitted; it does not proxy client traffic.",
-    "gatewayCa": false,
-    "downgrade": false,
-    "pluginToPluginTraffic": false,
-    "managementApiInUserRequestPath": false,
-    "rotation": "External CA rotation uses credential replacement and rolling restart; rejected/revoked certificates fail closed."
+  "caddyPlugin": {
+    "instancesPerCore": 1,
+    "adminApiExposure": false,
+    "configuration": "Core JSON settings are the only desired-config source; plugin compiles/applies Caddy runtime configuration.",
+    "persistentState": "ACME certificates and site releases live in plugin-owned persistent local filesystem; one replica means no PostgreSQL/S3/shared-storage dependency.",
+    "publicListeners": "Opened by the plugin itself; Core does not run as root for Caddy and does not socket-activate public ports."
   },
   "secrets": {
     "plaintextAllowedIn": [],
-    "externalReferencesOnly": true,
     "redactFrom": ["API errors", "logs", "traces", "audit", "crash reports"],
-    "adminAudit": "Never stores native request/response bodies or sensitive headers."
-  },
-  "storage": {
-    "database": "SQLite on local filesystem; network filesystem database mounts are unsupported.",
-    "artifactStore": "Immutable Caddyfile/plugin-settings revisions, frontend roots and checkpoints are stored separately as files.",
-    "runtime": "Active configuration is hydrated into an immutable in-memory snapshot; user request paths do not read SQLite or config files.",
-    "secretValuesInDatabase": false
+    "auditPayloads": "No raw settings secrets, Caddy runtime payloads, credentials, cookies, private keys, grants or request bodies."
   }
 }

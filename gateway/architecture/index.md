@@ -1,19 +1,20 @@
 # Архитектура Gateway
 
-Эти страницы описывают целевую архитектуру Gateway v1, а не текущую
-реализацию. Нормативная модель настройки: native Caddyfile group revisions +
-минимальный bootstrap gateway.yaml + authenticated Management API.
+Единственная каноническая модель v1 — [целевая архитектура](target). Она
+определяет singleton Core, SQLite source of truth, generic plugin lifecycle,
+`ConfigApply`, прямые plugin-to-plugin policies и отдельный Caddy plugin.
 
-| Документ | Для чего |
+| Документ | Назначение |
 | --- | --- |
-| [План перепроектирования v1](v1-migration-roadmap) | Этапы, карта replace/adapt/remove и gates. |
-| [Control plane](control-plane) | Caddy build variants, группы, Admin API, SQLite и безопасность. |
-| [Границы и решения](target) | Зафиксированные продуктовые инварианты. |
-| [Компоненты runtime](gateway) | Владельцы компонентов и потоки данных. |
-| [Кодовая архитектура](structure) | Слои и persistence adapters. |
-| [Plugin protocol](protocol) | Единственный IPC contract. |
-| [Режимы plugins](plugin-deployment) | Local supervision и remote mTLS. |
-| [Cookie boundary](cookies) | Plugin-owned cookies и типизированные actions. |
+| [Roadmap v1](v1-migration-roadmap) | Этапы миграции и gates. |
+| [Целевые решения](target) | Нормативные роли, state, profiles и security. |
+| [Control plane](control-plane) | ConfigApply, SQLite generations и plugin interactions. |
+| [Runtime components](gateway) | Компактная карта владельцев. |
+| [Режимы plugins](plugin-deployment) | Local supervision и внешняя оркестрация. |
+| [Protocol](protocol) | Единственный plugin IPC contract — см. также source repository. |
+| [Cookies](cookies) | Plugin-owned values и общий typed boundary. |
 
-Общие цели и зависимости вынесены в per-repository TODO файлы; подробный
-порядок работ хранится в roadmap.
+Страница [статуса реализации](implementation) отделяет подтверждённое текущее
+поведение от целевой архитектуры. При расхождении implementation не меняет
+нормативный target: сначала зафиксировать gap в соответствующем TODO, затем
+закрыть его тестами и реализацией по [roadmap](v1-migration-roadmap).

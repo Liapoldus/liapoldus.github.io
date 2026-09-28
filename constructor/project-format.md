@@ -36,12 +36,18 @@ Project является нормальным monorepo React-приложени�
     themes/<theme-id>.json
     assets.json                # Asset metadata/references, not binary secrets
     infrastructure/<environment>.json
-    gateway/<group-id>.caddyfile # native Caddyfile fragment for a Gateway group release
-    plugins/<environment>/<instance>.json
   public/assets/               # filesystem asset storage in local mode
 ```
 
 ## Владение и генерируемые файлы
+
+Формат проекта Constructor не является источником Gateway runtime settings.
+`gateway/` и `plugins/` не содержат копий Gateway plugin settings или
+Caddyfile/group-release fragments: desired plugin documents живут в Core SQLite
+и редактируются через Management API. Собранный frontend передаётся отдельно в
+Caddy plugin Admin Surface; Gateway/Core не получает путь к local project
+directory. Формат site upload принадлежит versioned contract Caddy plugin и не
+задаётся этим project manifest.
 
 | Path | Writer | Rule |
 | --- | --- | --- |

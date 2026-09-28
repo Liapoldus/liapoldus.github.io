@@ -19,7 +19,7 @@ Gateway остаётся единственной точкой internal API, aut
 
 | Артефакт | Автор | Хранение | Что содержит |
 | --- | --- | --- | --- |
-| Instance settings | оператор/Constructor | Gateway Plugin Instance API; immutable settings revision files + SQLite metadata/digest | DB connection refs, feature settings; валидируются plugin `ConfigSchema` |
+| Instance settings | оператор/Constructor | Core SQLite как durable source of truth; versioned JSON revision отправляется plugin через `ConfigApply` | DB connection refs, feature settings; валидируются plugin `ConfigSchema`, активный runtime держится plugin в памяти |
 | Admin surface | plugin release | versioned plugin contract | page/section/field/table/action metadata |
 | Page data/action result | plugin через Gateway | transient response + audit | typed query/action payload, никогда не executable UI |
 
