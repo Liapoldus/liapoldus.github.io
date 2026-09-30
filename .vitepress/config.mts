@@ -7,8 +7,9 @@ const base = process.env.BASE_PATH || '/'
 
 export default defineConfig({
     title: 'Liapoldus',
-    description:
+  description:
       'Целевая документация Liapoldus — платформы публикации публичных сайтов.',
+    srcDir: '.site-src',
     lang: 'ru-RU',
     base,
     cleanUrls: true,
@@ -32,6 +33,14 @@ export default defineConfig({
         { text: 'Code Guidelines', link: '/guidelines/' },
         { component: 'CoreNav' },
         { text: 'Плагины', link: '/plugins/' },
+        {
+          text: 'Библиотеки',
+          items: [
+            { text: 'Plugin SDK', link: '/plugin-sdk/' },
+            { text: 'pluginprotocol', link: '/pluginprotocol/' },
+            { text: 'React SDK', link: '/react-lib/' }
+          ]
+        },
         { text: 'Constructor', link: '/constructor/' }
       ],
 
@@ -215,6 +224,36 @@ export default defineConfig({
               { text: 'Identity plugin', link: '/plugins/identity' },
               { text: 'CAPTCHA plugin', link: '/plugins/captcha' }
             ]
+          }
+        ],
+        '/plugin-sdk/': [
+          {
+            text: 'Plugin SDK',
+            items: [
+              { text: 'Обзор', link: '/plugin-sdk/' },
+              { text: 'Разработка plugins', link: '/plugins/development' },
+              { text: 'Plugin runtime', link: '/plugins/architecture' },
+              { text: 'Manifest и capabilities', link: '/plugins/manifest' },
+              { text: 'Admin Pages', link: '/plugins/admin-pages' },
+              { text: 'Admin UI contract', link: '/plugins/admin-ui-contract' }
+            ]
+          }
+        ],
+        '/pluginprotocol/': [
+          {
+            text: 'pluginprotocol',
+            items: [
+              { text: 'Обзор', link: '/pluginprotocol/' },
+              { text: 'Руководство потребителя', link: '/pluginprotocol/docs/consumer-guide' },
+              { text: 'Миграция', link: '/pluginprotocol/docs/migration' },
+              { text: 'Changelog', link: '/pluginprotocol/CHANGELOG' }
+            ]
+          }
+        ],
+        '/react-lib/': [
+          {
+            text: 'React SDK',
+            items: [{ text: 'Обзор', link: '/react-lib/' }]
           }
         ],
         '/constructor/': [

@@ -1,5 +1,11 @@
 # Архитектура Liapoldus
 
+Эта страница описывает только межсервисные границы. Полная архитектура каждого
+сервиса принадлежит его репозиторию: [Core](/core/architecture/),
+[Plugin SDK](/plugins/architecture), [`pluginprotocol`](/pluginprotocol/),
+[Server plugin](/plugins/server) и [Constructor](/constructor/). Агрегатор
+собирает owner Markdown и диаграммы, не создавая их параллельные копии.
+
 Liapoldus состоит из независимых продуктов с явными API-границами. Это не
 монолит: каждый продукт можно развивать и развертывать отдельно.
 

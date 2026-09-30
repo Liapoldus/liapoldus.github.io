@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import { basename, extname, join, resolve } from 'node:path'
 import type { Plugin } from 'vite'
 
-const sourceDirectory = resolve(process.cwd(), 'diagrams')
-const outputDirectory = resolve(process.cwd(), 'public/diagrams')
+const sourceDirectory = resolve(process.cwd(), '.site-src/diagrams')
+const outputDirectory = resolve(process.cwd(), '.site-src/public/diagrams')
+const trackedOutputDirectory = resolve(process.cwd(), 'public/diagrams')
 const puppeteerConfig = join(process.cwd(), '.vitepress/plugins/puppeteer-config.json')
 const cliPath = join(
   process.cwd(),
@@ -17,6 +18,10 @@ function outputPath(source: string) {
   return join(outputDirectory, `${basename(source, '.mmd')}.svg`)
 }
 
+function trackedOutputPath(source: string) {
+  return join(trackedOutputDirectory, `${basename(source, '.mmd')}.svg`)
+}
+
 function renderDiagram(source: string) {
   execFileSync(
     cliPath,
@@ -26,11 +31,14 @@ function renderDiagram(source: string) {
       stdio: 'inherit'
     }
   )
+  mkdirSync(trackedOutputDirectory, { recursive: true })
+  cpSync(outputPath(source), trackedOutputPath(source))
 }
 
 function renderAllDiagrams() {
   if (!existsSync(sourceDirectory)) return
   mkdirSync(outputDirectory, { recursive: true })
+  mkdirSync(trackedOutputDirectory, { recursive: true })
   for (const file of readdirSync(sourceDirectory).filter((file) => extname(file) === '.mmd')) {
     const source = join(sourceDirectory, file)
     // В CI (GitHub Actions) headless-браузер недоступен: не роняем сборку,
@@ -65,6 +73,7 @@ export function diagramsPlugin(): Plugin {
         try {
           if (event === 'unlink') {
             rmSync(outputPath(file), { force: true })
+            rmSync(trackedOutputPath(file), { force: true })
           } else if (event === 'add' || event === 'change') {
             renderDiagram(file)
           } else {

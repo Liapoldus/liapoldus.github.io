@@ -4,7 +4,10 @@
   "private": true,
   "description": "Документация Liapoldus Core и plugin ecosystem (VitePress)",
   "scripts": {
+    "docs:sync": "node scripts/sync-doc-sources.mjs",
     "dev": "vitepress dev",
+    "predev": "npm run docs:sync",
+    "prebuild": "npm run docs:sync",
     "build": "vitepress build",
     "preview": "vitepress preview"
   },

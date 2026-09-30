@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "name": "core",
+      "repository": "https://github.com/Liapoldus/core.git",
+      "ref": "ae263b713d051019a195e2f2023745419c6d2a58",
+      "workspacePath": "core",
+      "mappings": [
+        { "from": "docs/site/core", "to": "core" },
+        { "from": "docs/site/diagrams/core-config-store.mmd", "to": "diagrams/core-config-store.mmd" }
+      ]
+    },
+    {
+      "name": "pluginprotocol",
+      "repository": "https://github.com/Liapoldus/pluginprotocol.git",
+      "ref": "66578b4eb75cbceff161e5e17bff5ff1b7658ef0",
+      "workspacePath": "pluginprotocol",
+      "mappings": [
+        { "from": "docs/site/pluginprotocol/index.md", "to": "pluginprotocol/index.md" },
+        { "from": "docs/site/pluginprotocol/consumer-guide.md", "to": "pluginprotocol/docs/consumer-guide.md" },
+        { "from": "docs/site/pluginprotocol/migration.md", "to": "pluginprotocol/docs/migration.md" },
+        { "from": "CHANGELOG.md", "to": "pluginprotocol/CHANGELOG.md" }
+      ]
+    },
+    {
+      "name": "plugin-sdk",
+      "repository": "https://github.com/Liapoldus/plugin-sdk.git",
+      "ref": "64d3c4a108e89f578d2a63bd470f2342f9c3442a",
+      "workspacePath": "plugin-sdk",
+      "mappings": [
+        { "from": "README.md", "to": "plugin-sdk/index.md" },
+        { "from": "docs/site/plugins", "to": "plugins" },
+        { "from": "docs/site/diagrams/plugin-admin-page-flow.mmd", "to": "diagrams/plugin-admin-page-flow.mmd" }
+      ]
+    },
+    {
+      "name": "server",
+      "repository": "https://github.com/Liapoldus/server.git",
+      "ref": "a49d2cb15efbe07cea32ddeda0f3fa26d9aec72a",
+      "workspacePath": "plugins/server",
+      "mappings": [
+        { "from": "docs/site/plugins/server.md", "to": "plugins/server.md" },
+        { "from": "docs/site/core/examples", "to": "core/examples" }
+      ]
+    },
+    {
+      "name": "forms-db",
+      "repository": "https://github.com/Liapoldus/forms-db.git",
+      "ref": "b2c5d98d7b60a96448ecb20368a5935a016104be",
+      "workspacePath": "plugins/forms-db",
+      "mappings": [
+        { "from": "docs/site/plugins/forms-db.md", "to": "plugins/forms-db.md" },
+        { "from": "docs/site/core/examples/forms.md", "to": "core/examples/forms.md" }
+      ]
+    },
+    {
+      "name": "constructor",
+      "repository": "https://github.com/Liapoldus/Constructor.git",
+      "ref": "171075d2fca810ff5475c9899d5d5b51770d5c15",
+      "workspacePath": "Constructor",
+      "mappings": [
+        { "from": "docs/site/constructor", "to": "constructor" },
+        { "from": "docs/site/diagrams", "to": "diagrams" }
+      ]
+    },
+    {
+      "name": "react-lib",
+      "repository": "https://github.com/Liapoldus/react-lib.git",
+      "ref": "2028c0cef92614b77fbb41f7a4c19f04e4ef2e40",
+      "workspacePath": "react-lib",
+      "mappings": [
+        { "from": "docs/site/react-lib", "to": "react-lib" }
+      ]
+    }
+  ]
+}

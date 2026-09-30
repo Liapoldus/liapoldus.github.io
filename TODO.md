@@ -23,21 +23,26 @@
   используется для восстановления незавершённой durable operation; успешная
   активация транзакционно двигает active/previous.
 - [x] Документация Core, публичные contracts, sidebar и ссылки обновлены;
-  локальный `npm run build` прошёл 2026-09-30.
+  локальный `npm run build` прошёл 2026-09-30. Из-за заморозки Constructor
+  Mermaid-генератор в этом запуске пропустил его diagram sources; Core ER SVG
+  был сгенерирован отдельно из собственного источника.
+- [x] Manifest hashes для изменённых `errors.json` и `management.openapi.yaml`
+  пересчитаны; YAML разбирается, OpenAPI содержит 12 paths / 14 operations и
+  не содержит отсутствующих локальных `$ref`.
+- [x] Проверить GitHub Pages deployment breaking rename: HTTP вернул `200` для
+  `/core/`, `/core/configuration/` и `/core/configuration/acceptance`, а старый
+  `/gateway/configuration/` — `404`. Текущая ветка `main` синхронизирована с
+  `origin/main`; все её commits опубликованы.
 
 ## Открыто
 
-- [ ] Проверить завершение GitHub Pages deployment для опубликованного commit
-  `ae2a734`: после push `/core/` маршруты возвращали 404, а старый
-  `/gateway/configuration/` — 200. Повторить HTTP-проверку и проверить Actions;
-  локальная сборка не является доказательством деплоя.
 - [ ] Синхронизировать public contracts с фактически компилируемыми Plugin SDK,
   Server и forms-db owner contracts после завершения их миграции. Сейчас обе
   активные plugin integrations падают при Go compile; не объявлять contract
   parity или production readiness до сквозного Core→SDK→plugin smoke.
-- [ ] Проверить в CI hashes опубликованных schemas/OpenAPI/vectors и целостность
-  ссылок на внешние owner contracts без копирования `.proto` или plugin-owned
-  JSON schemas.
+- [ ] Добавить/подтвердить CI gate hashes опубликованных schemas/OpenAPI/vectors
+  и целостность ссылок на внешние owner contracts без копирования `.proto` или
+  plugin-owned JSON schemas.
 - [ ] После следующего документационного изменения собрать сайт командой
   `npm run build`, но сначала проверить затронутые diagram sources: build
   регенерирует `public/diagrams/*.svg`. Не перезаписывать пользовательские
@@ -45,7 +50,19 @@
 
 ## Вне области
 
-Не менять `Constructor/`, `react-lib/`, замороженные `plugins/captcha/` и
+Не менять product code/tests в `Constructor/`, `react-lib/`, замороженных `plugins/captcha/` и
 `plugins/identity/`, `archive/plugins/tls-issuer/` или `test/`. Не менять код,
-contracts или TODO активных plugins вместо их владельцев. Не коммитить, не
+contracts активных plugins вместо их владельцев. Не коммитить, не
 пушить и не публиковать последующие изменения без отдельного явного запроса.
+
+## Миграция документационных исходников
+
+- [x] Разделить ownership: общая главная, product overview, ecosystem
+  architecture и guidelines остаются в агрегаторе; Core, protocol, SDK, Server,
+  forms-db, Constructor и React SDK владеют собственными Markdown/Mermaid.
+- [x] Добавить pinned-source manifest, локальный staging assembler и VitePress
+  `srcDir`; публичные URL сохраняются, исходники не дублируются при сборке.
+- [ ] Завершить проверку owner commits и remote pins после сохранения изменений
+  во всех репозиториях; затем выполнить `npm run build` из режима remote sources.
+- [ ] CAPTCHA/Identity остаются замороженным v2-исключением в aggregator до
+  отдельного решения о разморозке их documentation owners.

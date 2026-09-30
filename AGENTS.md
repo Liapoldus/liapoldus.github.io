@@ -7,10 +7,12 @@
 
 ## Назначение
 
-Официальный сайт документации Liapoldus — генератор статики
-[VitePress](https://vitepress.dev) (1.6.x). Содержит только контент; исходники
-core/plugins/redactor лежат в соседних репозиториях (см. корневой
-`AGENTS.md`).
+Официальный единый сайт документации Liapoldus — генератор статики
+[VitePress](https://vitepress.dev) (1.6.x). Этот репозиторий владеет главной,
+общими материалами экосистемы, гайдлайнами, публичными агрегированными
+контрактами и сборкой сайта. Архитектура и продуктовая документация каждого
+сервиса, SDK и plugin принадлежит его репозиторию и синхронизируется для сборки
+по закреплённым ревизиям из `docs-sources.json`.
 
 Продакшн-адрес: `https://liapoldus.github.io/` (после переименования репо —
 тот же домен).
@@ -30,6 +32,8 @@ core/plugins/redactor лежат в соседних репозиториях (�
 npm install        # один раз; package-lock.json в реестре
 npm run dev        # локальный dev-сервер (VitePress)
 npm run build      # сборка в .vitepress/dist
+npm run docs:sync  # пересобрать локальный staging из репозиториев-владельцев
+npm run docs:sync -- --remote # получить закреплённые удалённые ревизии
 npm run preview    # статический предпросмотр сборки
 ```
 
@@ -59,8 +63,9 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/core/config
   карточки перечислением в тексте.
 - Варианты конфигов — вкладки `:::tabs` / `== Имя` / `:::`
   (`vitepress-plugin-tabs`).
-- Схемы хранятся исходниками `diagrams/*.mmd` и VitePress автоматически
-  генерирует `public/diagrams/*.svg` перед dev/build. Runtime Mermaid и его
+- Общие схемы хранятся исходниками `diagrams/*.mmd`; схемы сервисов — в их
+  `docs/site/diagrams/`. Синхронизация собирает их в `.site-src/diagrams`,
+  VitePress генерирует `public/diagrams/*.svg` перед dev/build. Runtime Mermaid и его
   VitePress-плагин не используются: это исключает тяжёлый клиентский chunk.
 - `BASE_PATH: /` задаётся в workflow env; в конфиге default `/`. Не менять
   без отдельного решения.
@@ -70,18 +75,34 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/core/config
   Gateway IDs/paths не поддерживаются после breaking migration. Не добавлять
   redirect-страницы и старые ссылки как совместимый API.
 
-## Структура репозитория
+## Источник документации и структура агрегатора
+
+- Канонические исходники Core — `core/docs/site/core/`; protocol —
+  `pluginprotocol/docs/site/pluginprotocol/`; SDK — `plugin-sdk/docs/site/` и
+  `plugin-sdk/README.md`; Server/forms-db — `plugins/{server,forms-db}/docs/site/`;
+  Constructor — `Constructor/docs/site/`; React SDK — `react-lib/docs/site/`.
+- Каждый владелец редактирует только свой источник. Главная, product overview,
+  общая архитектура экосистемы и гайдлайны остаются здесь. Не создавать в
+  агрегаторе вторую копию страниц сервиса.
+- `docs-sources.json` закрепляет repository URL и commit SHA источника. Сборка
+  синхронизирует эти ревизии, если локального workspace-соседа нет. После
+  изменения документации сначала сохранить и опубликовать commit владельца,
+  затем обновить его SHA здесь. Не использовать плавающий `main` в сборке.
+- `.site-src/` — generated staging VitePress, `.docs-sources/` — remote
+  checkouts; оба каталога нельзя редактировать вручную или коммитить.
 
 ```text
 .vitepress/config.mts        # nav, sidebar, base, search
-diagrams/                     # Mermaid-исходники статических SVG-схем
+scripts/sync-doc-sources.mjs # сборка владельческих источников в .site-src
+docs-sources.json            # remotes, commit pins и карта маршрутов
+diagrams/                     # общие Mermaid-исходники
+.site-src/                    # generated merged VitePress source (ignored)
 .vitepress/theme/            # кастомные компоненты (CoreNav), custom.css
 .vitepress/shim/             # fastdom-заглушки для сборки (не трогать)
 public/                      # favicon, versioned contracts и сгенерированные SVG
-core/                         # Core API, architecture, CLI, configuration, deploy, examples
-plugins/                      # Server, forms-db, generic plugin contracts; identity/captcha v2
-constructor/                  # отдельная архитектура Constructor и его API
-architecture/ guidelines/     # общие границы и правила документации
+plugins/                      # общие overview и замороженные v2 указатели
+architecture/ guidelines/     # общие границы экосистемы и правила документации
+public/                       # общие versioned contracts и generated SVG
 product/                     # «О продукте» (обзор, user-experience)
 index.md                     # корневая страница (layout: home)
 ```
@@ -107,10 +128,8 @@ index.md                     # корневая страница (layout: home)
 
 ## Полезные ссылки в контенте
 
-- Канон конфигурации — `core/configuration/*`; CLI — `core/cli/*`;
-  декларация плагина — `plugins/index.md`; Core↔plugin REST канон —
-  `core/architecture/protocol.md`, generic plugin↔plugin wire-канон —
-  внешний репозиторий `pluginprotocol`; практическая реализация —
-  `core/architecture/guide.md`. Страница `architecture/contract.md` сохранена
-  только как короткий указатель на канонические контракты.
+- Общие страницы остаются в `architecture/`, `guidelines/` и `product/`.
+  Сервисные страницы видны в generated `.site-src/`, но редактируются только в
+  соответствующем репозитории-владельце; owner map закреплён в корневом
+  `AGENTS.md`.
 - Решения по структуре/стилю сессии документируются в этом файле и в коммитах.

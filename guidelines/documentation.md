@@ -4,5 +4,9 @@
 копируются: другие страницы ссылаются на канон. Каждая новая страница входит в
 sidebar, использует стабильные ссылки без `.md` и проходит VitePress build.
 
-Схемы хранятся как `.mmd` в `diagrams/`, SVG генерируются при build. Диаграмма
-объясняет связь, а текст фиксирует ownership, contract и failure behavior.
+Markdown и Mermaid для конкретного сервиса хранятся в его репозитории под
+`docs/site/`; общие материалы экосистемы остаются в агрегаторе. Сайт импортирует
+pinned commits из `docs-sources.json` и не содержит редактируемых копий owner
+docs. Общие диаграммы хранятся как `.mmd` в `diagrams/`, owner diagrams — в
+`docs/site/diagrams/`, SVG генерируются при build. Диаграмма объясняет связь, а
+текст фиксирует ownership, contract и failure behavior.
