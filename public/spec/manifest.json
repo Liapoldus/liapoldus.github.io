@@ -3,11 +3,11 @@
   "source": "https://liapoldus.github.io/spec/",
   "files": {
     "constructor-auth-policy.v1.json": "sha256:18b4df97f7e1f5af0ffc65204b58b6ef2fdc92c5e7ac799ef7d3783bd83c3a68",
-    "errors.json": "sha256:39c35774d6a1ac90b592177e83b19f42ce7b44a8ffc832d314c2adbff709ba13",
+    "errors.json": "sha256:82c4790e5a17c24cf0a8aa6954f6efbd6b64a31bb57ee7646d00e50c38c97693",
     "core.schema.json": "sha256:24186c67f609922e06300d547df6edc1020859e800c3667c99737146d55cc997",
     "golden-vectors.json": "sha256:540dca99099332543fb71b12938457f1208045b8cce25ab418fdcec37ef8e14b",
     "http-runtime.json": "sha256:244a91144c48f9750cc18c6041df82e0d1b59bb87b8eaae1fb0d8f36aec2da65",
-    "management.openapi.yaml": "sha256:b2633abd1ac4c8c5db4955594436a9ee9f4944d1d8f687c5894dce519fa2a775",
+    "management.openapi.yaml": "sha256:9b074003cf2bce8a2a9352c22e8f90633cd3e8344138ae5ababf932e4abe2630",
     "security-runtime.json": "sha256:8669205ce2145dffe4c61b97addf6e43c0f1eadaa246214950d4fd93d0746f96"
   }
 }
