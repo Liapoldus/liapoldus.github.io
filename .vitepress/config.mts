@@ -30,7 +30,7 @@ export default defineConfig({
         { text: 'Обзор', link: '/product/' },
         { text: 'Архитектура', link: '/architecture/' },
         { text: 'Code Guidelines', link: '/guidelines/' },
-        { component: 'GatewayNav' },
+        { component: 'CoreNav' },
         { text: 'Плагины', link: '/plugins/' },
         { text: 'Constructor', link: '/constructor/' }
       ],
@@ -99,100 +99,98 @@ export default defineConfig({
             ]
           }
         ],
-        '/gateway/': [
+        '/core/': [
           {
             text: 'Оператор',
             items: [
-              { text: 'Gateway: обзор', link: '/gateway/' },
-              { text: 'Настройка Gateway', link: '/gateway/configuration/' },
-              { text: 'Практические сценарии', link: '/gateway/examples/' },
-              { text: 'Развёртывание', link: '/gateway/deploy/' }
+              { text: 'Core: обзор', link: '/core/' },
+              { text: 'Настройка Core', link: '/core/configuration/' },
+              { text: 'Практические сценарии', link: '/core/examples/' },
+              { text: 'Развёртывание', link: '/core/deploy/' }
             ]
           }
         ],
-        '/gateway/examples/': [
+        '/core/examples/': [
           {
             text: 'Практические примеры',
             items: [
-              { text: 'Обзор примеров', link: '/gateway/examples/' },
-              { text: 'Простой сайт', link: '/gateway/examples/simple-site' },
-              { text: 'Reverse proxy', link: '/gateway/examples/proxy' },
-              { text: 'TLS и доступ к Management API', link: '/gateway/examples/tls' },
-              { text: 'TCP passthrough', link: '/gateway/examples/tcp' },
-              { text: 'UDP и P2P relay', link: '/gateway/examples/udp-p2p' },
-              { text: 'Формы на сайте', link: '/gateway/examples/forms' },
-              { text: 'Капча на сайте', link: '/gateway/examples/captcha' }
+              { text: 'Обзор примеров', link: '/core/examples/' },
+              { text: 'Простой сайт', link: '/core/examples/simple-site' },
+              { text: 'Reverse proxy', link: '/core/examples/proxy' },
+              { text: 'TLS и доступ к Management API', link: '/core/examples/tls' },
+              { text: 'Формы на сайте', link: '/core/examples/forms' }
             ]
           }
         ],
-        '/gateway/configuration/': [
+        '/core/configuration/': [
           {
             text: 'Оператор · конфигурация',
             items: [
-              { text: 'Обзор и быстрый старт', link: '/gateway/configuration/' },
-              { text: 'Bootstrap gateway.yaml', link: '/gateway/configuration/bootstrap' },
-              { text: 'Полная схема bootstrap', link: '/gateway/configuration/gateway-schema' },
-              { text: 'Traffic config в Caddyfile', link: '/gateway/configuration/server-blocks' },
-              { text: 'TCP, UDP и P2P', link: '/gateway/configuration/transports' },
-              { text: 'Upstream и балансировка', link: '/gateway/configuration/upstreams' },
-              { text: 'TLS, auth и WAF', link: '/gateway/configuration/security' },
-              { text: 'HTTP runtime', link: '/gateway/configuration/http-runtime' },
-              { text: 'Reload и конфликты', link: '/gateway/configuration/tls-reload' },
-              { text: 'Каталог ошибок', link: '/gateway/configuration/errors' },
-              { text: 'Acceptance matrix', link: '/gateway/configuration/acceptance' },
-              { text: 'Секреты и переменные', link: '/gateway/configuration/secrets' }
+              { text: 'Обзор и быстрый старт', link: '/core/configuration/' },
+              { text: 'Bootstrap core.yaml', link: '/core/configuration/bootstrap' },
+              { text: 'Полная схема bootstrap', link: '/core/configuration/core-schema' },
+              { text: 'Traffic settings plugin', link: '/core/configuration/http-runtime' },
+              { text: 'HTTP-транспорты v1', link: '/core/configuration/transports' },
+              { text: 'Upstream и балансировка', link: '/core/configuration/upstreams' },
+              { text: 'TLS, auth и WAF', link: '/core/configuration/security' },
+              { text: 'HTTP runtime', link: '/core/configuration/http-runtime' },
+              { text: 'Reload и конфликты', link: '/core/configuration/tls-reload' },
+              { text: 'Каталог ошибок', link: '/core/configuration/errors' },
+              { text: 'Acceptance matrix', link: '/core/configuration/acceptance' },
+              { text: 'Секреты и переменные', link: '/core/configuration/secrets' }
             ]
           }
         ],
-        '/gateway/cli/': [
+        '/core/cli/': [
           {
             text: 'Оператор · CLI',
             items: [
-              { text: 'Обзор', link: '/gateway/cli/' },
-              { text: 'serve', link: '/gateway/cli/serve' },
-              { text: 'Версии и откат', link: '/gateway/cli/versions' },
-              { text: 'Диагностика', link: '/gateway/cli/inspect' },
-              { text: 'accounts', link: '/gateway/cli/accounts' }
+              { text: 'Обзор', link: '/core/cli/' },
+              { text: 'serve', link: '/core/cli/serve' },
+              { text: 'Версии и откат', link: '/core/cli/versions' },
+              { text: 'Диагностика', link: '/core/cli/inspect' },
+              { text: 'accounts', link: '/core/cli/accounts' }
             ]
           }
         ],
-        '/gateway/deploy/': [
+        '/core/deploy/': [
           {
             text: 'Оператор · развёртывание',
             items: [
-              { text: 'Развёртывание', link: '/gateway/deploy/' },
-              { text: 'Логи и наблюдаемость', link: '/gateway/deploy/observability' }
+              { text: 'Развёртывание', link: '/core/deploy/' },
+              { text: 'Backup, restore и upgrade', link: '/core/deploy/backup-restore' },
+              { text: 'Логи и наблюдаемость', link: '/core/deploy/observability' }
             ]
           }
         ],
-        '/gateway/api/': [
+        '/core/api/': [
           {
-            text: 'Оператор · Gateway API',
+            text: 'Оператор · Core API',
             items: [
-              { text: 'Обзор', link: '/gateway/api/' },
-              { text: 'Аутентификация', link: '/gateway/api/authentication' },
-              { text: 'Группы и revisions', link: '/gateway/api/groups' },
-              { text: 'Ресурсы и операции', link: '/gateway/api/operations' },
-              { text: 'Audit и operations', link: '/gateway/api/audit' },
-              { text: 'OpenAPI', link: '/gateway/api/openapi' }
+              { text: 'Обзор', link: '/core/api/' },
+              { text: 'Аутентификация', link: '/core/api/authentication' },
+              { text: 'Настройки plugins', link: '/core/api/config' },
+              { text: 'Ресурсы и операции', link: '/core/api/operations' },
+              { text: 'Audit и operations', link: '/core/api/audit' },
+              { text: 'OpenAPI', link: '/core/api/openapi' }
             ]
           }
         ],
-        '/gateway/architecture/': [
+        '/core/architecture/': [
           {
             text: 'Реализатор · архитектура',
             items: [
-              { text: 'Обзор', link: '/gateway/architecture/' },
-              { text: 'План миграции Gateway v1', link: '/gateway/architecture/v1-migration-roadmap' },
-              { text: 'Границы и решения', link: '/gateway/architecture/target' },
-              { text: 'Control plane и группы', link: '/gateway/architecture/control-plane' },
-              { text: 'Компоненты runtime', link: '/gateway/architecture/gateway' },
-              { text: 'Blueprint реализации', link: '/gateway/architecture/implementation' },
-              { text: 'Кодовая архитектура', link: '/gateway/architecture/structure' },
-              { text: 'Plugin protocol', link: '/gateway/architecture/protocol' },
-              { text: 'Cookie-контракт', link: '/gateway/architecture/cookies' },
-              { text: 'Режимы подключения plugin', link: '/gateway/architecture/plugin-deployment' },
-              { text: 'Гайд: создание плагина', link: '/gateway/architecture/guide' }
+              { text: 'Обзор', link: '/core/architecture/' },
+              { text: 'План миграции Core v1', link: '/core/architecture/v1-migration-roadmap' },
+              { text: 'Границы и решения', link: '/core/architecture/target' },
+              { text: 'Control plane и группы', link: '/core/architecture/control-plane' },
+              { text: 'Компоненты runtime', link: '/core/architecture/core' },
+              { text: 'Blueprint реализации', link: '/core/architecture/implementation' },
+              { text: 'Кодовая архитектура', link: '/core/architecture/structure' },
+              { text: 'Plugin protocol', link: '/core/architecture/protocol' },
+              { text: 'Cookie-контракт', link: '/core/architecture/cookies' },
+              { text: 'Режимы подключения plugin', link: '/core/architecture/plugin-deployment' },
+              { text: 'Гайд: создание плагина', link: '/core/architecture/guide' }
             ]
           }
         ],
@@ -203,14 +201,19 @@ export default defineConfig({
               { text: 'Обзор и настройка', link: '/plugins/' },
               { text: 'Архитектура и lifecycle', link: '/plugins/architecture' },
               { text: 'Manifest и capabilities', link: '/plugins/manifest' },
-              { text: 'Caddy plugin', link: '/plugins/caddy' },
-              { text: 'Identity plugin', link: '/plugins/identity' },
+              { text: 'Server plugin', link: '/plugins/server' },
               { text: 'Admin UI contract', link: '/plugins/admin-ui-contract' },
               { text: 'Admin pages', link: '/plugins/admin-pages' },
               { text: 'Разработка плагина', link: '/plugins/development' },
               { text: 'Существующие плагины', link: '/plugins/existing' },
-              { text: 'forms-db', link: '/plugins/forms-db' },
-              { text: 'captcha', link: '/plugins/captcha' }
+              { text: 'forms-db', link: '/plugins/forms-db' }
+            ]
+          },
+          {
+            text: 'Отложено до v2',
+            items: [
+              { text: 'Identity plugin', link: '/plugins/identity' },
+              { text: 'CAPTCHA plugin', link: '/plugins/captcha' }
             ]
           }
         ],
@@ -231,7 +234,7 @@ export default defineConfig({
               { text: 'Routing и network canvas', link: '/constructor/routing' },
               { text: 'Assets, themes и localization', link: '/constructor/content-assets' },
               { text: 'Git, versions, snapshots и delivery', link: '/constructor/delivery' },
-              { text: 'Gateway и plugins', link: '/constructor/integrations' },
+              { text: 'Core и plugins', link: '/constructor/integrations' },
               { text: 'Sites, auth и deployment', link: '/constructor/governance' },
               { text: 'API и contracts', link: '/constructor/api' },
               { text: 'Данные и ERD', link: '/constructor/data-model' },
@@ -250,7 +253,7 @@ export default defineConfig({
 
       socialLinks: [],
       footer: {
-        message: 'Liapoldus — независимый L7 gateway.'
+        message: 'Liapoldus — Core control plane и расширяемая plugin-система.'
       }
     },
 

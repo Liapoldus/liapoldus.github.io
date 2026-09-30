@@ -1,28 +1,30 @@
 # Существующие plugins
 
+Плагины используют общий Plugin SDK для Core↔plugin lifecycle.
+`pluginprotocol` предназначен только для generic plugin↔plugin взаимодействий.
+
 | Plugin | Назначение |
 | --- | --- |
 | [forms-db](/plugins/forms-db) | сохранение и управление отправками форм |
-| [captcha](/plugins/captcha) | verification challenge providers |
-| [Identity plugin](/plugins/identity) | browser identity flows и token/session lifecycle |
+| [captcha](/plugins/captcha) | verification challenge providers — полностью заморожен, вне v1 |
+| [Identity plugin](/plugins/identity) | browser identity flows и token/session lifecycle — полностью заморожен, вне v1 |
 
-Gateway управляет plugin trust и разрешёнными identities; Caddy handler
+Core управляет plugin trust и разрешёнными identities; Caddy handler
 устанавливает защищённое data-plane соединение непосредственно с plugin.
 
-## Статус локального каркаса
+## Продуктовые плагины
 
-Для предметных plugins созданы runnable skeletons в каталоге
-`/Users/docup/Projects/Liapoldus Engine/plugins/`. Каждый каталог является
-отдельной локальной Git-репозиторией и использует текущий `core` и
-`pluginprotocol` без их изменения.
+Исходный код предметных plugins находится в соседнем workspace-каталоге
+`plugins/`; каждый plugin владеет своими продуктовыми контрактами и настройками.
 
-| Plugin | Состояние каркаса | Проверка |
+| Plugin | Продуктовая ответственность | Lifecycle |
 | --- | --- | --- |
-| `forms-db` | gRPC lifecycle, forms capabilities, deterministic memory repository | `go test ./...`; Gateway child-process E2E ожидает production runtime composition |
-| `captcha` | gRPC lifecycle, `captcha.verify`, deterministic provider | `go test ./...`; Gateway child-process E2E ожидает production runtime composition |
-| `identity` | gRPC lifecycle, declared identity capabilities, deterministic provider | `go test ./...`; Gateway child-process E2E ожидает production runtime composition |
+| `forms-db` | приём и управление отправками форм | Plugin SDK REST; см. [контракт forms-db](/plugins/forms-db) |
+| `captcha` | проверка CAPTCHA-токенов и публичная конфигурация виджета | Полностью заморожен; не входит в v1 |
+| `identity` | browser identity flows и token/session lifecycle | Полностью заморожен; не входит в v1 |
 
-Каркас не является production-реализацией SQLite/PostgreSQL/MySQL, внешних
-captcha-провайдеров или OAuth/OIDC. Для локальной проверки нужны соседние
-репозитории `core` и `pluginprotocol`. Remote plugins используют тот же
-versioned protocol; их deployment окружение управляется отдельно.
+Каждый plugin сам запрашивает у Core точную generation настроек после REST
+`Reload(generation)`. Настройки передаются как исходный JSON object; Core
+сохраняет исходные bytes и применяет plugin-owned JSON Schema, не интерпретируя
+продуктовые поля. Для plugin↔plugin сетевого обмена плагины могут отдельно
+подключить generic `pluginprotocol`; он не участвует в Core lifecycle.

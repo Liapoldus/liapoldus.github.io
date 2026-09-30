@@ -1,24 +1,21 @@
 {
-  "version": "liapoldus.gateway.v1",
+  "version": "liapoldus.core.v1",
   "description": "Core configuration, plugin lifecycle, direct interaction and recovery vectors. Plugin wire/JSON vectors are owned by pluginprotocol.",
   "vectors": [
-    {"id":"bootstrap-rejects-caddy-runtime","input":{"keys":["state","artifacts","execution","management","caddy"]},"expected":{"valid":false,"code":"unknown_field"}},
+    {"id":"bootstrap-rejects-plugin-traffic-settings","input":{"keys":["state","management","server"]},"expected":{"valid":false,"code":"unknown_field"}},
     {"id":"bootstrap-rejects-traffic-dsl","input":{"keys":["state","artifacts","execution","management","routes","sites","includes"]},"expected":{"valid":false,"code":"unknown_field"}},
-    {"id":"supervised-requires-catalog","input":{"profile":"supervised","pluginCatalog":null},"expected":{"valid":false,"code":"bootstrap_invalid"}},
-    {"id":"external-disables-install","input":{"profile":"external","operation":"plugin.install"},"expected":{"accepted":false,"status":409,"code":"plugin_profile_operation_forbidden"}},
-    {"id":"plugin-release-rejects-untrusted-tuf","input":{"signature":"invalid","digest":"sha256:abc"},"expected":{"installed":false,"code":"plugin_catalog_untrusted","activeReleaseUnchanged":true}},
+    {"id":"plugins-are-manually-started","input":{"operation":"core-starts-plugin"},"expected":{"accepted":false,"pluginProcessStarted":false}},
     {"id":"plugin-config-cas-conflict","input":{"ifMatch":"revision-1","actual":"revision-2"},"expected":{"status":412,"code":"plugin_revision_conflict","activeConfigChanged":false}},
-    {"id":"config-apply-all-replicas-before-active","input":{"requiredAcks":3,"receivedAcks":2},"expected":{"activeGenerationChanged":false,"operationState":"pending"}},
-    {"id":"config-apply-failure-restores-prior","input":{"active":"revision-1","candidate":"revision-2","apply":"failed"},"expected":{"active":"revision-1","candidate":"failed","secretPersisted":false}},
-    {"id":"sqlite-recovery-reapplies-active","input":{"active":"revision-1","staged":"revision-2","crash":"before-commit"},"expected":{"recoveredActive":"revision-1","candidateReplayed":false,"readiness":"after-reapply"}},
+    {"id":"config-roll-forward-before-Reload","input":{"active":"revision-1","candidate":"revision-2","requiredAcks":3,"receivedAcks":2},"expected":{"activeGeneration":"revision-2","previousGeneration":"revision-1","operationState":"degraded","unacknowledgedReplicasFenced":true}},
+    {"id":"config-partial-apply-keeps-desired-active","input":{"active":"revision-2","previous":"revision-1","replicaApply":"failed"},"expected":{"active":"revision-2","replicaFenced":true,"rollForwardRetry":true}},
+    {"id":"sqlite-recovery-retries-active-generation","input":{"active":"revision-2","previous":"revision-1","crash":"after-commit-before-Reload"},"expected":{"recoveredActive":"revision-2","reloadRetried":true,"readiness":"after-ack"}},
     {"id":"interaction-policy-default-deny","input":{"edge":"caller-a->target-b/capability-x/call","configured":false},"expected":{"allowed":false,"coreProxy":false}},
-    {"id":"dispatch-apply-waits-for-every-replica","input":{"requiredReplicas":2,"acks":1},"expected":{"generationActive":false}},
     {"id":"plugin-mtls-no-downgrade","input":{"certificate":"rejected","fallback":"plaintext"},"expected":{"connected":false,"fallback":"none"}},
     {"id":"signed-crl-revokes-active-channel","input":{"newCrl":"valid-and-revokes-peer","channel":"open"},"expected":{"channel":"closed","reconnectRequiresNewHandshake":true}},
     {"id":"call-unknown-result-not-replayed","input":{"callResult":"unknown-after-disconnect"},"expected":{"replay":false}},
-    {"id":"caddy-is-singleton-v1","input":{"instances":2},"expected":{"accepted":false}},
-    {"id":"caddy-state-survives-restart","input":{"persistentVolume":true,"restart":true},"expected":{"certificatesPreserved":true,"siteReleasesPreserved":true}},
+    {"id":"server-is-singleton-v1","input":{"instances":2},"expected":{"accepted":false}},
+    {"id":"server-state-survives-restart","input":{"persistentVolume":true,"restart":true},"expected":{"certificatesPreserved":true,"siteReleasesPreserved":true}},
     {"id":"site-release-rollback-current-previous","input":{"current":"release-2","previous":"release-1","rollback":true},"expected":{"current":"release-1","previous":"release-2","activationAtomic":true}},
-    {"id":"management-has-no-caddy-admin-proxy","input":{"path":"/api/caddy/config"},"expected":{"routeExists":false}}
+    {"id":"management-has-no-server-admin-proxy","input":{"path":"/api/server/admin"},"expected":{"routeExists":false}}
   ]
 }

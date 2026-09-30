@@ -1,7 +1,7 @@
 # API Guidelines
 
 API проектируется по owner boundary. Constructor API не создаёт параллельный
-Gateway API, а Plugin contract не получает административные права Gateway.
+Core API, а Plugin contract не получает административные права Core.
 Public response typed/versioned; mutation документирует authorization,
 validation, optimistic concurrency, idempotency и audit behavior.
 

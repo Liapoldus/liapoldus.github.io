@@ -2,7 +2,7 @@
   "name": "liapoldus-docs",
   "version": "1.0.0",
   "private": true,
-  "description": "Документация Liapoldus gateway (VitePress)",
+  "description": "Документация Liapoldus Core и plugin ecosystem (VitePress)",
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",

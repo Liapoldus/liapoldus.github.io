@@ -8,7 +8,7 @@
   Angular; итогом является обычный оптимизированный React static frontend.
 - **Visual first, code escape hatch.** Структурированные вещи редактируются
   визуально; сложная логика остаётся TypeScript/React-кодом.
-- **Gateway владеет Gateway.** Constructor использует его API и документирует
+- **Core владеет Core.** Constructor использует его API и документирует
   отсутствующую возможность как gap, а не дублирует runtime.
 - **Plugin владеет plugin-specific logic.** Constructor строит UI по контракту,
   а не по списку заранее известных плагинов.

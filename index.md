@@ -5,7 +5,7 @@ hero:
   name: Liapoldus
   text: Экосистема для публикации React-сайтов
   tagline: >-
-    Gateway, plugin ecosystem и Git-native Constructor для разработки,
+    Core, plugin ecosystem и Git-native Constructor для разработки,
     управления сайтами и сетевой инфраструктурой.
   actions:
     - theme: brand
@@ -15,29 +15,29 @@ hero:
       text: Constructor
       link: /constructor/
     - theme: alt
-      text: Gateway
-      link: /gateway/
+      text: Core
+      link: /core/
     - theme: alt
       text: Code Guidelines
       link: /guidelines/
 
 features:
-  - title: Gateway
+  - title: Core
     details: >-
-      HTTP(S), TCP и UDP: static sources, reverse proxy, TLS, policies,
-      snapshots и безопасное управление.
-    link: /gateway/
+      Plugin-neutral control plane, SQLite generations, secure REST lifecycle
+      и управление отдельно запущенными сервисами.
+    link: /core/
     linkText: Разделы документации
   - title: Плагины
     details: >-
-      Reference plugins и contract для любых прикладных протоколов поверх
-      TCP/UDP.
+      Server plugin для HTTP/HTTPS и forms-db; новые transport/product features
+      добавляются отдельными версиями.
     link: /plugins/
     linkText: Существующие плагины
   - title: Constructor
     details: >-
       Git-native React IDE, визуальное управление содержимым сайта и control
-      plane для Gateway и plugins.
+      plane для Core и plugins.
     link: /constructor/
     linkText: Спроектировать Constructor
   - title: Архитектура экосистемы

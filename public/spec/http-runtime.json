@@ -1,25 +1,106 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://liapoldus.github.io/spec/http-runtime.json",
-  "title": "Liapoldus Gateway plugin traffic boundary",
+  "title": "Liapoldus Core plugin traffic boundary",
   "version": "1.0.0",
-  "core": "A single Gateway Core stores desired plugin configuration in SQLite, exposes Management API, supervises local plugins only in supervised profile and does not serve or proxy public traffic.",
-  "caddyPlugin": {
-    "process": "One separate Caddy plugin instance per Gateway in v1; Caddy and Caddy-L4 are built into the plugin, never into Core.",
-    "configSource": "Versioned plugin JSON settings stored by Core and pushed with ConfigApply; the plugin compiles JSON into its private Caddy runtime configuration.",
-    "protocols": ["HTTP/1.1", "HTTP/2", "HTTP/3", "TLS", "WebSocket", "SSE", "TCP", "UDP"],
-    "l4": "Caddy-L4 handles TCP/UDP relay with mandatory conformance; no Go-net fallback.",
-    "persistentState": "ACME/CertMagic state and site releases use the Caddy plugin persistent filesystem; current/previous site release pointers remain plugin-owned.",
-    "listeners": "Caddy plugin opens its own public listeners. Core does not embed Caddy, launch a second Caddy binary or pass public listener sockets."
+  "core": "A single Core stores desired plugin configuration in SQLite, exposes Management API, connects to manually started plugins at fixed registered endpoints, and never installs or manages plugin processes/containers. Docker/Compose, Swarm, Kubernetes and local process supervision are deferred to v2. Core does not serve or proxy public traffic.",
+  "serverPlugin": {
+    "process": "One separate Server plugin instance per Core in v1; Caddy is built into the plugin, never into Core.",
+    "configSource": "Versioned plugin JSON settings stored by Core and pulled by the plugin from Core REST after Reload(generation); the plugin compiles JSON into its private Caddy runtime configuration.",
+    "settingsContract": {
+      "owner": "plugins/server",
+      "format": "strict-versioned-liapoldus-json-schema",
+      "rawCaddyJsonAccepted": false,
+      "caddyfileAccepted": false,
+      "publicListenerOwner": "server-plugin-settings",
+      "managementListenerOwner": "core-bootstrap",
+      "routeHandlerCardinality": "exactly-one-terminal-handler",
+      "middlewareChain": false,
+      "authorizationContinuation": false,
+      "routeEvaluation": "array-order-first-match",
+      "matcherCombination": "all-specified-predicates-must-match",
+      "duplicateMatcher": "reject-canonical-identical-matchers",
+      "pathMatcher": {
+        "modes": ["exact", "prefix", "glob", "regex"],
+        "input": "canonical-path-without-query",
+        "normalization": {
+          "percentDecodeCount": 1,
+          "reject": ["malformed-percent-encoding", "NUL", "control", "invalid-UTF-8"],
+          "dotSegments": "remove",
+          "repeatedSlashes": "collapse",
+          "trailingSlash": "preserve",
+          "sharedBy": ["matching", "static-file-resolution", "upstream-path"]
+        },
+        "prefix": "case-sensitive-string-prefix",
+        "globAndRegex": "full-string-match",
+        "glob": { "star": "any-characters-except-slash", "doubleStar": "any-characters-including-slash", "question": "one-character-except-slash", "characterClasses": false },
+        "regex": { "engine": "Go-RE2", "match": "full-string" },
+        "host": { "form": "exact-or-leftmost-wildcard", "normalization": "lowercase-IDNA-A-label-without-port", "wildcardDepth": "exactly-one-label", "matchesApex": false },
+        "method": "exact-case-sensitive-http-method-token"
+      },
+      "httpHandlers": {
+        "static": "siteId-current-release",
+        "reverseProxy": {
+          "originCount": { "minimum": 1, "maximum": 32 },
+          "weight": { "minimum": 1, "maximum": 100, "default": 1 },
+          "balancing": "smooth-weighted-round-robin",
+          "passiveConnectionFailureCooldownSeconds": 30,
+          "activeHealthProbes": false,
+          "connectFailureRetry": { "maxNextOrigins": 1, "onlyBeforeAnyRequestBytes": true },
+          "httpsVerification": "mandatory",
+          "httpsDefaultTrust": "system",
+          "privateCaReference": "optional-external-caRef",
+          "hostnameVerificationWithCaRef": true,
+          "insecureSkipVerify": false,
+          "clientCertificateMtls": false
+        },
+        "plugin": "instance-capability-declared-mode"
+      },
+      "tls": {
+        "automaticAcme": true,
+        "customCertificates": "external-secret-references-only",
+        "plaintextPrivateKeyAccepted": false,
+        "listenerModes": ["automatic", "custom", "disabled"],
+        "automaticMode": "acme-for-route-hosts-and-http-to-https-redirect",
+        "customModeRefs": ["certificateRef", "privateKeyRef"],
+        "disabledMode": "explicit-plaintext-only-without-route-hosts-or-acme",
+        "minimumVersion": "TLS-1.2",
+        "maximumVersion": "TLS-1.3",
+        "http3RequiresTls": true,
+        "implicitListeners": false
+      },
+      "siteArtifact": {
+        "format": "tar.gz",
+        "maxCompressedBytes": 134217728,
+        "maxMetadataBytes": 65536,
+        "maxMultipartOverheadBytes": 65536,
+        "maxRequestBodyBytes": 134348800,
+        "maxExpandedBytes": 536870912,
+        "maxFiles": 10000,
+        "maxCompressionRatio": 100,
+        "compressionRatio": "aggregate-expanded-over-compressed-artifact",
+        "zeroCompressedArtifact": "reject"
+      }
+    },
+    "protocols": ["HTTP/1.1", "HTTP/2", "HTTP/3", "TLS", "WebSocket", "SSE"],
+    "persistentState": "ACME/CertMagic state and site releases use the Server plugin persistent filesystem; current/previous site release pointers remain plugin-owned.",
+    "listeners": "Server plugin opens its own public listeners. Core does not embed Caddy, launch a second Caddy binary or pass public listener sockets."
   },
   "pluginDataProtocol": {
-    "call": "Generic unary Call carries the existing versioned JSON contracts.",
-    "stream": ["http-bidirectional-stream", "websocket-messages", "structured-sse-events", "tcp", "udp"],
-    "registration": "pluginprotocol Go SDK offers typed capability handler registration without one protobuf RPC per capability.",
+    "call": "Plugins register and invoke plugin-defined generic peer methods; product payload contracts remain owned by participating plugins.",
+    "stream": ["http-bidirectional-stream", "websocket-messages", "structured-sse-events"],
+    "registration": "pluginprotocol exposes generic plugin-defined method/handler registration without predeclared product RPCs.",
     "managementApiInRequestPath": false,
-    "pluginToPlugin": "Plugins call explicitly allowed peer instances directly over pluginprotocol gRPC/mTLS; Core distributes policy and is not a payload proxy."
+    "pluginToPlugin": "Plugins call explicitly allowed peer instances directly over the independently configured authenticated pluginprotocol transport; Core distributes policy over Plugin SDK REST and is not a payload proxy."
   },
-  "activation": "Core persists candidate JSON revision and operation in SQLite, pushes it to required plugin replicas, commits the active pointer only after exact acknowledgements and compensates failed partial application with the previous revision.",
+  "pluginAdminArtifactUpload": {
+    "request": "multipart/form-data with JSON metadata and one declared binary artifact",
+    "coreBehavior": "count received bytes and stream artifact to the authorized plugin action without buffering the complete artifact",
+    "transport": "generic Plugin SDK REST artifact endpoint; not a Caddy-specific Core endpoint",
+    "largeActionResponse": "durable operation reference"
+  },
+  "activation": "Core validates candidate bytes before a transaction, atomically promotes them to active and shifts the former active to previous, then calls REST Reload. Each plugin pulls the exact generation and ACKs its digest; partial application is roll-forward with per-replica fencing, not compensation.",
   "configuration": "User traffic and plugin-specific configuration are never read from SQLite per request; Core serves active in-memory generations.",
-  "ha": "Core is one instance and Caddy is one active v1 instance; PostgreSQL, S3 and Caddy shared-storage HA are not required."
+  "ha": "Core is one instance and Server plugin is one active v1 instance; PostgreSQL, S3 and shared-storage HA are not required.",
+  "deferredV2": ["public-l4-tcp-udp-relay", "caddy-l4", "captcha", "identity-oidc-oauth", "tuf-plugin-installation", "process-and-container-orchestration"]
 }

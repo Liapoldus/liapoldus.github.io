@@ -21,7 +21,7 @@
     "snapshot_not_ready": { "status": 409, "retryable": false, "detail": "A build requires a ready validated snapshot." },
     "build_cancelled": { "status": 409, "retryable": false, "detail": "The build cannot be promoted after cancellation." },
     "deployment_conflict": { "status": 409, "retryable": true, "detail": "Another deployment holds the site and environment lock." },
-    "gateway_capability_missing": { "status": 501, "retryable": false, "detail": "The selected Gateway binding does not expose the requested control capability." },
+    "gateway_capability_missing": { "status": 501, "retryable": false, "detail": "The selected Core binding does not expose the requested control capability." },
     "plugin_contract_invalid": { "status": 502, "retryable": false, "detail": "The plugin response does not satisfy its versioned Admin UI contract." },
     "secret_reference_forbidden": { "status": 403, "retryable": false, "detail": "The caller cannot use or inspect this secret reference." },
     "asset_upload_invalid": { "status": 422, "retryable": false, "detail": "The uploaded file is not a supported valid image or sanitizable SVG." },

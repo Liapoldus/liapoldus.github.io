@@ -1,21 +1,14 @@
 # forms-db
 
-> **Статус:** реализованы memory-, SQLite-, PostgreSQL- и MySQL-хранилища,
-> атомарное применение настроек и проверка отправок по переданным JSON Schema
-> Draft 2020-12. Equality-фильтр по разрешённому top-level-полю schema и
-> защищённая cursor pagination также реализованы. Проверки реальных PostgreSQL
-> и MySQL подключаются только при наличии DSN; без соответствующей переменной
-> окружения тест помечается `skipped`, поэтому обычный зелёный `go test ./...`
-> сам по себе не подтверждает подключение к серверу БД. Полная orchestration
-> declarative admin actions через Gateway/Constructor ещё не завершена. Схемы
-> не сохраняются в БД: их нужно передавать при каждом применении конфигурации.
-
 Плагин форм: приём и просмотр отправок веб-форм с memory-, SQLite-, PostgreSQL-
 или MySQL-хранилищем. Эталонный пример плагина для
-[гайда по созданию плагинов](/gateway/architecture/guide).
+[гайда по созданию плагинов](/core/architecture/guide).
 
 Репозиторий: **отдельный git-репозиторий** плагина — свой Go-модуль,
-не в репозитории ядра gateway. Бинарник собирается из этого репозитория.
+не в репозитории Core. Бинарник собирается из этого репозитория.
+Core↔plugin configuration lifecycle обслуживает Plugin SDK REST; plugin-specific
+settings и их schema остаются контрактом forms-db. `pluginprotocol` не
+обслуживает Core lifecycle.
 
 ## Capabilities
 
@@ -29,9 +22,9 @@
 ## Business contract
 
 Канонические JSON Schema requests/responses и mapping typed errors принадлежат
-forms-db plugin и хранятся в его `contracts/v1/`. Общий protocol SDK переносит
+forms-db plugin и хранятся в его `contracts/v1/`. Общий plugin interface переносит
 эти payloads как opaque JSON и не содержит forms-db contract.
-`site` Gateway берёт из route target, а не от клиента.
+`site` Core берёт из route target, а не от клиента.
 
 ### `forms.submit`
 
@@ -44,19 +37,22 @@ forms-db plugin и хранятся в его `contracts/v1/`. Общий protoc
 
 Конфигурация instance передаёт `schemas` как объект, где ключ — имя схемы, а
 значение — JSON Schema. Поддерживается Draft 2020-12; имя должно соответствовать
-`^[a-z][a-z0-9_-]{0,63}$`. Core хранит desired plugin settings в SQLite и валидирует их по
-schema, но не передаёт plugin-у secret bytes или локальные file paths. Для SQL
-DSN конфигурация содержит только opaque secret reference; Gateway прикладывает к
-`ConfigApply` instance/revision-scoped grant, по которому plugin отдельно
-redeem-ит DSN через GrantBroker. DSN живёт только в памяти активной ревизии и
+`^[a-z][a-z0-9_-]{0,63}$`. Core хранит исходный JSON object настроек в SQLite,
+сохраняет его исходные bytes и валидирует документ generic-валидатором по
+plugin-owned schema; Core не декодирует продуктовые поля. Плагин не получает
+secret bytes или локальные file paths. Для SQL
+DSN конфигурация содержит только opaque secret reference; Core выдаёт через
+Plugin SDK REST instance/revision-scoped grant, по которому plugin отдельно
+redeem-ит DSN у Core. DSN живёт только в памяти активной ревизии и
 заменяется атомарно при успешном применении новой конфигурации. Внешняя загрузка
 схем и удалённые `$ref` запрещены:
 все используемые определения должны находиться внутри самой схемы (например,
-в `$defs`). `ConfigApply` сначала компилирует все схемы и готовит новое
+в `$defs`). REST Reload сначала компилирует все схемы и готовит новое
 хранилище, и только затем атомарно заменяет активную конфигурацию. При ошибке
 активные настройки и хранилище остаются без изменений. Plugin держит применённую
-revision в памяти; после рестарта Core повторно отправляет durable active
-revision до того, как instance считается готовым.
+revision в памяти. Core уведомляет плагин через REST `Reload(generation)`;
+плагин сам запрашивает у Core именно эту immutable generation. После рестарта
+плагина он получает тот же active config pull-запросом до readiness.
 
 ### `forms.list`
 
@@ -79,16 +75,16 @@ cursor с другим site, schema или фильтром отклоняетс
 scope плагин возвращает общий отказ без раскрытия содержимого cursor.
 Срок действия cursor — 15 минут с момента выдачи.
 
-Ключ подписи не является plugin setting: Gateway выдаёт plugin-у краткоживущий
-scoped grant для `forms.list`, а plugin получает значение только через
-`GrantBroker.RedeemGrant` по plugin protocol при обработке конкретного вызова.
+Ключ подписи не является plugin setting: Core выдаёт plugin-у краткоживущий
+scoped grant для `forms.list`, а plugin получает значение через отдельный
+Plugin SDK REST grant-redemption endpoint при обработке конкретного вызова.
 Ключ не читается из env или локального файла и не сохраняется plugin-ом между
 вызовами; он очищается после создания/использования signer-а. При отсутствии
 или недоступности grant `forms.list` завершается fail-closed с
 `storage_unavailable`; остальные capabilities могут продолжать работу. Все
-replicas, работающие с общим хранилищем, получают один и тот же Gateway-owned
+replicas, работающие с общим хранилищем, получают один и тот же Core-owned
 logical key через индивидуальные scoped grants. После ротации ключа ранее
-выданные cursors становятся недействительными. Секрет не входит в `ConfigApply`,
+выданные cursors становятся недействительными. Секрет не входит в REST `Reload`,
 настройки форм, базу, ответы или логи.
 
 ### `forms.delete`
@@ -104,12 +100,10 @@ logical key через индивидуальные scoped grants. После р
 Поддерживаются драйверы `memory`, `sqlite`, `postgres` и `mysql`. `memory` —
 значение по умолчанию и не сохраняет записи после перезапуска. SQLite сохраняет
 их в указанном файле; PostgreSQL и MySQL подключаются через DSN, полученный по
-Gateway-scoped grant. Код содержит SQL adapters для обоих драйверов. Реальные
-integration tests подключаются только если заданы `FORMS_DB_POSTGRES_DSN` и/или
-`FORMS_DB_MYSQL_DSN`; при отсутствии DSN соответствующий тест явно пропускается.
+Core-scoped grant. Код содержит SQL adapters для обоих драйверов.
 
-Пример JSON settings payload, отправляемого Core через `ConfigApply` (это не
-локальный application-config файл plugin):
+Пример versioned JSON settings document, который forms-db запрашивает у Core
+после `Reload` (это не локальный application-config файл plugin):
 
 ```json
 {
@@ -122,7 +116,7 @@ integration tests подключаются только если заданы `F
 | Ключ | Назначение | По умолчанию |
 | --- | --- | --- |
 | `driver` | `memory`, `sqlite`, `postgres` или `mysql` | `memory` |
-| `dsn` | Для SQLite — путь к файлу БД; для PostgreSQL/MySQL — opaque Gateway secret reference. Для `memory` не используется | — |
+| `dsn` | Для SQLite — путь к файлу БД; для PostgreSQL/MySQL — opaque Core secret reference. Для `memory` не используется | — |
 | `tablePrefix` | префикс таблиц плагина | `form_` |
 
 Для SQLite путь `dsn` разрешается внутри plugin-owned data directory; используйте
@@ -148,17 +142,6 @@ go vet ./...
 go test ./...
 ```
 
-Текущий legacy smoke `core/tests/integration/serve-local-plugin-products.test.ts`
-собирает настоящий forms-db binary и запускает его как local child process
-через Gateway `serve` и embedded Caddy. Это историческое свидетельство
-текущего кода, не целевой архитектуры; его заменит smoke отдельного Caddy
-plugin process и общего pluginprotocol SDK. Тест вызывает `POST /submit` и
-проверяет сохранённую отправку;
-он намеренно использует `memory` driver. Это подтверждает local process,
-settings/dispatch и unary call, но не SQL-backed Gateway grant flow, удалённый
-plugin/mTLS или declarative admin-action orchestration. PostgreSQL/MySQL live
-integration покрываются отдельными plugin tests только при заданных DSN.
-
 ## Страницы в Constructor
 
 forms-db публикует две declarative admin pages через общий
@@ -169,7 +152,7 @@ forms-db публикует две declarative admin pages через общий
 
 Страница видна при `plugins.forms-db.read`. Верхняя filter form выбирает `site`
 и `schemaName`, а также optional `field`/`equals`. Table вызывает `forms.list`
-через Gateway `POST /api/plugins/{instance}/admin/pages/submissions/query`;
+через Core `POST /api/plugins/{instance}/admin/pages/submissions/query`;
 она показывает только `id`, `createdAt`, `data`, использует opaque cursor и
 limit не выше 100. Значения `data` экранируются Constructor и never rendered
 as HTML. `site` получает варианты из объявленного `optionsSource` capability
@@ -178,11 +161,11 @@ forms.list; `schemaName` запрашивает варианты тем же fix
 в свободный ввод.
 
 `Delete submission` вызывает `forms.delete` только для выбранной записи и
-требует `plugins.forms-db.write`. Перед mutation Gateway возвращает
+требует `plugins.forms-db.write`. Перед mutation Core возвращает
 неисполняющий `428 confirmation_required` с одноразовым token; Constructor
 показывает объявленное confirmation-сообщение и повторяет неизменный запрос
 только после явного подтверждения. Оба запроса используют один
-`Idempotency-Key`, а digest Surface передаётся через `If-Match`. Gateway
+`Idempotency-Key`, а digest Surface передаётся через `If-Match`. Core
 создаёт audit record с actor, instance, site, schemaName, record ID и outcome;
 plugin получает минимальный typed input. Полный handshake описан в
 [Plugin Admin Pages](/plugins/admin-pages).
@@ -195,8 +178,11 @@ Surface action объявляет `inputSchema` для `recordId` и `rowInput`
 Страница видна при `plugins.forms-db.write` и рендерит уже существующую
 `config.schema`: `driver`, `dsn`, `tablePrefix`. `dsn` является `secret`
 write-only field. Save отправляет новый `plugins.<instance>.settings` через
-стандартный Gateway config apply с active digest; forms-db не изменяет YAML
-напрямую. После успешного apply Gateway invalidates surface cache and
+стандартный Core config update с active-generation precondition;
+Management API получает settings JSON document напрямую в body, без wrapper.
+После успешного обновления Core сохраняет исходные bytes, активирует generation
+и вызывает REST `Reload`; forms-db pull-ит точную generation. После применения
+Core invalidates surface cache and
 Constructor refreshes schema/status.
 
 Reference surface fixture: plugin-owned `contracts/v1/admin-surface.json`.

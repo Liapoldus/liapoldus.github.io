@@ -1,8 +1,8 @@
 # Пользователи и UX
 
-Liapoldus разделяет автора сайта, оператора Gateway, Constructor user и plugin
+Liapoldus разделяет автора сайта, оператора Core, Constructor user и plugin
 developer. Constructor остаётся отдельным продуктом и единственным UI
-управления Gateway; он взаимодействует только с Management API Core. Этот
+управления Core; он взаимодействует только с Management API Core. Этот
 документ описывает целевые продуктовые границы, не меняя замороженные исходники
 Constructor и `react-lib`.
 
@@ -20,24 +20,25 @@ Management API.
 
 | Роль | Действие | Результат |
 | --- | --- | --- |
-| Автор frontend | собирает артефакт и отправляет его Caddy plugin через объявленный Admin Surface | immutable artifact, digest и результат проверки; `current`/`previous` принадлежат Caddy plugin |
-| Gateway operator | создаёт plugin instances, settings и interaction policies через Management API | candidate revision, ConfigApply/DispatchApply ACKs, operation state и audit |
+| Автор frontend | собирает артефакт и отправляет его Server plugin через объявленный Admin Surface | immutable artifact, digest и результат проверки; `current`/`previous` принадлежат Server plugin |
+| Core operator | создаёт plugin instances с выбранным deployment mode, settings и interaction policies через Management API | candidate revision, process/provider operation, per-replica Reload ACK, operation state и audit |
 | CI | вызывает versioned Management API для разрешённых lifecycle/settings operations | стабильный operation ID, typed error и revision reference |
 | Plugin developer | объявляет generic capabilities, settings schema и Admin Surface | отдельный процесс без знания специальных правил Core |
 
-## UX Constructor и Gateway
+## UX Constructor и Core
 
 Constructor формирует запрос по опубликованным schema/OpenAPI и не становится
-альтернативным хранилищем Gateway desired state. Browser не получает Gateway
+альтернативным хранилищем Core desired state. Browser не получает Core
 Bearer credential или plugin connection details; сетевой доступ выполняет
 Constructor backend. Настройки передаются Core, Core валидирует schema и
-отправляет plugin полный versioned JSON через `ConfigApply`.
+сохраняет exact versioned JSON. Затем Core вызывает REST `Reload(generation)`,
+и plugin сам забирает точный документ через защищённый config-pull endpoint.
 
 Смена settings, plugin lifecycle и взаимодействий показывает ожидаемую
 revision/generation и operation. При конфликте CAS интерфейс получает текущую
 revision и требует явного повторного действия. При timeout операция читается по
 operation ID и не отправляется повторно с новым idempotency key без решения
-пользователя. Caddy traffic settings редактируются как settings Caddy plugin,
+пользователя. Caddy traffic settings редактируются как settings Server plugin,
 а не через отдельный Caddyfile/group editor в Core.
 
 ## Поведение при ошибке
@@ -52,7 +53,7 @@ private keys, cookies, Authorization, grants или raw plugin payloads.
 
 - Изменение desired config не требует редактировать Core YAML или применять
   независимый Caddy runtime config.
-- Ошибка validation, CAS, ConfigApply, storage или acknowledgement не приводит
+- Ошибка validation, CAS, process/provider lifecycle, storage или Reload ACK не приводит
   к заявлению успеха и сохраняет ранее подтверждённое состояние.
 - После disconnect UI восстанавливает operation по тому же idempotency key и
   operation ID.

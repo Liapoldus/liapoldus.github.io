@@ -9,7 +9,7 @@
 
 Официальный сайт документации Liapoldus — генератор статики
 [VitePress](https://vitepress.dev) (1.6.x). Содержит только контент; исходники
-gateway/plugins/redactor лежат в соседних репозиториях (см. корневой
+core/plugins/redactor лежат в соседних репозиториях (см. корневой
 `AGENTS.md`).
 
 Продакшн-адрес: `https://liapoldus.github.io/` (после переименования репо —
@@ -42,14 +42,14 @@ npm run build   # обязателен, сайт должен собиратьс
 После деплоя (push в main) подождать ~40–60с и проверить затронутые маршруты:
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/gateway/configuration/
+curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/core/configuration/
 # ожидается 200; 301 — легальный редирект каталога
 ```
 
 ## Конвенции контента
 
 - Язык: `ru-RU`. `cleanUrls: true` — ссылки пишутся без `.md`
-  (`/gateway/cli/serve`, не `.../serve.md`), анкоры — только при необходимости.
+  (`/core/cli/serve`, не `.../serve.md`), анкоры — только при необходимости.
 - **Единый источник**: одна каноническая страница на тему; таблицы, списки эндпоинтов
   и YAML-блоки **не дублируются** между страницами — дубли заменяются ссылкой на канон.
 - **Тонкие страницы**: лендинг-обзор + страницы-факты (данные таблицами, без
@@ -72,11 +72,11 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/gateway/con
 ```text
 .vitepress/config.mts        # nav, sidebar, base, search
 diagrams/                     # Mermaid-исходники статических SVG-схем
-.vitepress/theme/            # кастомные компоненты (GatewayNav), custom.css
+.vitepress/theme/            # кастомные компоненты (CoreNav), custom.css
 .vitepress/shim/             # fastdom-заглушки для сборки (не трогать)
 public/                      # favicon, versioned contracts и сгенерированные SVG
-gateway/                     # API, architecture, CLI, configuration, deploy, examples
-plugins/                      # protocol, manifest, identity, captcha, forms-db, admin UI
+core/                          # Core API, architecture, CLI, configuration, deploy, examples
+plugins/                      # Server, forms-db, generic plugin contracts; identity/captcha v2
 constructor/                  # отдельная архитектура Constructor и его API
 architecture/ guidelines/     # общие границы и правила документации
 product/                     # «О продукте» (обзор, user-experience)
@@ -86,6 +86,13 @@ index.md                     # корневая страница (layout: home)
 ## Правила безопасных изменений
 
 - Минимальные связанные изменения; после каждого крупного этапа — `npm run build`.
+- После явного утверждения целевой архитектуры устаревшие контракты, инструкции
+  и код заменяются согласованным breaking-change переходом, а не сохраняются как
+  вторая поддерживаемая архитектура. Не проектировать permanent compatibility
+  shims, legacy fallback или параллельные lifecycle-модели. В одном законченном
+  переходе обновлять владельца контракта, всех потребителей, тесты и ссылки;
+  итоговая ветка должна собираться без старого пути. Если межрепозиторная
+  миграция не готова целиком, не публиковать и не считать её завершённой.
 - Перед изменением читать контекст файла; при правках соседних страниц
   проверять, что дубль действительно дубль, а не «другой» контент.
 - Не выполнять деструктивных git-команд (`reset`, `push -f`, удаление) без явного
@@ -97,9 +104,9 @@ index.md                     # корневая страница (layout: home)
 
 ## Полезные ссылки в контенте
 
-- Канон конфигурации — `gateway/configuration/*`; CLI — `gateway/cli/*`;
+- Канон конфигурации — `core/configuration/*`; CLI — `core/cli/*`;
   декларация плагина — `plugins/index.md`; wire-канон и единственный контракт
-  IPC — `gateway/architecture/protocol.md`; практическая реализация —
-  `gateway/architecture/guide.md`. Страница `architecture/contract.md` сохранена
+  IPC — `core/architecture/protocol.md`; практическая реализация —
+  `core/architecture/guide.md`. Страница `architecture/contract.md` сохранена
   только как короткий совместимый указатель.
 - Решения по структуре/стилю сессии документируются в этом файле и в коммитах.

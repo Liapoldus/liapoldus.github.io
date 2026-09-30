@@ -1,41 +1,51 @@
 # Плагины Liapoldus
 
-Plugin — отдельный process/service, который подключается к generic Core по
-единому `pluginprotocol`. До регистрации instance Core не знает конкретные
+Plugin — отдельный process/service, который подключается к generic Core через
+REST Plugin SDK. До регистрации instance Core не знает конкретные
 capabilities, settings, provider names или product admin routes.
 
 Core — единственный durable source of desired configuration: settings каждой
-instance сохраняются в SQLite и push-ятся plugin-у версионированным JSON через
-`ConfigApply`. Application settings не передаются через environment, argv или
-app config file. Core проверяет manifest/schema и хранит plugin-neutral
-metadata; бизнес-семантика остаётся в plugin.
+instance сохраняются в SQLite. Core вызывает REST `Reload(generation)`, после
+чего plugin сам pull-ит точный immutable JSON generation. Application settings
+не передаются через environment, argv или app config file. Core проверяет
+manifest/schema и хранит plugin-neutral metadata; бизнес-семантика остаётся в
+plugin.
+
+## Замороженные продукты
+
+`captcha` и `identity` (OIDC/OAuth) заморожены целиком и исключены из Core
+v1: их репозитории не входят в активный Go workspace, их исходники и тесты не
+меняются, а их product capabilities не являются v1 acceptance gates. Возврат
+требует отдельного решения о разморозке. Это не замораживает security самого
+Core: Management API по-прежнему требует authentication/authorization, mTLS,
+audit и redaction.
 
 ## Runtime ownership
 
 | Область | Владелец |
 | --- | --- |
-| Profile и instance metadata | Core; один глобальный `supervised` либо `external` profile. |
-| Install/process lifecycle | Core только в `supervised`; external operator в `external`. |
+| Instance metadata и fixed endpoints | Core; plugin binaries оператор вручную устанавливает и запускает. |
+| Plugin process/workload lifecycle | Оператор. Core не устанавливает, не запускает, не останавливает, не перезапускает и не масштабирует plugins в v1. |
 | Settings/schema/capabilities | Plugin Manifest и его versioned JSON contracts. |
-| Config transport | `pluginprotocol.ConfigApply`; plugin сам не запрашивает config. |
-| Calls/streams и workload mTLS | `pluginprotocol` Go SDK и Core-issued explicit interaction policies. |
-| Caddy data plane | [Отдельный Caddy plugin singleton](/plugins/caddy); Core не встраивает Caddy. |
+| Config transport/lifecycle | Независимый Plugin SDK REST; config pull и Reload. Rollback выполняется Core Management API, plugin-side rollback endpoint отсутствует. |
+| Calls/streams и peer transport | `pluginprotocol` generic library и Core-owned explicit interaction policies. |
+| Caddy data plane | [Отдельный Server plugin singleton](/plugins/server); Core не встраивает Caddy. |
 | Admin UI/actions | Declarative plugin Admin Surface через generic Management API. |
 
-Local packages устанавливаются только из TUF-trusted catalog. Remote workload
-identity использует внешний CA/SPIFFE или read-only PEM source. Core не является
-CA и не проксирует plugin-to-plugin payloads.
+Каждая replica подключается по заранее зарегистрированному endpoint; trust
+identity выдаётся оператором через внешний CA/PEM source. Docker/Compose, Swarm,
+Kubernetes и Core process supervision отложены до v2. Core не является CA и не
+проксирует plugin-to-plugin payloads.
 
 ## Разработка
 
-Manifest, gRPC/wire messages, call/stream JSON and shared response actions
-принадлежат единственному
+Общие REST lifecycle types принадлежат Plugin SDK; generic peer transport,
+регистрация пользовательских методов и streams — единственному
 [pluginprotocol repository](https://github.com/Liapoldus/pluginprotocol).
 Product settings/data и capability-specific schemas принадлежат конкретному
-plugin project. Документация ссылки на source contract, но не копирует `.proto`
-или JSON schema bodies.
+plugin project. Документация ссылается на source contracts, но не копирует их.
 
 Подробная lifecycle/security модель находится в
-[Gateway plugin deployment](../gateway/architecture/plugin-deployment) и
-[целевой архитектуре](../gateway/architecture/target). Для UI см.
+[Core plugin deployment](../core/architecture/plugin-deployment) и
+[целевой архитектуре](../core/architecture/target). Для UI см.
 [plugin Admin Pages](admin-pages).

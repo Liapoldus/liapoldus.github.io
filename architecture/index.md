@@ -7,14 +7,14 @@ Liapoldus состоит из независимых продуктов с яв�
 
 | Продукт | Владеет | Не владеет |
 | --- | --- | --- |
-| [Gateway](/gateway/) | control plane, Management API, desired state, plugin lifecycle, releases и runtime reconciliation | traffic protocol execution, которое принадлежит Caddy; UI Constructor и прикладная логика plugins |
-| [Caddy runtime](/gateway/architecture/gateway) | public HTTP/TLS/L4 listeners, native routes и direct plugin data dispatch | control-plane persistence и Management API |
+| [Core](/core/) | control plane, Management API, desired state, plugin lifecycle, releases и runtime reconciliation | traffic protocol execution, которое принадлежит Caddy; UI Constructor и прикладная логика plugins |
+| [Core runtime](/core/architecture/core) | desired-state control plane, Management API и plugin lifecycle | public HTTP/TLS traffic Server plugin |
 | [Plugins](/plugins/) | capability-логика, свой жизненный цикл и конфигурационная схема | public socket, внешняя маршрутизация и raw secrets |
-| [Constructor](/constructor/) | Git-native проект, редакторы, snapshots, builds, deployment metadata | реализация Gateway и proprietary исходники |
+| [Constructor](/constructor/) | Git-native проект, редакторы, snapshots, builds, deployment metadata | реализация Core и proprietary исходники |
 
 ## Путь публикации
 
-`Git revision → Snapshot → validation → Build → static artifact → Gateway
+`Git revision → Snapshot → validation → Build → static artifact → Core
 release`. Snapshot фиксирует, что именно собирается и развёртывается; он не
 подменяет ни Git commit, ни версию сущности.
 
@@ -22,6 +22,6 @@ release`. Snapshot фиксирует, что именно собирается 
 
 <div class="cards">
   <a class="card" href="/architecture/boundaries"><h3>Границы и инварианты</h3><p>Ownership, source of truth и production boundary.</p></a>
-  <a class="card" href="/architecture/api-boundaries"><h3>API-границы</h3><p>Constructor, Gateway и Plugin Admin API.</p></a>
+  <a class="card" href="/architecture/api-boundaries"><h3>API-границы</h3><p>Constructor, Core и Plugin Admin API.</p></a>
   <a class="card" href="/architecture/glossary"><h3>Глоссарий</h3><p>Единая терминология экосистемы.</p></a>
 </div>

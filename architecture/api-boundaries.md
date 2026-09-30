@@ -2,37 +2,41 @@
 
 | Surface | Владелец | Клиенты | Назначение |
 | --- | --- | --- | --- |
-| Gateway Management API | Core | Constructor backend, CLI, CI/operator | Общие plugin instances, generic JSON settings, endpoints, install lifecycle согласно execution profile, interaction policies, operations, access и audit. |
-| Plugin protocol | `pluginprotocol` | Core и plugins | Versioned lifecycle/control, `ConfigApply`, `DispatchApply`, capability `Call`/`Stream`, grants и workload mTLS. |
+| Core Management API | Core | Constructor backend, CLI, CI/operator | Plugin instances с per-instance deployment mode, provider records, generic JSON settings, policies, operations, access и audit. |
+| Plugin SDK REST | Локальная Go-библиотека `plugin-sdk/` | Core и каждый plugin | Общий технический lifecycle, identity, Manifest/schema, `Reload`, exact config pull, health/readiness, metrics/logging и безопасные errors. |
+| Plugin protocol | `pluginprotocol` | Plugins | Только plugin-to-plugin communication: registration собственных методов/streams и настраиваемый физический transport/security; Core и plugin products не являются зависимостями. |
 | Plugin Admin Surface | Core как защищённый фасад, plugin как владелец capability | Constructor backend | Schema-ограниченные административные страницы и actions; browser не соединяется с plugin напрямую. |
-| Public traffic | Caddy plugin | Browser, TCP/UDP clients, upstream services | HTTP/TLS/L4 обработка и direct plugin dispatch по разрешённым protocol edges. |
-| Caddy runtime management | Caddy plugin | Только сам Caddy plugin | Производная внутренняя runtime-конфигурация; не является публичным Core API или независимым source of truth. |
+| Public traffic | Server plugin | Browser, TCP/UDP clients, upstream services | HTTP/TLS/L4 обработка и direct plugin dispatch по разрешённым protocol edges. |
+| Caddy runtime management | Server plugin | Только сам Server plugin | Производная внутренняя runtime-конфигурация; не является публичным Core API или независимым source of truth. |
 
 ## Конфигурация и desired state
 
 Core — один экземпляр и единственный источник желаемой конфигурации всех
-сервисов. Он сохраняет versioned JSON revisions и active pointers в SQLite,
-строит immutable in-memory snapshot и передаёт конфигурацию plugins push-вызовом
-`ConfigApply`. Plugin не обращается к Core за конфигом, а применяет полученную
-revision в своём процессе и подтверждает её digest.
+сервисов. Он сохраняет versioned raw JSON generations и active pointers в
+SQLite, строит immutable in-memory snapshot, затем вызывает REST `Reload`.
+Plugin сам запрашивает у Core конкретную immutable generation, применяет её в
+памяти и подтверждает digest.
 
-Caddy traffic configuration — JSON settings Caddy plugin, а не Caddyfile,
+Caddy traffic configuration — JSON settings Server plugin, а не Caddyfile,
 group-release API или отдельная route DSL Core. Плагин может внутри себя
 производить Caddy runtime JSON/Caddyfile-подобные данные, но они производны от
 Core revision и не управляются независимо.
 
-## Runtime profiles
+## Per-instance deployment modes
 
-Один profile действует на весь Core:
+Режим запуска задаётся для каждого plugin instance отдельно; один Core может
+сочетать `supervised process`, `managed container` и `external`.
 
-- `supervised`: Core устанавливает только доверенные TUF package releases и
-  supervises локальные процессы;
-- `external`: operator/container orchestrator управляет процессами, Core
-  подключается к заданным endpoints и управляет только desired settings,
-  protocol generations и health.
+- `supervised process`: Core устанавливает доверенный TUF binary release и
+  владеет локальным процессом;
+- `managed container`: Core через ограниченный provider adapter создаёт и
+  сверяет только принадлежащие ему Compose, Swarm или Kubernetes workloads;
+- `external`: workloads создаёт оператор, Core подключается к заданным
+  per-replica endpoints и управляет только desired settings, policies, grants
+  и health.
 
-В v1 Caddy plugin имеет одну replica и отдельное persistent filesystem для
-ACME/site runtime data. Core хранит свою конфигурацию в SQLite; Caddy plugin
+В v1 Server plugin имеет одну replica и отдельное persistent filesystem для
+ACME/site runtime data. Core хранит свою конфигурацию в SQLite; Server plugin
 хранит свои сертификаты и immutable site releases отдельно. PostgreSQL и S3 не
 требуются для control-plane конфигурации.
 

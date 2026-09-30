@@ -1,14 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://liapoldus.github.io/spec/security-runtime.json",
-  "title": "Liapoldus Gateway security runtime contract",
+  "title": "Liapoldus Core security runtime contract",
   "version": "1.0.0",
   "core": {
     "instances": 1,
     "desiredConfigStore": "SQLite on persistent local filesystem; immutable in-memory runtime generations; no database reads on the user traffic path.",
-    "profiles": ["supervised", "external"],
-    "profileMixing": false,
-    "externalLifecycle": "Core does not install, start, stop or restart externally managed plugin processes."
+    "pluginLifecycle": "Operator manually installs, starts, updates and restarts every plugin. Core connects only to fixed registered replica endpoints and exposes no process/container management API.",
+    "deferredToV2": ["Caddy-L4/public TCP-UDP relay", "CAPTCHA", "Identity/OIDC/OAuth", "TUF/plugin installation", "local process supervision", "Docker/Compose", "Docker Swarm", "Kubernetes"]
   },
   "management": {
     "publicTrafficProxy": false,
@@ -20,21 +19,20 @@
     "health": "Unauthenticated health reveals process health only, not config or plugin inventory."
   },
   "pluginWorkload": {
-    "protocol": "All plugin control and direct peer data connections use pluginprotocol gRPC/mTLS after bootstrap.",
-    "localBootstrap": "Ephemeral process identities and exact pins are exchanged only through a private inherited bootstrap pipe; plaintext RPC is not a fallback.",
-    "externalCredentials": ["read-only PEM provider", "SPIFFE Workload API"],
+    "protocol": "Plugin control uses the independent Plugin SDK REST API; pluginprotocol is only direct plugin-to-plugin communication and uses its independently configured authenticated transport.",
+    "replicaIdentity": "Operator provisions a unique identity for every replica using an external CA/PEM or SPIFFE workload source and registers the expected identity with its fixed endpoint.",
     "certificateAuthority": "Core is not a workload CA; external CA/operator provisions remote identities and signed CRL bundles.",
     "trustRoots": "Management and plugin workload trust roots are distinct.",
     "revocation": "Invalid/missing/stale signed CRL fails closed; CRL update closes active channels; no insecure downgrade.",
-    "secretDelivery": "ConfigApply carries opaque references only; secret bytes are delivered only through scoped grants.",
-    "interactionPolicy": "Core distributes explicit caller-to-target/capability/mode allow edges; default deny; direct peer gRPC is not proxied by Core.",
+    "secretDelivery": "Plugin settings pull carries opaque references only; secret bytes are delivered only through scoped Core REST grants.",
+    "interactionPolicy": "Core distributes explicit caller-to-target/method/transport allow edges over Plugin SDK REST; default deny; direct peer calls are not proxied by Core.",
     "recovery": "Reconnect repeats identity/manifest/config/dispatch checks; unknown Call outcomes are not replayed and disconnected Streams are closed."
   },
-  "caddyPlugin": {
+  "serverPlugin": {
     "instancesPerCore": 1,
     "adminApiExposure": false,
     "configuration": "Core JSON settings are the only desired-config source; plugin compiles/applies Caddy runtime configuration.",
-    "persistentState": "ACME certificates and site releases live in plugin-owned persistent local filesystem; one replica means no PostgreSQL/S3/shared-storage dependency.",
+    "persistentState": "ACME certificates and site releases live in plugin-owned persistent local filesystem; the operator preserves this directory across manual restarts. One replica means no PostgreSQL/S3/shared-storage dependency.",
     "publicListeners": "Opened by the plugin itself; Core does not run as root for Caddy and does not socket-activate public ports."
   },
   "secrets": {
