@@ -90,9 +90,13 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/core/config
   затем обновить его SHA здесь. Не использовать плавающий `main` в сборке.
 - `.site-src/` — generated staging VitePress, `.docs-sources/` — remote
   checkouts; оба каталога нельзя редактировать вручную или коммитить.
+- `.vitepress/diagram-source-hashes.json` — generated cache of source digests.
+  Не править вручную: SVG перегенерируется только при изменении соответствующего
+  Mermaid source, чтобы unchanged builds не вносили nondeterministic SVG diffs.
 
 ```text
 .vitepress/config.mts        # nav, sidebar, base, search
+.vitepress/diagram-source-hashes.json # generated diagram source digest cache
 scripts/sync-doc-sources.mjs # сборка владельческих источников в .site-src
 docs-sources.json            # remotes, commit pins и карта маршрутов
 diagrams/                     # общие Mermaid-исходники

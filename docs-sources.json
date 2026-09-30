@@ -57,7 +57,7 @@
     {
       "name": "constructor",
       "repository": "https://github.com/Liapoldus/Constructor.git",
-      "ref": "171075d2fca810ff5475c9899d5d5b51770d5c15",
+      "ref": "00fb3c400bdc5b436c6855e7caa19ec1800fd192",
       "workspacePath": "Constructor",
       "mappings": [
         { "from": "docs/site/constructor", "to": "constructor" },

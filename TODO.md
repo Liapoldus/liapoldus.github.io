@@ -62,7 +62,9 @@ contracts активных plugins вместо их владельцев. Не 
   forms-db, Constructor и React SDK владеют собственными Markdown/Mermaid.
 - [x] Добавить pinned-source manifest, локальный staging assembler и VitePress
   `srcDir`; публичные URL сохраняются, исходники не дублируются при сборке.
-- [ ] Завершить проверку owner commits и remote pins после сохранения изменений
-  во всех репозиториях; затем выполнить `npm run build` из режима remote sources.
-- [ ] CAPTCHA/Identity остаются замороженным v2-исключением в aggregator до
+- [x] Owner commits созданы, source pins сверены с их полными SHA, локальный
+  `npm run build` проходит на sibling workspace checkouts.
+- [ ] После отдельного разрешения отправить owner commits; только после этого
+  проверить `DOCS_SYNC_MODE=remote npm run build` и публиковать aggregator.
+- [x] CAPTCHA/Identity остаются замороженным v2-исключением в aggregator до
   отдельного решения о разморозке их documentation owners.

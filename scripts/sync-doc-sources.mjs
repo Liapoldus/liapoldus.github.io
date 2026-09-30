@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -59,6 +59,10 @@ for (const path of ['index.md', 'architecture', 'guidelines', 'product']) {
   copyMapping(projectRoot, { from: path, to: path })
 }
 copyMapping(projectRoot, { from: 'public', to: 'public' })
+mkdirSync(join(stagingRoot, 'diagrams'), { recursive: true })
+for (const file of readdirSync(join(projectRoot, 'diagrams')).filter((name) => name.endsWith('.mmd'))) {
+  copyMapping(projectRoot, { from: join('diagrams', file), to: join('diagrams', file) })
+}
 for (const path of ['plugins/index.md', 'plugins/existing.md', 'plugins/captcha.md', 'plugins/identity.md']) {
   copyMapping(projectRoot, { from: path, to: path })
 }
