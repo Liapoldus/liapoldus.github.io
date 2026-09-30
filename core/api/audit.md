@@ -14,7 +14,7 @@ Authorization, secrets, private keys, cookies, plugin payloads или grant
 handles. Для конфигурационных mutations фиксируются operation ID, revision,
 digest и результат без тела.
 
-Операции REST `Reload`, config pull, peer-policy update, plugin install/lifecycle и plugin-owned
+Операции REST `Reload`, config pull и plugin-owned
 Admin Surface actions сохраняют state, idempotency fingerprint, timestamps и
 safe result/problem. После restart операция восстанавливается или явно
 помечается failed/recovery-required; она не теряется в памяти процесса.

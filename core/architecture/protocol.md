@@ -165,10 +165,11 @@ consumer-у. Централизованное управление peer policies
 является CA и не стоит между peers как data proxy. `pluginprotocol` не выдаёт
 Core settings, не делает config pull и не предоставляет `Reload`.
 
-Если для вызова нужен одноразовый grant, Core REST выпускает grant для точного
-caller/target/method/purpose/invocation и target погашает его у Core REST.
-Переданный через peer call grant — opaque metadata для транспортной библиотеки:
-`pluginprotocol` не выпускает, не валидирует и не погашает его.
+V1 secret grants относятся только к раскрытию opaque secret references из
+plugin settings и выдаются через Plugin SDK REST по его owner contract. Они не
+авторизуют межплагинные вызовы. Call-scoped plugin-to-plugin grants и их
+централизованная выдача относятся к v2; `pluginprotocol` не выпускает,
+валидирует или погашает grants.
 
 ## Физический transport и безопасность
 

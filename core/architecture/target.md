@@ -34,7 +34,7 @@ forms-db plugin — и **две общие Go-библиотеки** — Plugin 
 
 | Владелец | Ответственность |
 | --- | --- |
-| Core | SQLite desired state, Management API/CLI, generic plugin instances/replicas, raw settings generations, endpoints, scoped secret grants, audit и operations. Plugin-to-plugin interaction policies и grants относятся к v2. В v1 Core подключается к вручную запущенным plugin REST endpoints. Core не содержит product-specific branches. |
+| Core | SQLite desired state, Management API/CLI, generic plugin instances/replicas, raw settings generations, endpoints, scoped secret grants, audit и operations. Plugin-to-plugin interaction policies и interaction grants относятся к v2. В v1 Core подключается к вручную запущенным plugin REST endpoints. Core не содержит product-specific branches. |
 | Plugin SDK | Отдельный независимый Go-модуль: единый REST/in-process lifecycle contract для `Reload` и exact config pull, health/readiness, schema discovery, метрики, структурированные логи и безопасные ошибки. REST+mTLS используется для отдельных процессов; in-process interface — только для статически связанного плагина в одном процессе и без сетевого mTLS. SDK не управляет process lifecycle, не зависит от `pluginprotocol` и product capabilities. Rollback остаётся Core Management API operation. |
 | `pluginprotocol` | Только библиотека plugin↔plugin взаимодействия: generic registration/send/listen/stream, transport abstraction и сетевая защита. Не содержит Core lifecycle/control API, готовых product methods, Manifest, settings, product errors или admin surfaces. |
 | Server plugin | HTTP/HTTPS, TLS/ACME, HTTP/2/3, static/proxy, plugin dispatch и опубликованные site artifacts с `current`/`previous`. Caddy — внутренняя технология; Caddy-L4 и публичные TCP/UDP listeners/relay отложены до v2. |
@@ -92,8 +92,9 @@ process-control, Docker socket или provider credentials и не может з
 останавливать, перезапускать, устанавливать, масштабировать либо удалять
 плагины. Для каждого plugin instance оператор регистрирует фиксированные REST
 endpoint и ожидаемую identity replica. Core выполняет только handshake,
-per-replica mTLS, health/readiness, конфигурационный `Reload`, grants, policy и
-аудит. Запуск плагинов в контейнерах и управление контейнерами не входят в v1.
+per-replica mTLS, health/readiness, конфигурационный `Reload`, scoped secret
+grants и аудит. Централизованные peer policies в v1 отсутствуют. Запуск
+плагинов в контейнерах и управление контейнерами не входят в v1.
 
 Локальное process supervision, установка/обновление plugin releases из каталога,
 Docker Compose, Docker Swarm, Kubernetes, provider reconciliation, rollout/drain
@@ -169,22 +170,18 @@ redemption проверяет instance, replica, revision, purpose и срок g
 CALL grant выпускается через Core REST, переносится как opaque metadata
 plugin-to-plugin вызова и погашается целевым plugin через Plugin SDK.
 
-## Plugin-to-plugin взаимодействие
+## Plugin-to-plugin взаимодействие в v1
 
-Core хранит явные правила `caller instance → target instance/method/transport`
-с deny-by-default и без специальных условий для Caddy, CAPTCHA, identity или
-других продуктов. Plugin SDK получает разрешённый peer directory и поколение
-политики из Core REST. Вызов идёт напрямую от одного plugin к другому; Core не
-стоит на data path и не пересылает payload. Техническое имя метода и его
-payload-схему задают только сами participating plugins.
+`pluginprotocol` даёт plugins общий транспорт, но Core не хранит peer policy,
+не формирует peer directory и не авторизует вызовы. Вызывающий plugin владеет
+собственной allow/deny policy и передаёт её generic authorizer библиотеки;
+default — deny. Вызов идёт напрямую между plugins, Core не стоит на data path и
+не пересылает payload. Техническое имя метода и payload schema принадлежат
+plugins.
 
-Каждая replica отдельно подтверждает REST policy generation и собственную
-identity. Core не считает один Service ACK подтверждением всего membership.
-При частичном обновлении применяется roll-forward: неподтвердившая replica
-остаётся неготовой для нового поколения, подтверждённые replicas продолжают
-работу, retry ведётся до согласованного состояния. Удаление peer прекращает
-выдачу новых разрешений и выполняет bounded drain. Неизвестный результат
-вызова не повторяется; оборванный поток закрывается.
+Централизованные `caller → target/method/transport` rules, их generation,
+распространение через Core и rollout/drain относятся к v2. Не добавлять для
+них v1 endpoints, SQLite tables или Plugin SDK methods.
 
 ## `pluginprotocol`: универсальная межплагинная сеть
 
@@ -309,8 +306,9 @@ validation и `current/previous` transitions заданы в [site publishing](.
 
 Management listener полностью отделён от public traffic; Server plugin не
 становится reverse proxy для этого API. Core управляет generic plugin
-instances/settings, заранее зарегистрированными endpoints, interactions,
-operations, service credentials и audit. API не
+instances/settings, заранее зарегистрированными endpoints, scoped secret
+grants, operations, service credentials и audit. Plugin-to-plugin interactions
+не входят в API v1. API не
 предоставляет Caddy Admin pass-through, Caddy TLS endpoints или Caddy group
 endpoints. Caddy-specific действия доступны только как plugin-declared Admin
 Surface через общий авторизованный REST action boundary.
@@ -373,9 +371,9 @@ Core-owned versioned package/config artifacts; backup Caddy release/ACME data
 выполняется отдельно на его persistent volume. Никаких PostgreSQL/S3
 dependencies для v1.
 
-ER-модель целевого control store показывает `plugin_instance`,
+ER-модель целевого v1 control store показывает `plugin_instance`,
 `plugin_config_generations` с slot rows `active`/`previous`/`staging`,
-`interaction_rule`, `operation`,
+`operation`,
 `replica_generation`, `service_key` и `audit_event`. Для plugin config это
 утверждённая физическая таблица; отдельная revision table и pointer table не
 используются. Её source diagram находится в
@@ -397,7 +395,8 @@ JSON в отдельных plugin-specific таблицах.
   rollback следуют согласованному roll-forward правилу.
 - Все plugin processes вручную запускает и обслуживает оператор. Core никогда
   не выполняет install/start/stop/restart/scale/delete для v1 plugins.
-- Plugin-to-plugin соединения разрешаются только явным policy и mTLS.
+- В v1 Core не централизует peer authorization; plugin-owned authorizer
+  применяется fail-closed. Центральный policy plane запланирован в v2.
 - Все активные HTTP/HTTPS listener-ы принадлежат Server plugin; Core не является traffic
   proxy и не включает Caddy runtime.
 - Public contracts и ошибки не должны обещать отсутствующие lifecycle,
