@@ -8,7 +8,7 @@ lifecycle, прямые plugin-to-plugin policies и отдельный Server p
 | --- | --- |
 | [Roadmap v1](v1-migration-roadmap) | Этапы миграции и gates. |
 | [Целевые решения](target) | Нормативные роли, state, ручной startup v1 и security. |
-| [Control plane](control-plane) | REST Reload/config pull, три SQLite generation slots и plugin interactions. |
+| [Control plane](control-plane) | REST Reload/config pull, active/previous generations и internal staging для recovery. |
 | [Runtime components](core) | Компактная карта владельцев. |
 | [Размещение plugins](plugin-deployment) | Ручной запуск v1 и future deployment automation v2. |
 | [Plugin SDK и protocol](protocol) | Разделение общего REST lifecycle SDK и generic plugin-to-plugin network. |

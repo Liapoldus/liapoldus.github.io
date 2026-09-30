@@ -6,10 +6,11 @@ plugin-to-plugin вызовов. Их API не смешиваются: Plugin SD
 `pluginprotocol`, и сам plugin определяет свои Manifest, settings, capabilities,
 schemas, ошибки и Admin Surface.
 
-Пока Plugin SDK не создан и его module path/contract не утверждены, этот гайд
-фиксирует порядок и инварианты, но не выдумывает import path и конкретные
-generated types. См. [границы библиотек](protocol), [целевую архитектуру](target)
-и [план перехода](v1-migration-roadmap).
+Plugin SDK уже существует как отдельный локальный Go module; его временный
+module path пока не является публикуемым canonical path. Normative HTTP contract
+и API лежат в самом SDK; этот гайд описывает только продуктовую последовательность.
+См. [границы библиотек](protocol), [целевую архитектуру](target) и
+[план перехода](v1-migration-roadmap).
 
 ## Plugin control lifecycle
 
@@ -22,17 +23,18 @@ identity replica или её ACK. Core не управляет process/container
    server отдельно. Он настраивает startup/restart policy средствами ОС.
 2. Core аутентифицирует replica, получает её Manifest и settings schema и
    сверяет release identity.
-3. Core сохраняет desired JSON generation в SQLite. В instance доступны только
-   два durable поколения: `active` и `previous`; candidate проверяется до
-   транзакции и отдельный staging slot не сохраняется.
+3. Core валидирует desired JSON и сохраняет точные bytes candidate в durable
+   `staging` slot вместе с operation. При promotion одна транзакция удаляет
+   старый `previous`, переносит прежний `active` в `previous`, а candidate — в
+   `active`. `staging` нужен для recovery и не доступен plugin config pull.
 4. Core вызывает `Reload(generation)` без конфигурационного документа. Plugin
    pull-ит ровно указанный generation у Core через REST, валидирует полный JSON
    и атомарно меняет in-memory config.
 5. Plugin подтверждает generation и digest. Core допускает к traffic только
    replicas, подтвердившие текущий `active`; остальные остаются fenced и
    degraded до успешного retry.
-6. После validation одна SQLite transaction продвигает candidate в `active`,
-   бывший `active` — в `previous`, до Reload fan-out. Partial rollout идёт roll-forward;
+6. После promotion Core публикует immutable snapshot и начинает Reload fan-out.
+   Partial rollout идёт roll-forward;
    Rollback меняет `active`/`previous` до уведомления replicas.
 
 Приложение не читает settings из environment, argv или собственного

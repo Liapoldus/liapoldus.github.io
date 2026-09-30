@@ -41,12 +41,12 @@ Project является нормальным monorepo React-приложени�
 
 ## Владение и генерируемые файлы
 
-Формат проекта Constructor не является источником Gateway runtime settings.
-`gateway/` и `plugins/` не содержат копий Gateway plugin settings или
+Формат проекта Constructor не является источником Core runtime settings.
+`core/` и `plugins/` не содержат копий Core plugin settings или
 Caddyfile/group-release fragments: desired plugin documents живут в Core SQLite
 и редактируются через Management API. Собранный frontend передаётся отдельно в
-Caddy plugin Admin Surface; Gateway/Core не получает путь к local project
-directory. Формат site upload принадлежит versioned contract Caddy plugin и не
+Server plugin Admin Surface; Core/Core не получает путь к local project
+directory. Формат site upload принадлежит versioned contract Server plugin и не
 задаётся этим project manifest.
 
 | Path | Writer | Rule |

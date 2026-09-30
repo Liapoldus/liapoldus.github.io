@@ -15,8 +15,8 @@ records не удаляются обычным CRUD.
 | --- | --- | --- |
 | Пользователи и доступ | `users`, `roles`, `permissions`, `user_roles`, `role_permissions` | Web RBAC; `permissions.environment_scope` ограничивает действия по среде |
 | Web authentication | `oidc_identities`, `web_authenticators`, `auth_sessions` | Связь OIDC по `(issuer, subject)`, WebAuthn public credentials, refresh verifier/revocation metadata |
-| Gateway bindings | `gateway_bindings` | Независимые удалённые Gateways, environment, endpoint и refs в server-side secret store для Bearer/mTLS credentials |
-| Операторский след | `operations`, `audit_records` | Оператор, роль, Gateway/environment target, idempotency, outcome и recovery |
+| Core bindings | `gateway_bindings` | Независимые удалённые Cores, environment, endpoint и refs в server-side secret store для Bearer/mTLS credentials |
+| Операторский след | `operations`, `audit_records` | Оператор, роль, Core/environment target, idempotency, outcome и recovery |
 | Проекты и Git | `projects`, `git_bindings`, `project_members` | Source repositories и доступ к ним; исходный код не копируется в DB |
 | Delivery | `sites`, `environments`, `snapshots`, `snapshot_entities`, `builds`, `artifacts`, `deployments` | Immutable delivery chain и active deployment per target |
 | Assets | `asset_records`, `asset_variants` | Metadata, checksum и внешние storage references, не binary blobs |
@@ -39,7 +39,7 @@ store / SSH agent и в Constructor DB не сохраняются.
 
 - В web mode у каждого user role assignment проверяется backend-ом; системная
   роль `admin` не может быть удалена или лишена обязательных permissions.
-- Effective Gateway action требует совпадения роли, permission, target
+- Effective Core action требует совпадения роли, permission, target
   environment и `gateway_binding.environment_id`; несовпадение всегда deny.
 - OIDC identity уникальна по `(issuer, subject)` и связана только с одной
   Constructor user. Account linking требует подтверждённой операции и audit.
@@ -50,7 +50,7 @@ store / SSH agent и в Constructor DB не сохраняются.
   чем build становится `succeeded`.
 - На `(site_id, environment_id)` существует одна active deployment; rollback
   создаёт новую запись и сохраняет предыдущее состояние.
-- Gateway operation хранит только ID/digest/outcome; содержание Gateway config
+- Core operation хранит только ID/digest/outcome; содержание Core config
   и secret values не копируется в Constructor DB.
 
 Local-first mode использует ту же operational repository model на SQLite

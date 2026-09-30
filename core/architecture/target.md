@@ -34,7 +34,7 @@ forms-db plugin — и **две общие Go-библиотеки** — Plugin 
 
 | Владелец | Ответственность |
 | --- | --- |
-| Core | SQLite desired state, Management API/CLI, generic plugin instances/replicas, raw settings generations, endpoints, grants, interaction policies, audit и operations. В v1 подключается к вручную запущенным plugin REST endpoints; в v2 может связывать доверенный статически включённый plugin через in-process SDK adapter. Core не содержит product-specific branches. |
+| Core | SQLite desired state, Management API/CLI, generic plugin instances/replicas, raw settings generations, endpoints, scoped secret grants, audit и operations. Plugin-to-plugin interaction policies и grants относятся к v2. В v1 Core подключается к вручную запущенным plugin REST endpoints. Core не содержит product-specific branches. |
 | Plugin SDK | Отдельный независимый Go-модуль: единый REST/in-process lifecycle contract для `Reload` и exact config pull, health/readiness, schema discovery, метрики, структурированные логи и безопасные ошибки. REST+mTLS используется для отдельных процессов; in-process interface — только для статически связанного плагина в одном процессе и без сетевого mTLS. SDK не управляет process lifecycle, не зависит от `pluginprotocol` и product capabilities. Rollback остаётся Core Management API operation. |
 | `pluginprotocol` | Только библиотека plugin↔plugin взаимодействия: generic registration/send/listen/stream, transport abstraction и сетевая защита. Не содержит Core lifecycle/control API, готовых product methods, Manifest, settings, product errors или admin surfaces. |
 | Server plugin | HTTP/HTTPS, TLS/ACME, HTTP/2/3, static/proxy, plugin dispatch и опубликованные site artifacts с `current`/`previous`. Caddy — внутренняя технология; Caddy-L4 и публичные TCP/UDP listeners/relay отложены до v2. |
@@ -115,9 +115,14 @@ Core проверяет TLS/mTLS, REST manifest/schema и readiness, затем 
 
 ## REST Reload, поколения конфигурации и восстановление
 
-Для каждого plugin instance Core долговременно хранит только две полные версии
-настроек: `active` и `previous`. Request candidate ограниченно буферизуется и
-валидируется до транзакции, но отдельный durable `staging` slot не создаётся.
+Для каждого plugin instance Core хранит до трёх полных версий настроек в одной
+таблице: `active`, `previous` и внутренний `staging`. `staging` содержит
+проверенный candidate, связанный с durable operation, до promotion; он нужен для
+crash recovery и никогда не доступен plugin config pull. После validation Core
+сохраняет candidate в `staging`, затем отдельной SQLite-транзакцией удаляет
+старый `previous`, переносит `active` в `previous` и `staging` в `active`. При
+отказе до promotion Core сохраняет прежние `active`/`previous` и удаляет либо
+повторно обрабатывает `staging` по состоянию durable operation.
 Настройки — raw versioned JSON; Core проверяет синтаксис, generic plugin schema,
 CAS и полномочия, но не трактует product fields. Секреты представлены только
 внешними references.
@@ -126,11 +131,11 @@ CAS и полномочия, но не трактует product fields. Секр
    validation, revision CAS, idempotency и audit. Candidate принимается только
    после полной проверки; ошибка не меняет SQLite, in-memory snapshot и не
    вызывает Reload.
-2. Одной SQLite-транзакцией прежний `active` становится `previous`, а
-   проверенный candidate — новым `active`; прежний `previous` удаляется. После
-   commit Core публикует новое immutable in-memory поколение и начинает
-   уведомление replicas. Таким образом, durable state содержит только
-   фактические current/previous configs.
+2. Core сохраняет исходные candidate bytes в `staging` вместе с durable
+   operation. При promotion одна SQLite-транзакция удаляет прежний `previous`,
+   переносит прежний `active` в `previous`, а candidate из `staging` — в
+   `active`; только после commit Core публикует новое immutable in-memory
+   поколение и начинает уведомление replicas.
 3. Core вызывает `POST /_liapoldus/v1/reload` у каждой обязательной replica с
    generation, SHA-256 и schema version; JSON body не содержит settings.
    Plugin-side endpoint paths и поля зафиксированы в
@@ -327,7 +332,7 @@ Constructor; отдельный Constructor auth redesign отложен и не
 Core — единственный writer и один экземпляр; единственная долгосрочная БД Core
 — SQLite на локальном persistent filesystem. В ней находятся bootstrap-derived
 metadata, generic plugin instance records, raw desired config generations,
-endpoint membership/identity references, interaction policies, `active`/`previous`
+endpoint membership/identity references, `active`/`previous`/internal `staging`
 configuration rows, durable operations/idempotency, per-replica generation
 acknowledgements, access-key verifiers/metadata и audit. Сырые secret values и
 private keys не сохраняются; SQLite содержит только references и non-secret
@@ -347,10 +352,10 @@ runtime JSON не подменяет Core desired JSON.
 storage самого plugin. Plugin configuration хранится только в
 `plugin_config_generations(instance_id, generation, slot, raw_json BLOB,
 sha256, schema_version, created_at)`. Уникальность `(instance_id, slot)` даёт
-не более двух строк `active`/`previous`; отсутствующий slot не имеет строки.
-Generation монотонен в пределах instance. Проверенный candidate не хранится как
-третье durable поколение: одна транзакция сдвигает текущий документ в
-`previous` и записывает новый `active`.
+не более одной строки каждого из трёх слотов `active`/`previous`/`staging`;
+пустой slot представлен отсутствующей строкой. Generation монотонен в пределах
+instance. `staging` — durable recovery buffer, но не публикуемый config slot:
+plugin может pull-ить только `active` или `previous`.
 
 Management `PUT` принимает raw JSON object напрямую, без общей оболочки. Core
 проверяет UTF-8, JSON syntax, размер, duplicate keys и generic plugin-owned
@@ -369,7 +374,7 @@ Core-owned versioned package/config artifacts; backup Caddy release/ACME data
 dependencies для v1.
 
 ER-модель целевого control store показывает `plugin_instance`,
-`plugin_config_generations` с двумя slot rows `active`/`previous`,
+`plugin_config_generations` с slot rows `active`/`previous`/`staging`,
 `interaction_rule`, `operation`,
 `replica_generation`, `service_key` и `audit_event`. Для plugin config это
 утверждённая физическая таблица; отдельная revision table и pointer table не
@@ -387,7 +392,8 @@ JSON в отдельных plugin-specific таблицах.
 - Core уведомляет plugin через REST `Reload`, plugin сам pull-ит immutable
   versioned generation и возвращает exact acknowledgement; config push RPC
   для управления plugin lifecycle не используется.
-- `active` и `previous` — единственные durable config slots; partial rollout и
+- `active` и `previous` — единственные публикуемые plugin config slots;
+  `staging` хранит недоступный извне candidate для recovery. Partial rollout и
   rollback следуют согласованному roll-forward правилу.
 - Все plugin processes вручную запускает и обслуживает оператор. Core никогда
   не выполняет install/start/stop/restart/scale/delete для v1 plugins.

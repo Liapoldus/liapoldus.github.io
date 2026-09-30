@@ -16,9 +16,8 @@ SQLite хранит только control-plane state, нужный для вос
 | --- | --- | --- |
 | Plugin instance | Стабильный ID, plugin identity, зарегистрированные replicas и timestamps. | Product-specific поля, binaries и process lifecycle. |
 | Replica membership | Стабильный ID replica, отдельный REST control endpoint, ожидаемая mTLS identity и desired/observed status. | Private keys, bearer tokens и TLS secret bytes. |
-| Config generations | По одной строке на instance/slot: `instance_id`, монотонный `generation`, `slot`, точный `raw_json BLOB`, `sha256`, `schema_version`, `created_at`. Слоты: только `active` и `previous`. | Product-specific распарсенные поля и раскрытые секреты. |
-| Peer policies | Caller, target, произвольное plugin-defined method, разрешённый transport и CAS revision. | Payload запросов и специальные правила для имён плагинов. |
-| Replica acknowledgements | Config/policy/release generation, digest, replica identity и время подтверждения. | Credentials целиком. |
+| Config generations | До одной строки на instance/slot: `instance_id`, монотонный `generation`, `slot`, точный `raw_json BLOB`, `sha256`, `schema_version`, `created_at`. Слоты: `active`, `previous` и непубликуемый `staging`. | Product-specific распарсенные поля и раскрытые секреты. |
+| Replica acknowledgements | Config generation, digest, replica identity и время подтверждения. | Credentials целиком. |
 | Operations/idempotency | Тип операции, safe resource IDs, состояние, input digest, результат и timestamps. | Чувствительные request/response body. |
 | Access/audit | Actor, authorization result, mutation/resource и before/after digest. | Повторно выдаваемые tokens, cookies, authorization и secret values. |
 
@@ -45,7 +44,7 @@ Core проверяет БД и контрольные данные, восст�
 `plugin_config_generations` со столбцами `instance_id`, `generation`, `slot`,
 `raw_json BLOB`, `sha256`, `schema_version` и `created_at`. Ограничение
 уникальности `(instance_id, slot)` допускает не более одной строки каждого
-слота; `slot` принимает только `active` или `previous`. Generation
+слота; `slot` принимает `active`, `previous` или `staging`. Generation
 уникален и монотонно увеличивается в пределах instance. Пустой slot представлен
 отсутствующей строкой.
 
@@ -71,7 +70,7 @@ actor/idempotency metadata и состояние; JSON payload отдельно 
 | --- | --- | --- |
 | `active` | Желаемое поколение, которое Core раскатывает и требует от replicas. | Core продвигает проверенный candidate в `active` до уведомления replicas. |
 | `previous` | Последнее поколение, от которого можно выполнить rollback. | При продвижении candidate замещается бывшим `active`. |
-| Candidate | Временное тело принятого Management API запроса. | Валидируется до SQLite transaction; durable slot не создаётся и при ошибке ничего не меняется. |
+| `staging` | Проверенный candidate, сохранённый вместе с durable operation для crash recovery. | Не выдаётся config pull; validation failure не создаёт slot. Promotion или отказ очищают либо перемещают его транзакционно. |
 
 Новая management mutation требует authentication, authorization, idempotency и
 CAS (`If-Match`). Core проверяет JSON Schema и целостность всего документа,
@@ -85,24 +84,27 @@ references.
 Общий REST control contract задаёт Plugin SDK; его endpoint shapes и ошибки не
 дублируются этой страницей. Последовательность изменения настроек такова:
 
-1. Core ограниченно принимает и валидирует candidate в памяти; durable state не
-   меняется до успешной полной validation.
-2. Одной SQLite transaction Core выполняет `previous ← active`, записывает
-   candidate как `active`, удаляет прежний `previous` и публикует generation.
-   Operation переходит в rollout state.
-3. Для каждой обязательной replica Core вызывает REST `Reload` с целевым
+1. Core ограниченно принимает и валидирует candidate в памяти; ошибка до полной
+   validation не меняет durable slots и не вызывает `Reload`.
+2. После полной validation Core одной SQLite transaction сохраняет точные
+   candidate bytes в `staging` и связывает их с durable operation. До promotion
+   прежние `active`/`previous` остаются неизменными.
+3. Promotion одной SQLite transaction удаляет прежний `previous`, переносит
+   текущий `active` в `previous`, а candidate из `staging` — в `active`, фиксирует
+   rollout state и публикует новое immutable in-memory generation.
+4. Для каждой обязательной replica Core вызывает REST `Reload` с целевым
    generation и семантикой «эта версия доступна и должна стать active». Это
    уведомление, а не передача настроек: в запросе нет конфигурационного
    документа. Точная JSON-форма принадлежит Plugin SDK.
-4. Плагин сам обращается к защищённому Core REST endpoint и запрашивает ровно
+5. Плагин сам обращается к защищённому Core REST endpoint и запрашивает ровно
    указанный immutable generation. Core авторизует конкретные instance/replica,
    operation и generation; ответ содержит versioned JSON, schema version и
    digest.
-5. Плагин валидирует весь документ и атомарно меняет собственную in-memory
+6. Плагин валидирует весь документ и атомарно меняет собственную in-memory
    конфигурацию. Он возвращает Core подтверждение точных generation и digest.
    Если проверка или применение не прошли, локально остаётся его прежняя
    конфигурация.
-6. Когда все обязательные replicas подтвердили target generation, Core
+7. Когда все обязательные replicas подтвердили target generation, Core
    завершает operation. До этого operation остаётся `degraded`/`rolling_forward`,
    а новый immutable snapshot разрешает traffic только через replicas,
    подтвердившие именно active generation.
@@ -136,13 +138,14 @@ fenced/degraded и получают retry. Автоматической compensa
 погашаются через Core REST. Если grant передаётся от plugin к plugin, он
 переносится как opaque metadata и не интерпретируется `pluginprotocol`.
 
-## Plugin-to-plugin policies
+## Межплагинная авторизация: граница v2
 
-Core хранит deny-by-default policy между конкретными caller/target replicas и
-произвольными method names, заданными самими плагинами. Core публикует endpoint,
-peer identity и новую policy через Plugin SDK REST, но не становится proxy
-payload. Каждый участник подтверждает актуальное policy generation. Удаление
-peer отзывает возможность новых вызовов и запускает bounded drain.
+В v1 Core не хранит peer policy, не распространяет её и не выдаёт
+plugin-to-plugin interaction grants. Каждый вызывающий plugin отвечает за свою
+authorization policy; protocol library получает только generic consumer-supplied
+authorizer и не знает продуктов или именованных capability contracts.
+Централизованные caller/target policies, generation/ACK и bounded drain
+отложены до v2 и не являются частью Core v1 SQLite или Management API.
 
 `pluginprotocol` обеспечивает только общий межплагинный обмен. Он не задаёт
 plugin Manifest, REST lifecycle, settings, health API, secret redemption или

@@ -66,6 +66,9 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/core/config
   без отдельного решения.
 - Sidebar/nav редактируются только в `.vitepress/config.mts`. Новая страница
   обязательно добавляется в sidebar.
+- Канонический раздел продукта называется `/core/`; `/gateway/` и прежние
+  Gateway IDs/paths не поддерживаются после breaking migration. Не добавлять
+  redirect-страницы и старые ссылки как совместимый API.
 
 ## Структура репозитория
 
@@ -75,7 +78,7 @@ diagrams/                     # Mermaid-исходники статически�
 .vitepress/theme/            # кастомные компоненты (CoreNav), custom.css
 .vitepress/shim/             # fastdom-заглушки для сборки (не трогать)
 public/                      # favicon, versioned contracts и сгенерированные SVG
-core/                          # Core API, architecture, CLI, configuration, deploy, examples
+core/                         # Core API, architecture, CLI, configuration, deploy, examples
 plugins/                      # Server, forms-db, generic plugin contracts; identity/captcha v2
 constructor/                  # отдельная архитектура Constructor и его API
 architecture/ guidelines/     # общие границы и правила документации
@@ -105,8 +108,9 @@ index.md                     # корневая страница (layout: home)
 ## Полезные ссылки в контенте
 
 - Канон конфигурации — `core/configuration/*`; CLI — `core/cli/*`;
-  декларация плагина — `plugins/index.md`; wire-канон и единственный контракт
-  IPC — `core/architecture/protocol.md`; практическая реализация —
+  декларация плагина — `plugins/index.md`; Core↔plugin REST канон —
+  `core/architecture/protocol.md`, generic plugin↔plugin wire-канон —
+  внешний репозиторий `pluginprotocol`; практическая реализация —
   `core/architecture/guide.md`. Страница `architecture/contract.md` сохранена
-  только как короткий совместимый указатель.
+  только как короткий указатель на канонические контракты.
 - Решения по структуре/стилю сессии документируются в этом файле и в коммитах.

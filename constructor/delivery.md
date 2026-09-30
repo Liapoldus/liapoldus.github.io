@@ -66,23 +66,23 @@ Build сохраняет checksum вместе со статусом. Клиен
 успешных artifacts остаются ограничениями v1.
 
 Environments включают Development, Staging, Production и custom; отличаются
-Gateway binding, domains, infrastructure references, secret references и
+Core binding, domains, infrastructure references, secret references и
 deployment settings.
 
 Publish принимает только ready Snapshot и успешный Build именно этого Snapshot
 и Site. Пользователь отдельно подтверждает точную пару Site/Environment.
 Перед deployment Constructor сверяет локальную active revision с текущей
-Gateway release revision. Для первого Constructor deployment, если release в
-Gateway уже существует, пользователь явно подтверждает её как baseline; это не
-автоматическое усыновление. Publish передаёт Gateway `expectedCurrentRevision`,
+Core release revision. Для первого Constructor deployment, если release в
+Core уже существует, пользователь явно подтверждает её как baseline; это не
+автоматическое усыновление. Publish передаёт Core `expectedCurrentRevision`,
 путь immutable static artifact как release source и idempotency key. Возвращённая
-Gateway release revision сохраняется в локальной SQLite deployment history;
+Core release revision сохраняется в локальной SQLite deployment history;
 локальный active deployment меняется транзакционно только после успешной
-Gateway operation. Drift или stale revision блокируют операцию. Rollback также
+Core operation. Drift или stale revision блокируют операцию. Rollback также
 использует expected revision и записывается новым Deployment с
 `action: "rollback"`, сохраняя историю предыдущих операций.
-Перед Gateway-вызовом Constructor сохраняет CAS precondition и operation identity
+Перед Core-вызовом Constructor сохраняет CAS precondition и operation identity
 в SQLite. После перезапуска worker повторяет publish/rollback с тем же ключом
-идемпотентности; пока Gateway не подтвердит результат, deployment остаётся
+идемпотентности; пока Core не подтвердит результат, deployment остаётся
 `applying` и target зарезервирован. Это не позволяет считать неизвестный исход
 успешным или отправлять поверх него следующую публикацию.

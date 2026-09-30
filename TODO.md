@@ -1,44 +1,51 @@
 # TODO — нормативная документация Core v1
 
-Документация и versioned public contracts этого репозитория — источник истины
-для Core v1 до завершения release gates. Общая архитектура, v1/v2 граница и
-межрепозиторный порядок работ находятся в workspace-файле
-`../tasks/README.md`; пять исполнителей получают отдельные задания из
-`../tasks/prompts/` (это пути вне VitePress и они не являются ссылками сайта).
+Нормативная цель, границы v1/v2 и критерии готовности описаны в канонических
+страницах [`core/architecture/target`](core/architecture/target),
+[`core/architecture/v1-migration-roadmap`](core/architecture/v1-migration-roadmap)
+и [`core/configuration/acceptance`](core/configuration/acceptance). Реализация
+и её открытые задачи принадлежат TODO соответствующих репозиториев.
 
-## В работе
+## Завершено в документационном срезе
 
-- [ ] Закрепить один согласованный target по Core, Plugin SDK REST, generic
-  pluginprotocol и двум v1 plugins; удалить противоречия, старые названия
-  Gateway и lifecycle RPCs из нормативных страниц и публичных contracts.
-- [ ] Проверить links, sidebar, schema/openapi/vector references после breaking
-  migration `/gateway/` → `/core/`, включая API paths, JSON IDs, CLI/binary
-  labels и examples. Не оставлять compatibility links как поддерживаемый API.
-- [ ] Сверить contracts/errors/schema/OpenAPI/golden vectors с кодом Core и
-  owner contracts Plugin SDK, pluginprotocol, Server и forms-db; не копировать
-  чужие `.proto` или plugin JSON schemas.
-- [ ] Явно разделить v1 и v2 на всех страницах: public L4/Caddy-L4, CAPTCHA,
-  Identity/OIDC/OAuth, TUF/catalog/install, local workload supervision,
-  Docker/Compose/Swarm/Kubernetes — только v2 и не v1 API/schema/dependencies/
-  acceptance.
-- [ ] Отразить remaining implementation gates только со ссылками на repo-owned
-  TODO; не дублировать длинные implementation checklists на нескольких
-  документационных страницах.
-- [ ] Проверить translation/navigation: русская документация, sidebar без
-  мёртвых путей, generated diagram artifacts согласованы с `.mmd` sources.
+- [x] Breaking rename Gateway → Core в VitePress структуре, sidebar, API paths,
+  contract IDs и примерах; старый `/gateway/` путь не является поддерживаемым
+  compatibility surface.
+- [x] Разделены v1 и v2: v1 — Core, Plugin SDK, `pluginprotocol`, Server plugin
+  и forms-db; ручной запуск plugin binaries. Docker/Compose/Swarm/Kubernetes,
+  process supervision/install, Caddy-L4/public L4, CAPTCHA, Identity/OIDC/OAuth
+  и TUF перенесены в v2.
+- [x] Core↔plugin lifecycle отнесён к Plugin SDK REST; `pluginprotocol` описан
+  только как generic plugin↔plugin library. Product schemas и capabilities
+  остаются у конкретных plugins.
+- [x] Зафиксирован plugin config lifecycle: точные raw JSON bytes; durable
+  `active`/`previous`/internal `staging`; staging недоступен plugin pull и
+  используется для восстановления незавершённой durable operation; успешная
+  активация транзакционно двигает active/previous.
+- [x] Документация Core, публичные contracts, sidebar и ссылки обновлены;
+  локальный `npm run build` прошёл 2026-09-30.
 
-## Проверка
+## Открыто
 
-- [ ] После связанных content changes `npm run build`.
-- [ ] Проверить SHA-256 опубликованных assets в `public/spec/manifest.json` и
-  schema/OpenAPI/vector links.
-- [ ] Зафиксировать затронутые страницы и актуальные, реально исполненные
-  проверки в workspace status/отчёте; не объявлять production readiness по
-  сборке сайта.
+- [ ] Проверить завершение GitHub Pages deployment для опубликованного commit
+  `ae2a734`: после push `/core/` маршруты возвращали 404, а старый
+  `/gateway/configuration/` — 200. Повторить HTTP-проверку и проверить Actions;
+  локальная сборка не является доказательством деплоя.
+- [ ] Синхронизировать public contracts с фактически компилируемыми Plugin SDK,
+  Server и forms-db owner contracts после завершения их миграции. Сейчас обе
+  активные plugin integrations падают при Go compile; не объявлять contract
+  parity или production readiness до сквозного Core→SDK→plugin smoke.
+- [ ] Проверить в CI hashes опубликованных schemas/OpenAPI/vectors и целостность
+  ссылок на внешние owner contracts без копирования `.proto` или plugin-owned
+  JSON schemas.
+- [ ] После следующего документационного изменения собрать сайт командой
+  `npm run build`, но сначала проверить затронутые diagram sources: build
+  регенерирует `public/diagrams/*.svg`. Не перезаписывать пользовательские
+  Constructor diagrams, пока Constructor заморожен.
 
 ## Вне области
 
 Не менять `Constructor/`, `react-lib/`, замороженные `plugins/captcha/` и
 `plugins/identity/`, `archive/plugins/tls-issuer/` или `test/`. Не менять код,
-schemas или TODO активных plugins вместо их owner-агентов. Не делать commit,
-push, deploy или release без явного отдельного запроса.
+contracts или TODO активных plugins вместо их владельцев. Не коммитить, не
+пушить и не публиковать последующие изменения без отдельного явного запроса.

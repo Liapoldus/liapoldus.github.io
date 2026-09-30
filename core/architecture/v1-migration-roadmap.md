@@ -16,8 +16,9 @@
   SHA-256 по этим bytes и не decode/remarshal-ит документ.
 - В SQLite для каждого instance ровно одна таблица поколений с колонками
   `instance_id`, `generation`, `slot`, `raw_json BLOB`, `sha256`,
-  `schema_version`, `created_at`. Допустимы ровно два durable слота: `active`
-  и `previous`; candidate проверяется до транзакции и отдельно не сохраняется.
+  `schema_version`, `created_at`. Допустимы durable слоты `active`, `previous`
+  и непубликуемый `staging`; validated candidate сохраняется там вместе с
+  durable operation для recovery до promotion.
 - Core проверяет syntax, UTF-8, size, дублирующиеся keys и generic JSON Schema.
   Он не интерпретирует product fields. Невалидный candidate не меняет active и
   не запускает Reload.
@@ -91,7 +92,9 @@ digest; duplicate keys и invalid schema не меняют slots; CAS/retry/roll
 replica. Оператор вручную запускает каждый plugin и отвечает за его process
 lifecycle, обновление и persistent data. Core выполняет per-replica mTLS,
 Manifest/schema/health checks, конфигурационный Reload/pull/ACK, Management API
-authorization, scoped secret grants, interaction policies, audit и redaction.
+authorization, scoped secret grants, audit и redaction. Plugin-to-plugin
+interaction policy API и grants вынесены за v1 и не являются Core Management
+API.
 Core не получает process-control privileges, provider credentials или
 контейнерные APIs.
 

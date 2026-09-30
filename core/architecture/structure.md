@@ -10,13 +10,13 @@ Plugin protocol generated types, SQLite driver, filesystem и TLS SDK не
 ## Целевые Core adapters
 
 - bootstrap loader и валидация минимального `core.yaml`;
-- SQLite migrations/repositories для generic plugin instances, двух JSON config
-  generations (`active`/`previous`), per-replica endpoints/identity references,
-  interaction policies, operations, idempotency, access и audit;
+- SQLite migrations/repositories для generic plugin instances, JSON config
+  generations (`active`/`previous` и internal `staging`), per-replica
+  endpoints/identity references, operations, idempotency, access и audit;
 - Plugin SDK REST client для заранее вручную запущенных plugin replicas,
-  grants и immutable in-memory
+  scoped secret grants и immutable in-memory
   desired/applied generations;
-- Management REST API и CLI для plugin-neutral lifecycle, settings, policy,
+- Management REST API и CLI для plugin-neutral lifecycle, settings,
   health, operations, access и audit.
 
 Core не содержит Caddy build/runtime adapter, Caddy Admin pass-through,

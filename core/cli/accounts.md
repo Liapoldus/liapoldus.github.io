@@ -1,21 +1,15 @@
 # Service keys
 
-> **План:** команды CLI для управления service keys ещё не реализованы. Сейчас
-> единственная команда управления доступом — `core access bootstrap`.
+В Core v1 управление доступом через CLI ограничено локальной bootstrap-командой
+`core access bootstrap`. Management API позволяет выпускать service key и
+получать только его metadata; raw token показывается один раз при выпуске и не
+возвращается при чтении. Срок действия проверяется при каждом запросе.
 
-Целевая CLI-поверхность должна создавать, rotate и revoke Management API
-service key. В v1 все ключи имеют роль platform-admin. Команды и API
-responses согласуются с [OpenAPI](../api/openapi) и общим [CLI contract](index).
+Отдельные операции rotation/revocation service key и команды для них не входят
+в v1. Не описывать их как реализованные и не добавлять до открытия соответствующей
+задачи следующей версии. Точная текущая API-поверхность приведена в
+[OpenAPI](../api/openapi).
 
-Raw token выводится ровно один раз при create/rotate. В SQLite хранится только
-verifier/hash, идентификатор, имя, роль, статус и lifecycle metadata.
-Rotation атомарно заменяет credential; revoke блокирует дальнейшую
-аутентификацию. CLI должен скрывать значение от shell history и не записывать
-его в core.yaml.
-
-Desktop Constructor сохраняет свой Core token в OS credential store через
-Go backend. Web Constructor backend хранит отдельный token для каждой Core
-binding только в server-side secret storage; browser его не получает.
-Изменение key не требует редактировать plugin settings: security credentials
-управляются отдельными Management API/CLI операциями и не включаются в
-Plugin SDK REST config generation.
+Constructor хранит credentials только в server-side secret storage или в OS
+credential store; browser не получает Core service key. Credentials не входят
+в plugin settings и никогда не выводятся в logs, audit или errors.

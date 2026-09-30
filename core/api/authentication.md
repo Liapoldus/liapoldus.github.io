@@ -35,12 +35,13 @@ store. Отсутствие пользовательского login разре�
 desktop; удалённый Core всё равно требует полноценную service
 authorization.
 
-## Bootstrap, rotation и audit
+## Bootstrap и audit
 
 Первый `platform-admin` credential создаётся локальным bootstrap command и
 показывается ровно один раз. SQLite хранит только verifier и metadata.
-Management API поддерживает issuance, rotation и revocation; отозванный key не
-может продолжать работать через кэш. Каждая успешная и неуспешная mutation
+Management API v1 поддерживает выпуск и чтение metadata credentials; отдельные
+API rotation/revocation в v1 контракт не входят. Срок действия проверяется на
+каждом запросе. Каждая успешная и неуспешная mutation
 записывает actor, binding, action, resource, result и request ID в audit; raw
 credentials и TLS material туда не попадают.
 
@@ -59,15 +60,15 @@ environment permissions принадлежат Controller/Constructor, а не C
 | Операция | Дополнительное правило |
 | --- | --- |
 | Чтение status, plugin metadata/settings, operations и audit | Нужен `platform-admin`; каждый запрос к `operationId` повторно авторизуется. |
-| Создание, изменение и удаление plugin instance/settings, interaction и cookie policies | Нужны `Idempotency-Key` для mutation и `If-Match` там, где OpenAPI задаёт CAS; ресурс проверяется deny-by-default. |
-| Plugin process/workload lifecycle | В v1 таких Management API операций нет. Оператор вручную запускает и обслуживает plugin processes; Core управляет только конфигурацией, endpoint membership, policy, grants, health/readiness и audit. |
+| Изменение settings и rollback | Нужны `Idempotency-Key` и `If-Match` согласно OpenAPI; операции проверяются deny-by-default. |
+| Plugin process/workload lifecycle | В v1 таких Management API операций нет. Оператор вручную запускает и обслуживает plugin processes; Core управляет только конфигурацией, объявленными endpoint/identity, scoped secret grants, health/readiness и audit. |
 | Plugin Admin Surface query/action | Нужны instance scope, active surface digest (`If-Match`), schema-valid metadata и action-specific limits. |
-| Выпуск, rotation и отзыв service key | Только bootstrap/admin authority; raw token возвращается только в ответе выдачи и не доступен через list/read/audit. |
+| Выпуск service key | Только bootstrap/admin authority; raw token возвращается только в ответе выдачи и не доступен через list/read/audit. Rotation/revocation API отложены до v2. |
 
 Общие problem mappings: TLS client-certificate failure не является HTTP
 response; Bearer failure — `401`; authenticated authorization denial — `403`;
-resource/idempotency conflict — `409`; stale `If-Match` — `412` (для
-cookie-policy без заголовка — `428`); invalid schema — `422`; byte limit —
+resource/idempotency conflict — `409`; stale `If-Match` — `412`; invalid
+schema — `422`; byte limit —
 `413`; unavailable dependency/recovery — `503`. Точная пара `status/code`
 определена в [error catalog](/spec/errors.json); endpoint-specific success
 statuses и обязательные headers — в [OpenAPI](/spec/management.openapi.yaml).

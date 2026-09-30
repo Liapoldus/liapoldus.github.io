@@ -8,8 +8,8 @@
 | Constructor API | projects, bindings, RBAC, snapshots, builds, deployments, audit metadata |
 | Git adapter | local repository, generic SSH/HTTPS clone, branches, diff, conflicts |
 | Build worker | validation, generation, Vite/React build, artifact metadata |
-| Gateway adapter | только Gateway Admin API, expected digest/idempotency semantics |
-| Plugin adapter | versioned Admin UI schema через Gateway-authorized contract |
+| Core adapter | только Core Admin API, expected digest/idempotency semantics |
+| Plugin adapter | versioned Admin UI schema через Core-authorized contract |
 
 UI обращается к API только через typed `ConstructorBridge.request` boundary.
 Web runtime использует browser `fetch`; будущий Wails host устанавливает bridge

@@ -1,6 +1,6 @@
 # Пользователи, роли и режимы аутентификации
 
-Constructor владеет пользовательской аутентификацией и RBAC. Gateway видит
+Constructor владеет пользовательской аутентификацией и RBAC. Core видит
 только административную identity соответствующей Constructor binding и не
 хранит пользователей или роли Constructor.
 
@@ -16,7 +16,7 @@ Constructor владеет пользовательской аутентифик
 проверяет issuer, audience, state, nonce и подпись. После успешного внешнего
 login пользователь дополнительно проходит Constructor WebAuthn/passkey
 challenge. В local web режиме после проверки пароля применяется тот же
-обязательный WebAuthn flow. OIDC tokens, пароли, refresh values и Gateway
+обязательный WebAuthn flow. OIDC tokens, пароли, refresh values и Core
 credentials не передаются React renderer.
 
 Оба web режима выдают Constructor session в `Secure`, `HttpOnly`, `SameSite`
@@ -40,10 +40,10 @@ credential metadata, не как private key. Числовые значения 
 зафиксированы в [версионированной Constructor Auth Policy v1](/spec/constructor-auth-policy.v1.json).
 
 Desktop `none` разрешён только для single-user local installation. Это не
-означает, что локальный Gateway Management API становится открытым: когда
-Constructor управляет Gateway, тот всё ещё требует `platform-admin` Bearer.
-Remote Gateway из desktop открывается через Go SSH bridge и внешний OpenSSH /
-bastion, см. [интеграцию с Gateway](integrations).
+означает, что локальный Core Management API становится открытым: когда
+Constructor управляет Core, тот всё ещё требует `platform-admin` Bearer.
+Remote Core из desktop открывается через Go SSH bridge и внешний OpenSSH /
+bastion, см. [интеграцию с Core](integrations).
 
 ## Роли и permissions
 
@@ -52,17 +52,17 @@ Constructor. Immutable системная роль `admin` существует 
 потерять критические permissions. Каждая изменяющая операция проверяет
 permission в backend use case; UI visibility не является security boundary.
 
-Permissions Gateway имеют явную environment scope. Например, роль может иметь
+Permissions Core имеют явную environment scope. Например, роль может иметь
 `gateway.view`, `gateway.configure`, `deploy.dev` и `deploy.prod`. Каждая
-Gateway binding помечается `dev` или `prod`; backend разрешает операцию только
+Core binding помечается `dev` или `prod`; backend разрешает операцию только
 если permission scope совпадает с environment binding. Одни и те же роли
-применяются к нескольким независимым Gateway bindings, поэтому оператор может
+применяются к нескольким независимым Core bindings, поэтому оператор может
 иметь deploy на dev и только read на prod.
 
 Constructor DB и audit связывают изменение с конкретным пользователем, ролью,
-target Gateway, environment, operation и результатом. Gateway audit видит
+target Core, environment, operation и результатом. Core audit видит
 Controller binding/service identity, а не подменяемый client-supplied actor
-header. Gateway service credential сам по себе не является механизмом
+header. Core service credential сам по себе не является механизмом
 Constructor RBAC.
 
 ## Sites и deployments
@@ -77,6 +77,6 @@ Site. Publish разрешается только выбранной environment
 
 Desktop/local использует single-user auth mode `none`, local Git и SQLite.
 Web mode поддерживает OIDC или local-JWT auth, multiple users, Constructor DB,
-roles, audit, remote Git и несколько remote Gateway bindings. В web режиме
-Gateway API credentials находятся только в server-side secret storage и
-доступны Gateway adapter; browser не соединяется с Gateway напрямую.
+roles, audit, remote Git и несколько remote Core bindings. В web режиме
+Core API credentials находятся только в server-side secret storage и
+доступны Core adapter; browser не соединяется с Core напрямую.

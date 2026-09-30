@@ -20,11 +20,12 @@ versioned Plugin SDK contract; config pull требует per-replica mTLS.
 
 Изменение выполняется с revision/CAS (`If-Match`). Повтор idempotency key
 возвращает существующую operation; конфликт версии не меняет active generation.
-Каждый instance долговременно хранит ровно два поколения: `active` и
-`previous`; candidate полностью валидируется до транзакции и не сохраняется в
-третьем slot. Одной SQLite-транзакцией Core записывает candidate как `active`,
-бывший `active` как `previous`, удаляет старый `previous` и публикует snapshot
-до Reload fan-out. Operation остаётся pending/degraded, пока
+Каждый instance хранит до трёх durable поколений в слотах `active`, `previous`
+и `staging`. После validation исходные candidate bytes сохраняются в
+непубликуемый `staging` вместе с durable operation. Promotion одной
+SQLite-транзакцией удаляет прежний `previous`, переносит бывший `active` в
+`previous` и `staging` в `active`, затем публикует snapshot до Reload fan-out.
+Operation остаётся pending/degraded, пока
 обязательные replicas не подтвердили новое active поколение; повторная mutation
 на время незавершённого rollout отклоняется.
 Частичный успех обрабатывается roll-forward: подтверждённые replicas обслуживают

@@ -26,7 +26,7 @@ Git diff and entity version, не opaque database event stream.
 
 Publish требует отдельной permission, selected Environment, ready Snapshot,
 green validation и confirmation current/target Deployment. Designer не может
-менять Script, Infrastructure binding, Gateway TLS или Plugin grant.
+менять Script, Infrastructure binding, Core TLS или Plugin grant.
 
 ## Enabled locales
 

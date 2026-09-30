@@ -14,8 +14,8 @@
 Snapshot validation creates a content digest from Git commit, structured files,
 asset checksums and environment-independent configuration. Build worker leases
 one queued build transactionally; lease expiry returns it to `queued`. Deploy
-locks site/environment, asks Gateway to validate/apply/publish, and writes
-`active` only after Gateway operation succeeds.
+locks site/environment, asks Core to validate/apply/publish, and writes
+`active` only after Core operation succeeds.
 
 ## Editing
 

@@ -9,7 +9,7 @@
 
 | Данные | Владелец | Правило |
 | --- | --- | --- |
-| SQLite Core | Core | Включает plugin instances, точные JSON bytes поколений `active`/`previous`, операции и audit. Используйте SQLite online backup API либо штатно остановите Core и сохраните всю согласованную базу. |
+| SQLite Core | Core | Включает plugin instances, точные JSON bytes поколений `active`/`previous`/`staging`, операции и audit. `staging` нужен для восстановления незавершённой операции и не выдаётся плагину. Используйте SQLite online backup API либо штатно остановите Core и сохраните всю согласованную базу. |
 | Core bootstrap и binary | Оператор | Сохраните `core.yaml`, версию Core и миграционные сведения. Не помещайте secret bytes в обычный архив. |
 | Server plugin state | Server plugin | Отдельно резервируйте persistent data: ACME/certificate state, site releases и `current`/`previous`. |
 | forms-db data | forms-db plugin | Используйте процедуру резервирования и восстановления, определённую владельцем plugin. |

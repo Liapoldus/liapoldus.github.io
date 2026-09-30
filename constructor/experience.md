@@ -30,8 +30,8 @@ Canvas передаёт актуальный Inspector draft в iframe чере�
 vendored версии должно быть явным и проверяемым по метаданным package.
 
 Validation pipeline запускается перед Snapshot/Build и проверяет Component
-schemas, React/Gateway routes, assets, localization, infrastructure, theme,
-plugin/Gateway configuration и references. Problems panel различает error и
+schemas, React/Core routes, assets, localization, infrastructure, theme,
+plugin/Core configuration и references. Problems panel различает error и
 warning и сохраняет diagnostics при переключении selection/panel. Content
 diagnostics несут stable `pageId`, `instanceId` и `fieldKey`, поэтому переход к
 ошибке не разбирает текст сообщения; исправление поля очищает только его

@@ -159,10 +159,11 @@ identity и разрешённый carrier. Для удалённых workloads 
 переносится на v2: для всех v2 carriers, включая локальные IPC, mTLS обязателен.
 Межплагинный trust не разделяет trust roots с Core REST.
 
-Core хранит deny-by-default caller→target/method/transport policy и передаёт
-участникам нужные общие endpoint/identity/policy settings через Plugin SDK
-REST. Core не является CA и не стоит между peers как data proxy. Plugin protocol
-не выдаёт Core settings, не делает config pull и не предоставляет `Reload`.
+В v1 Core не хранит и не распространяет caller→target/method/transport
+policies: вызывающий plugin владеет своей authorization policy и передаёт её
+consumer-у. Централизованное управление peer policies отложено до v2. Core не
+является CA и не стоит между peers как data proxy. `pluginprotocol` не выдаёт
+Core settings, не делает config pull и не предоставляет `Reload`.
 
 Если для вызова нужен одноразовый grant, Core REST выпускает grant для точного
 caller/target/method/purpose/invocation и target погашает его у Core REST.

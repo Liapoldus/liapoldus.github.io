@@ -1,8 +1,8 @@
 # Core Management API
 
 Management API управляет Core desired-state: plugin instances и заранее
-зарегистрированными plugin endpoints, settings, interaction policies, access,
-operations и audit. В v1 API не устанавливает, не запускает, не останавливает,
+зарегистрированными plugin endpoints, settings, access, operations и audit.
+В v1 API не управляет plugin-to-plugin interaction policies. Оно не устанавливает, не запускает, не останавливает,
 не перезапускает, не масштабирует и не удаляет plugin processes/containers. Он не проксирует public
 traffic, не предоставляет Caddy Admin API и не содержит Caddy-specific route,
 group или TLS endpoints.
@@ -12,7 +12,6 @@ group или TLS endpoints.
 | Область | Назначение |
 | --- | --- |
 | Plugins | Instance/replica metadata, fixed endpoints, Manifest/schema, raw JSON settings, rollback и общий REST Reload/config-pull lifecycle. |
-| Interactions | Explicit caller→target/capability/mode policy с CAS, durable operation и audit. |
 | Admin Surface | Общая авторизованная граница для plugin-owned management actions и UI descriptors. |
 | Operations | Polling durable operations и generation/replica readiness. |
 | Access/Audit | Service-key lifecycle, operator actor и append-only audit. |

@@ -3,8 +3,9 @@
 Машиночитаемый Core contract находится в
 [public/spec/management.openapi.yaml](/spec/management.openapi.yaml).
 Core endpoints управляют plugin desired state, settings apply, заранее
-зарегистрированными fixed endpoints, interaction/cookie policies, Admin Surface,
-operations, access и audit. В v1 API не предоставляет installation или
+зарегистрированными fixed endpoints, Admin Surface, operations, access и audit.
+Plugin-to-plugin interaction и cookie policies не входят в Core Management API
+v1. В v1 API не предоставляет installation или
 process/container lifecycle operations для плагинов.
 
 Traffic settings сохраняются как raw plugin-owned JSON document; Server plugin

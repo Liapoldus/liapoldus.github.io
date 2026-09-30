@@ -26,15 +26,18 @@ Remote trust использует externally issued identities и signed CRL bun
 нового handshake; insecure downgrade запрещён. Peer transport contract — только в
 [pluginprotocol](https://github.com/Liapoldus/pluginprotocol).
 
-## Plugin interactions и secrets
+## Межплагинные вызовы и secrets
 
-Межплагинный вызов разрешён только явным Core policy edge
-`caller → target/capability/mode`; default — deny. SDK строит outbound clients
-из подтверждённого plugin peer-policy directory. Core не проксирует payload.
+В v1 Core не хранит plugin-to-plugin interaction policies и не авторизует
+межплагинные вызовы. `pluginprotocol` предоставляет generic transport, а
+вызывающий plugin владеет своей policy и передаёт её своему consumer-у;
+отсутствие разрешения должно означать deny. Core не проксирует peer payload.
+Централизованная policy/interaction API отложена до v2.
 
 Plugin REST config pull содержит versioned JSON и opaque secret references, но
-не secret bytes. Grant имеет scope instance/revision/call; plugin держит
-разрешённое значение только в памяти и очищает его после срока действия. Raw secrets,
+не secret bytes. Core выдаёт только ограниченные grants через Plugin SDK REST;
+plugin держит разрешённое значение только в памяти и очищает его после срока
+действия. Raw secrets,
 private keys, bearer, cookies, grants, request bodies и приватные filesystem
 paths запрещены в логах, errors, traces и audit.
 

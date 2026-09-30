@@ -20,7 +20,7 @@ to deny. This is frontend visibility; API and data access still require
 server-side authorization. Route metadata, layout, access and preload references
 are also carried in React Router `handle` metadata.
 
-Constructor ведёт две разные, но сопоставленные модели: React routes и Gateway
+Constructor ведёт две разные, но сопоставленные модели: React routes и Core
 routes. Route graph для React содержит path, page/component, layout, access,
 chunk, lazy loading, preload и metadata. Constructor генерирует стандартную
 React Router configuration; для типового случая developer не пишет dynamic
@@ -39,15 +39,15 @@ policy. Remove блокируется пока navigation/action ссылает�
 
 ## Единый запросный путь
 
-`/products/42` проходит Browser → Gateway → Static frontend → React Router →
-ProductPage. `/api/products/42` должен пройти Browser → Gateway → Products API.
-Cross-validator обнаруживает перекрытие frontend route Gateway rule, отсутствие
+`/products/42` проходит Browser → Core → Static frontend → React Router →
+ProductPage. `/api/products/42` должен пройти Browser → Core → Products API.
+Cross-validator обнаруживает перекрытие frontend route Core rule, отсутствие
 SPA fallback, missing upstream и конфликт paths.
 
-Network Canvas — проекция Gateway desired config, а не второй network model.
-Node edit передаёт Gateway digest; conflict перезагружает graph и показывает
+Network Canvas — проекция Core desired config, а не второй network model.
+Node edit передаёт Core digest; conflict перезагружает graph и показывает
 diff. Canvas никогда не открывает listener и не хранит TLS material.
 
-Network canvas показывает Internet → domain → Gateway → route → upstream/static
-site/plugin. Изменение route допустимо только когда Gateway API предоставляет
+Network canvas показывает Internet → domain → Core → route → upstream/static
+site/plugin. Изменение route допустимо только когда Core API предоставляет
 typed capability; иначе canvas read-only и показывает [required extension](/architecture/api-boundaries).

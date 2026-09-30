@@ -17,7 +17,7 @@ browser request carrying `Origin` must come from `localhost` or a loopback IP;
 opaque and non-loopback origins are denied for reads as well as mutations.
 Native clients without `Origin` remain supported. Preview mutations retain the
 same loopback-origin check, and the project process receives a minimal
-environment without Constructor or Gateway credentials.
+environment without Constructor or Core credentials.
 
 Every mutating route requires a named permission checked by the authorization
 middleware before the handler runs. Read-only validation POSTs are explicitly
@@ -38,11 +38,11 @@ truncated body. Typed JSON requests reject unknown fields and trailing values.
 | sites/pages/components | CRUD structured documents, preview, validate | Constructor + Git |
 | assets/themes/content | validated image upload/reference, variants, localized values | Constructor |
 | snapshots/builds/deployments | create, inspect, cancel, promote, rollback | Constructor |
-| deployment target state | read Gateway and local release revisions before publish | Constructor + Gateway |
+| deployment target state | read Core and local release revisions before publish | Constructor + Core |
 | environments | CRUD bindings and secret references | Constructor |
 | roles/users | CRUD permissions; immutable admin invariant | Constructor |
-| gateway bindings | read/validate/apply through Gateway Admin API | Gateway |
-| Gateway plugin Admin UI | fixed Surface/query/action operations | Gateway dispatch; Constructor renders declarative contract |
+| gateway bindings | read/validate/apply through Core Admin API | Core |
+| Core plugin Admin UI | fixed Surface/query/action operations | Core dispatch; Constructor renders declarative contract |
 
 ## Core endpoints
 
@@ -89,7 +89,7 @@ GET  /api/v1/deployment-target?siteId=<site-id>&environmentId=<environment-id>
 POST /api/v1/repositories/clone?url=<git-url>&target=<relative-path>
 POST /api/v1/repositories/worktree?repository=<path>&commit=<sha>&target=<relative-path>
 POST /api/v1/project/file/merge             # base/current/candidate three-way merge
-POST /api/v1/deployments                     # Gateway adapter-backed deployment
+POST /api/v1/deployments                     # Core adapter-backed deployment
 GET  /api/v1/deployments
 POST /api/v1/deployments/rollback?deploymentId=<deployment-id>
 POST /api/v1/sites
@@ -121,9 +121,9 @@ locale file it must rewrite. A stale revision returns `409 revision_conflict`
 without partial writes. The editor's field-aware three-way merge combines
 disjoint instance/field changes and leaves overlapping changes unsaved.
 
-Gateway binding state/configuration and plugin Admin Surface/query/action are
-Gateway-owned APIs, not Constructor `/api/v1` endpoints. The Constructor
-Gateway workspace and plugin Admin UI adapters are not implemented yet; their
+Core binding state/configuration and plugin Admin Surface/query/action are
+Core-owned APIs, not Constructor `/api/v1` endpoints. The Constructor
+Core workspace and plugin Admin UI adapters are not implemented yet; their
 required contracts and remaining integration work are tracked in
 [Integrations](/constructor/integrations) and the [API boundary matrix](/architecture/api-boundaries).
 
@@ -172,31 +172,31 @@ request cancellation cancels the worker process tree.
 `POST /api/v1/deployments` accepts the flat deployment fields `id`, `siteId`,
 `environmentId`, `snapshotId`, `buildId` and `confirmedTarget`. The client must
 confirm the exact target as `<siteId>/<environmentId>`. Constructor rejects a
-non-ready or mismatched Snapshot/Build before calling Gateway. The Gateway
+non-ready or mismatched Snapshot/Build before calling Core. The Core
 adapter publishes the immutable build artifact path as `source`, sends the
 deployment ID as both `Idempotency-Key` and `idempotencyKey`, and waits for a
-successful Gateway operation before promoting the local deployment. Promotion
+successful Core operation before promoting the local deployment. Promotion
 uses a SQLite transaction and compare-and-swap against the current active
 deployment. SQLite reserves one pending/applying operation per target. Repeating
 an already successful deployment ID is idempotent; using that ID for a different
-Snapshot/Build conflicts. Rollback calls Gateway and
-creates a new local deployment record with `action: "rollback"`; failed Gateway
+Snapshot/Build conflicts. Rollback calls Core and
+creates a new local deployment record with `action: "rollback"`; failed Core
 operations leave the previous local active deployment unchanged.
 Rollback requests carry `confirmedTarget=<siteId>/<environmentId>` and are
 rejected unless it matches the active deployment's exact target.
 
 `GET /api/v1/deployment-target?siteId=<siteId>&environmentId=<environmentId>`
-returns the current Gateway revision and Constructor's local revision. A
-non-empty Gateway release without local history requires an explicit
-`confirmedGatewayRevision` on the first deployment request. Otherwise Constructor
-requires the Gateway revision to match its active local deployment. Publish and
-rollback send that value as `expectedCurrentRevision`; after success, the Gateway
+returns the current Core revision and Constructor's local revision. A
+non-empty Core release without local history requires an explicit
+`confirmedCoreRevision` on the first deployment request. Otherwise Constructor
+requires the Core revision to match its active local deployment. Publish and
+rollback send that value as `expectedCurrentRevision`; after success, the Core
 operation's `result.revision` is stored with the deployment. A mismatch returns
 `gateway_revision_conflict` and requires deliberate reconciliation; Constructor
 does not silently adopt an out-of-band change. The expected revision is persisted
-before calling Gateway. On process restart the recovery worker replays pending
+before calling Core. On process restart the recovery worker replays pending
 operations with the same idempotency key and CAS value; unresolved results stay
-`applying`, keeping the target reserved until Gateway confirms an outcome. If the
+`applying`, keeping the target reserved until Core confirms an outcome. If the
 request itself cannot confirm the outcome, Constructor returns `202 Accepted`
 with the deployment in `applying` state; this is not a successful promotion.
 
@@ -254,11 +254,11 @@ mutations made through Constructor are also serialized through revision capture.
 }
 ```
 
-Constructor never accepts a Gateway config mutation without forwarding the
-Gateway active digest. It returns Gateway `problem` unchanged under
-`upstreamProblem`, plus Constructor request ID. Plugin IPC is Gateway-owned
+Constructor never accepts a Core config mutation without forwarding the
+Core active digest. It returns Core `problem` unchanged under
+`upstreamProblem`, plus Constructor request ID. Plugin IPC is Core-owned
 gRPC/HTTP2 over loopback; Constructor exposes only declarative Admin UI calls to
-the fixed Gateway REST API described below, never the plugin transport itself.
+the fixed Core REST API described below, never the plugin transport itself.
 
 File write conflict returns HTTP `409` with `expectedRevision`,
 `currentRevision`, the current blob and the candidate blob. The server never
@@ -342,14 +342,14 @@ The response contains the created Site document. Site creation requires
 ```
 
 Plugin Admin UI calls are not `/api/v1` Constructor endpoints. Constructor uses
-Gateway's fixed `GET /api/plugins/{instance}/admin/surface` and page query/action
-routes; Gateway authorizes and dispatches them over the current gRPC plugin
+Core's fixed `GET /api/plugins/{instance}/admin/surface` and page query/action
+routes; Core authorizes and dispatches them over the current gRPC plugin
 protocol. Constructor never opens plugin loopback connections or imports the
 plugin transport library. Queries/actions send the active Surface digest via
 `If-Match`; dangerous actions use the non-dispatching `428 confirmation_required`
 challenge and retry with the one-time confirmation token only after operator
 confirmation. See [Plugin Admin Pages](/plugins/admin-pages) for the
-Gateway-owned REST contract and token lifecycle.
+Core-owned REST contract and token lifecycle.
 
 ## Contracts
 

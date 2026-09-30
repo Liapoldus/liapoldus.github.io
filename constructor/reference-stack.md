@@ -17,7 +17,7 @@
 
 ## Топология процессов
 
-<img src="/diagrams/constructor-processes.svg" alt="Процессы Constructor: React UI, Go API, Node build worker, Git и Gateway" />
+<img src="/diagrams/constructor-processes.svg" alt="Процессы Constructor: React UI, Go API, Node build worker, Git и Core" />
 
 Web deployment запускает UI, Go API и Node worker как отдельные процессы.
 Worker получает immutable worktree по commit SHA, не рабочую директорию

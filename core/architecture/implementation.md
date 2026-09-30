@@ -15,37 +15,29 @@ lifecycle и новых config generations. Актуальные критери�
 - `pluginprotocol` ограничен generic plugin↔plugin transport/communication.
 - Plugin settings представлены прямым plugin-owned JSON object, хранятся в
   Core как точный raw JSON BLOB, а не как нормализованная Go-модель.
-- На instance остаются только durable поколения `active` и `previous`; candidate
-  не сохраняется третьим slot. При частичном rollout выполняется roll-forward
-  с ACK для каждой replica.
+- На instance используются durable slots `active`, `previous` и внутренний
+  `staging`. Candidate сохраняется в `staging` для recovery; plugin может
+  pull-ить только `active`/`previous`. Promotion переносит candidate в `active`,
+  прежний `active` в `previous`, удаляя старый `previous`. Partial rollout
+  выполняется roll-forward с ACK для каждой replica.
 - Constructor и `react-lib` заморожены.
 
 ## Состояние миграции
 
-**Core v1 не готов.** Целевая документация и правила владельцев обновляются;
-Plugin SDK имеет локальный четырёхслойный Go-module scaffold. Его REST owner
-contract, рабочие server/client adapters и plugin consumers ещё нужно
-реализовать. В Core и plugins остаются прежние lifecycle/storage участки, пока
-не перенесён соответствующий consumer и не добавлен replacement conformance.
+**Core v1 не готов: изолированные gates модулей зелёные, consumer integration
+ещё красная.** Состояние ниже сверено 2026-09-30; подробные владельческие
+backlogs и команды находятся в `TODO.md` каждого репозитория.
 
-Следующий критический путь:
+| Компонент | Текущее подтверждение | Осталось для v1 |
+| --- | --- | --- |
+| Core | `make check`, `go vet ./...`, `make staticcheck-u1000` прошли. Добавлены REST composition, declared replica clients и SQLite replica observations. | In-memory snapshot, SQLite integrity/backup/restore, secret grant endpoints, reconnect/failure/recovery и сквозные security tests. |
+| Plugin SDK | `make check` прошёл: 176 TypeScript tests, `go build ./...`, `go vet ./...`. | Интеграция с активными consumers; canonical module path/repository и Linux runtime evidence. |
+| `pluginprotocol` | `make check` прошёл: 136 TypeScript tests, `go vet ./...`, `go build ./...`; публичная поверхность generic peer-to-peer. | Активным plugins нужно удалить обращения к удалённым lifecycle exports; отдельный multi-language implementation относится к v2. |
+| Server и forms-db | Изменения контрактов и SDK adapters существуют в локальных commit-ах. | Текущий общий `go test ./server/... ./forms-db/...` падает на импортированных удалённых protocol packages; Server дополнительно не совпадает с API SDK. Сквозного Core→SDK→plugin smoke нет. |
+| Документация | `npm run build` прошёл. | После push новые `/core/` маршруты отвечали `404`, тогда как `/gateway/configuration/` отвечал `200`; Pages deployment требует отдельной проверки. |
 
-1. SDK REST contract и первый реальный end-to-end Reload → exact config pull →
-   in-memory apply → digest ACK.
-2. Core migration к одной `plugin_config_generations` таблице, прямому raw-body
-   `PUT`, точному byte round-trip и atomic `active`/`previous` transitions.
-3. Core per-replica REST mTLS, roll-forward/fencing, rollback и crash recovery.
-4. Переход plugins на SDK, затем удаление устаревшего lifecycle и непотребляемых
-   compatibility code/contracts.
-5. Product conformance только для вручную запущенных активных v1 plugins:
-   Caddy и forms-db. CAPTCHA и Identity
-   целиком заморожены, не входят в active workspace и v1; их миграцию и
-   проверки не выполнять до явной разморозки.
-6. Полный platform, security, backup/restore и deployment acceptance из
-   [матрицы](../configuration/acceptance).
-
-В рабочей копии документации есть незакоммиченные изменения, включая удаление
-устаревших diagram sources/generated SVG. Их происхождение и соседние изменения
-надо сохранять; VitePress generator не запускать поверх этих файлов без
-проверки фактической области генерации. Статус remotes, веток и незакоммиченных
-файлов повторно сверяется перед публикацией.
+Следующий критический путь — согласованно довести обе активные plugin migrations до
+сборки, затем проверить реальный Core→SDK REST/mTLS→Reload→exact pull→apply→ACK
+на Server и forms-db. После этого закрываются Core recovery/security/platform
+gates из [матрицы приёмки](../configuration/acceptance). CAPTCHA, Identity,
+Constructor и `react-lib` остаются заморожены и вне v1.
