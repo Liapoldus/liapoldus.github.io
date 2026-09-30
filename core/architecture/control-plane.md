@@ -29,8 +29,9 @@ Core проверяет БД и контрольные данные, восст�
 
 ### Владение данными
 
-- Core SQLite: desired JSON generations, replica endpoints/identities, peer
-  policies, grants metadata, operations, audit и active generation.
+- Core SQLite: desired JSON generations, replica endpoints/identities, scoped
+  secret-grant metadata, operations, audit и active generation. Peer policies
+  и plugin-to-plugin grants не входят в v1.
 - Plugin binaries: оператор устанавливает, запускает, обновляет и резервирует
   их отдельно; Core не хранит package store и не имеет process-control API.
 - Plugin storage: продуктовые данные и runtime artifacts. Server plugin отдельно
@@ -134,9 +135,9 @@ roll-forward на содержимое `previous`: Core атомарно мен�
 fenced/degraded и получают retry. Автоматической compensation назад нет.
 
 Плагин удаляет отозванные revision-bound secret bytes из памяти после
-подтверждённой смены конфигурации либо shutdown. Per-call grants выпускаются и
-погашаются через Core REST. Если grant передаётся от plugin к plugin, он
-переносится как opaque metadata и не интерпретируется `pluginprotocol`.
+подтверждённой смены конфигурации либо shutdown. Secret grants выдаются через
+Plugin SDK REST только для раскрытия plugin-owned secret references. Их нельзя
+использовать для разрешения межплагинных вызовов.
 
 ## Межплагинная авторизация: граница v2
 

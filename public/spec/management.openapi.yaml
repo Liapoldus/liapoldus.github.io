@@ -499,6 +499,13 @@ components:
         nextCursor: { type: [string, 'null'] }
         requestId: { type: string }
       additionalProperties: false
+    AdminSurfaceList:
+      type: object
+      required: [items, requestId]
+      properties:
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        requestId: { type: string }
+      additionalProperties: false
     PluginSettings:
       type: object
       required: [revision, config]

@@ -166,9 +166,9 @@ CAS и полномочия, но не трактует product fields. Секр
 application config files: он сам запрашивает их у Core по REST и хранит только
 в памяти. Secret Reference не раскрывает значение; отдельный REST secret
 redemption проверяет instance, replica, revision, purpose и срок grant. Плагин
-удаляет secret bytes при смене revision или shutdown. Межплагинный одноразовый
-CALL grant выпускается через Core REST, переносится как opaque metadata
-plugin-to-plugin вызова и погашается целевым plugin через Plugin SDK.
+удаляет secret bytes при смене revision или shutdown. V1 grants не являются
+разрешением на plugin-to-plugin вызов; централизованные call grants отложены
+до v2.
 
 ## Plugin-to-plugin взаимодействие в v1
 

@@ -35,7 +35,7 @@ endpoint отмены в v1 нет. Отмена HTTP запроса до при
 compensation нельзя установить, переводит её в `degraded`, не сообщает ложный
 success и не открывает соответствующую capability как Ready.
 
-Для settings, endpoint и policy mutations Core сначала валидирует candidate,
+Для settings mutation Core сначала валидирует candidate,
 затем сохраняет точные bytes в durable, но непубликуемый `staging` slot вместе
 с operation. Promotion удаляет старый `previous`, перемещает `active` в
 `previous` и `staging` в `active` до Reload. Plugin сохраняет прежнюю in-memory
