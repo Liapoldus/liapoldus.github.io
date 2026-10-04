@@ -4,7 +4,7 @@
     {
       "name": "core",
       "repository": "https://github.com/Liapoldus/core.git",
-      "ref": "ec035fd923f32f65a81b5f1e95d7fd1e93b33443",
+      "ref": "aa304ef6aed22eacef171761d9cd59fb5dc2566d",
       "workspacePath": "core",
       "mappings": [
         { "from": "docs/site/core", "to": "core" },
@@ -14,7 +14,7 @@
     {
       "name": "pluginprotocol",
       "repository": "https://github.com/Liapoldus/pluginprotocol.git",
-      "ref": "ba2efb36d7eea40de7ab5fbc3eeed9b2ba7eea49",
+      "ref": "93a1b57b14ad1d557c3c98d7c3c7b5e842d6aa9b",
       "workspacePath": "pluginprotocol",
       "mappings": [
         { "from": "docs/site/pluginprotocol/index.md", "to": "pluginprotocol/index.md" },
@@ -26,7 +26,7 @@
     {
       "name": "plugin-sdk",
       "repository": "https://github.com/Liapoldus/plugin-sdk.git",
-      "ref": "3676f859200090f230361ec9c2bcc132dd6e4db4",
+      "ref": "67a9b39cd8deb7a7f6169447eeae744e5ca3343d",
       "workspacePath": "plugin-sdk",
       "mappings": [
         { "from": "README.md", "to": "plugin-sdk/index.md" },
@@ -37,7 +37,7 @@
     {
       "name": "server",
       "repository": "https://github.com/Liapoldus/server.git",
-      "ref": "a49d2cb15efbe07cea32ddeda0f3fa26d9aec72a",
+      "ref": "037dc8e863f28a0e5e78f288ab6776b8dfd4c031",
       "workspacePath": "plugins/server",
       "mappings": [
         { "from": "docs/site/plugins/server.md", "to": "plugins/server.md" },
@@ -47,7 +47,7 @@
     {
       "name": "forms-db",
       "repository": "https://github.com/Liapoldus/forms-db.git",
-      "ref": "97cdf7afe2d7e3571d8224b0adba534e01c79be3",
+      "ref": "b25e654720bf5811da48a1d15f64f32bf55409a4",
       "workspacePath": "plugins/forms-db",
       "mappings": [
         { "from": "docs/site/plugins/forms-db.md", "to": "plugins/forms-db.md" },
