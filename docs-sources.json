@@ -4,7 +4,7 @@
     {
       "name": "core",
       "repository": "https://github.com/Liapoldus/core.git",
-      "ref": "aa304ef6aed22eacef171761d9cd59fb5dc2566d",
+      "ref": "2c58af3e3e2a121cdf8b085baed209ba64cd8d46",
       "workspacePath": "core",
       "mappings": [
         { "from": "docs/site/core", "to": "core" },
