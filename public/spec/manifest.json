@@ -3,7 +3,7 @@
   "source": "https://liapoldus.github.io/spec/",
   "files": {
     "constructor-auth-policy.v1.json": "sha256:18b4df97f7e1f5af0ffc65204b58b6ef2fdc92c5e7ac799ef7d3783bd83c3a68",
-    "errors.json": "sha256:82c4790e5a17c24cf0a8aa6954f6efbd6b64a31bb57ee7646d00e50c38c97693",
+    "errors.json": "sha256:cbe4a6b547dab720cb778bd7f23782a6bdf800f67dac47cb113bbe0bf2f1e193",
     "core.schema.json": "sha256:24186c67f609922e06300d547df6edc1020859e800c3667c99737146d55cc997",
     "golden-vectors.json": "sha256:540dca99099332543fb71b12938457f1208045b8cce25ab418fdcec37ef8e14b",
     "http-runtime.json": "sha256:244a91144c48f9750cc18c6041df82e0d1b59bb87b8eaae1fb0d8f36aec2da65",
