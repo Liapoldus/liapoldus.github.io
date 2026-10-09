@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: ef6ffd0dff6e8687e027c7c55a1bcf942d75c365
+    ref: 3168ec9df221e67c9400bc980765ad35c641261d
     workspacePath: core
     mappings:
       - from: docs/site/core
@@ -11,7 +11,7 @@ sources:
         to: diagrams/core-config-store.mmd
   - name: studio
     repository: https://github.com/Liapoldus/studio.git
-    ref: 7e9a172ceb80eac28b35401c6e0d9faa70e412a1
+    ref: 4262b5b5a2d192731a723d60fe53d84e04e7bbd3
     workspacePath: studio
     mappings:
       - from: docs/index.md

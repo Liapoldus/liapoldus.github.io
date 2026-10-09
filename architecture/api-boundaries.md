@@ -2,7 +2,7 @@
 
 | Surface | Владелец | Клиенты | Назначение |
 | --- | --- | --- | --- |
-| Core Management API | Core | Оператор, CLI, CI | Plugin instances с фиксированными endpoints, generic JSON settings, operations, access и audit. |
+| Core Management API | Core | Standalone CLI, CI | Canonical bundles, plugin instances с фиксированными endpoints, generic JSON settings, operations, access и audit. |
 | Plugin SDK REST | Локальная Go-библиотека `plugin-sdk/` | Core и каждый plugin | Общий технический lifecycle, identity, Manifest/schema, `Reload`, exact config pull, health/readiness, metrics/logging и безопасные errors. |
 | Plugin protocol | `pluginprotocol` | Plugins | Только plugin-to-plugin communication: registration собственных методов/streams и настраиваемый физический transport/security; Core и plugin products не являются зависимостями. |
 | Plugin Admin Surface | Core как защищённый фасад, plugin как владелец capability | Инструмент управления | Schema-ограниченные административные данные и actions; клиент не соединяется с plugin напрямую. |
@@ -38,7 +38,7 @@ Release digest из регистрации служит Core для провер
 публичные веса и подтверждает их Core; продвижение stage требует отдельного
 одобрения platform-admin.
 
-В v1 Server plugin имеет одну replica и отдельное persistent filesystem для
+В v2 Server plugin имеет отдельное persistent filesystem для
 ACME/site runtime data. Core хранит свою конфигурацию в SQLite; Server plugin
 хранит свои сертификаты и immutable site releases отдельно. PostgreSQL и S3 не
 требуются для control-plane конфигурации.

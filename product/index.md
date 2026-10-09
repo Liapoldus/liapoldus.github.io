@@ -1,7 +1,7 @@
 # Liapoldus: экосистема
 
-Liapoldus v1 объединяет Core, отдельные plugins и две библиотеки для управления
-сервисами и публикации сайтов.
+Liapoldus v2 объединяет Core runtime, отдельные plugins, Studio и универсальный
+CLI для управления commit-backed конфигурациями и публикации сайтов.
 
 В экосистеме также создаются Liapoldus Studio и универсальный Liapoldus CLI.
 Studio — отдельный desktop-first клиент для проектов, файлов и Git; CLI —
@@ -19,8 +19,9 @@ Studio — отдельный desktop-first клиент для проектов
 
 ## Какую проблему решаем
 
-В v1 команда получает безопасный control plane и HTTP/HTTPS Server plugin для
-сайтов и API. Core хранит долговременный desired state в SQLite; пользовательский
+Команда получает безопасный control plane и HTTP/HTTPS Server plugin для сайтов
+и API. Studio хранит source project и Git history, CLI материализует exact
+commit в bundle, а Core хранит применённое состояние в SQLite. Пользовательский
 HTTP traffic обслуживает отдельно запущенный Server plugin на базе Caddy.
 Публичный L4 relay отложен до v3.
 
@@ -35,15 +36,15 @@ HTTP traffic обслуживает отдельно запущенный Server
 
 ## Продуктовые границы
 
-**Core v1** владеет desired state, Management API, конфигурационным lifecycle,
-аудитом и reconciliation. Оператор вручную устанавливает и запускает сервисы;
-Core подключается к fixed endpoints и применяет settings. **Server plugin**
+**Core v2** владеет applied desired state, Management API, конфигурационным
+lifecycle, аудитом и reconciliation. Core не содержит CLI, Git или deployment
+provider; это ответственность standalone CLI. **Server plugin**
 владеет публичными HTTP/HTTPS listener-ами, TLS и исполнением HTTP traffic.
 Остальные plugins владеют подключаемой capability-логикой, своими данными и
 настройками.
 
-**Отложено до v2:** внешнее размещение, self-registration/rollout и смешанные
-peer transports. **Отложено до v3:** масштабирование Server,
+**В v2:** standalone/remote/multi-Core targets, API-driven rollout, GitHub CI и
+remote approval. **Отложено до v3:** масштабирование Server,
 Caddy-L4/public TCP/UDP relay, CAPTCHA, Identity/OIDC/OAuth,
 FFI/Python и монолитная композиция. Studio развивается отдельно. Внутренний
 TCP/QUIC transport `pluginprotocol` остаётся generic plugin↔plugin механизмом

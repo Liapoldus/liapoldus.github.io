@@ -1,9 +1,9 @@
 # CAPTCHA plugin
 
-> **Статус: полностью заморожен и исключён из Core v1.** Репозиторий не
+> **Статус: полностью заморожен и исключён из Core v2.** Репозиторий не
 > входит в активный workspace; код, tests и product contracts не изменяются.
-> Содержимое ниже сохранено как справочная спецификация и не является v1 gate.
-> Security Core Management API остаётся обязательной частью v1.
+> Содержимое ниже сохранено как справочная спецификация и не является v2 gate.
+> Security Core Management API остаётся обязательной частью v2.
 
 CAPTCHA — plugin-owned capability, не встроенная Core feature. Plugin владеет
 provider settings, token verification, challenge/callback, nonce/state, replay
@@ -11,9 +11,9 @@ protection и cookies. Core хранит generic versioned settings в SQLite и
 выдаёт их plugin через REST pull после `Reload`; provider names и provider behavior не
 появляются в Core.
 
-## Контракт v1
+## Справочный контракт plugin
 
-Единственный production provider v1 — Cloudflare Turnstile. Deterministic
+Единственный описанный production provider — Cloudflare Turnstile. Deterministic
 provider остаётся только для тестов и не считается production verification.
 Plugin обязан выполнять server-side Siteverify для каждого токена; клиент не
 может выбрать provider или verification URL. Настройки provider принадлежат

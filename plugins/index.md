@@ -14,8 +14,8 @@ plugin.
 ## Замороженные продукты
 
 `captcha` и `identity` (OIDC/OAuth) заморожены целиком и исключены из Core
-v1: их репозитории не входят в активный Go workspace, их исходники и тесты не
-меняются, а их product capabilities не являются v1 acceptance gates. Возврат
+v2: их репозитории не входят в активный Go workspace, их исходники и тесты не
+меняются, а их product capabilities не являются v2 acceptance gates. Возврат
 требует отдельного решения о разморозке. Это не замораживает security самого
 Core: Management API по-прежнему требует authentication/authorization, mTLS,
 audit и redaction.
@@ -25,7 +25,7 @@ audit и redaction.
 | Область | Владелец |
 | --- | --- |
 | Instance metadata и fixed endpoints | Core; plugin binaries оператор вручную устанавливает и запускает. |
-| Plugin process/workload lifecycle | Оператор. Core не устанавливает, не запускает, не останавливает, не перезапускает и не масштабирует plugins в v1. |
+| Plugin process/workload lifecycle | Оператор. Core не устанавливает, не запускает, не останавливает, не перезапускает и не масштабирует plugins. |
 | Settings/schema/capabilities | Plugin Manifest и его versioned JSON contracts. |
 | Config transport/lifecycle | Независимый Plugin SDK REST; config pull и Reload. Rollback выполняется Core Management API, plugin-side rollback endpoint отсутствует. |
 | Calls/streams и peer transport | `pluginprotocol` generic library; права вызова проверяет product plugin по authenticated peer identity. Core-owned interaction policies отложены до v2. |
@@ -42,7 +42,7 @@ plugin-to-plugin payloads.
 ## Продуктовые плагины общего v2
 
 Domain (ER-модель, durable данные, аналитика) и Runtime (WASM-команды)
-отложены до общего v2 и не входят в приёмку Liapoldus v1. Начатые прототипы
+отложены до следующего продуктового среза и не входят в приёмку Liapoldus v2. Начатые прототипы
 сохраняются в отдельных репозиториях-владельцах. Их целевое поведение и
 реализованное состояние различаются: пока готовы только начальные контрактные
 и локальные runtime-срезы. Канонические страницы: [Domain](/plugins/domain) и
