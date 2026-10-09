@@ -28,14 +28,26 @@ audit и redaction.
 | Plugin process/workload lifecycle | Оператор. Core не устанавливает, не запускает, не останавливает, не перезапускает и не масштабирует plugins в v1. |
 | Settings/schema/capabilities | Plugin Manifest и его versioned JSON contracts. |
 | Config transport/lifecycle | Независимый Plugin SDK REST; config pull и Reload. Rollback выполняется Core Management API, plugin-side rollback endpoint отсутствует. |
-| Calls/streams и peer transport | `pluginprotocol` generic library и Core-owned explicit interaction policies. |
+| Calls/streams и peer transport | `pluginprotocol` generic library; права вызова проверяет product plugin по authenticated peer identity. Core-owned interaction policies отложены до v2. |
 | Caddy data plane | [Отдельный Server plugin singleton](/plugins/server); Core не встраивает Caddy. |
 | Admin UI/actions | Declarative plugin Admin Surface через generic Management API. |
 
 Каждая replica подключается по заранее зарегистрированному endpoint; trust
 identity выдаётся оператором через внешний CA/PEM source. Docker/Compose, Swarm,
-Kubernetes и Core process supervision отложены до v2. Core не является CA и не
-проксирует plugin-to-plugin payloads.
+Kubernetes как внешнее размещение и саморегистрация replicas относятся к v2;
+Core process supervision не входит в целевую модель. Установку и плановые
+обновления Core/plugins выполняет оператор выбранными средствами. Core не является CA и не проксирует
+plugin-to-plugin payloads.
+
+## Продуктовые плагины общего v2
+
+Domain (ER-модель, durable данные, аналитика) и Runtime (WASM-команды)
+отложены до общего v2 и не входят в приёмку Liapoldus v1. Начатые прототипы
+сохраняются в отдельных репозиториях-владельцах. Их целевое поведение и
+реализованное состояние различаются: пока готовы только начальные контрактные
+и локальные runtime-срезы. Канонические страницы: [Domain](/plugins/domain) и
+[Runtime](/plugins/runtime). Ни один из прототипов пока не считается
+production-ready.
 
 ## Разработка
 

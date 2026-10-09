@@ -12,7 +12,7 @@
 общими материалами экосистемы, гайдлайнами, публичными агрегированными
 контрактами и сборкой сайта. Архитектура и продуктовая документация каждого
 сервиса, SDK и plugin принадлежит его репозиторию и синхронизируется для сборки
-по закреплённым ревизиям из `docs-sources.json`.
+по закреплённым ревизиям из `docs-sources.yaml`.
 
 Продакшн-адрес: `https://liapoldus.github.io/` (после переименования репо —
 тот же домен).
@@ -77,14 +77,13 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/core/config
 
 ## Источник документации и структура агрегатора
 
-- Канонические исходники Core — `core/docs/site/core/`; protocol —
+- Канонические исходники Core — `core/docs/site/`; protocol —
   `pluginprotocol/docs/site/pluginprotocol/`; SDK — `plugin-sdk/docs/site/` и
-  `plugin-sdk/README.md`; Server/forms-db — `plugins/{server,forms-db}/docs/site/`;
-  Constructor — `Constructor/docs/site/`; React SDK — `react-lib/docs/site/`.
+  `plugin-sdk/README.md`; Server/forms-db — `plugins/{server,forms-db}/docs/site/`.
 - Каждый владелец редактирует только свой источник. Главная, product overview,
   общая архитектура экосистемы и гайдлайны остаются здесь. Не создавать в
   агрегаторе вторую копию страниц сервиса.
-- `docs-sources.json` закрепляет repository URL и commit SHA источника. Сборка
+- `docs-sources.yaml` закрепляет repository URL и commit SHA источника. Сборка
   синхронизирует эти ревизии, если локального workspace-соседа нет. После
   изменения документации сначала сохранить и опубликовать commit владельца,
   затем обновить его SHA здесь. Не использовать плавающий `main` в сборке.
@@ -98,7 +97,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/core/config
 .vitepress/config.mts        # nav, sidebar, base, search
 .vitepress/diagram-source-hashes.json # generated diagram source digest cache
 scripts/sync-doc-sources.mjs # сборка владельческих источников в .site-src
-docs-sources.json            # remotes, commit pins и карта маршрутов
+docs-sources.yaml            # remotes, commit pins и карта маршрутов
 diagrams/                     # общие Mermaid-исходники
 .site-src/                    # generated merged VitePress source (ignored)
 .vitepress/theme/            # кастомные компоненты (CoreNav), custom.css

@@ -55,7 +55,15 @@ function renderAllDiagrams() {
   mkdirSync(outputDirectory, { recursive: true })
   mkdirSync(trackedOutputDirectory, { recursive: true })
   const hashes = readSourceHashes()
-  for (const file of readdirSync(sourceDirectory).filter((file) => extname(file) === '.mmd')) {
+  const sources = readdirSync(sourceDirectory).filter((file) => extname(file) === '.mmd')
+  const activeSources = new Set(sources)
+  for (const file of Object.keys(hashes)) {
+    if (activeSources.has(file)) continue
+    delete hashes[file]
+    rmSync(join(outputDirectory, `${basename(file, '.mmd')}.svg`), { force: true })
+    rmSync(join(trackedOutputDirectory, `${basename(file, '.mmd')}.svg`), { force: true })
+  }
+  for (const file of sources) {
     const source = join(sourceDirectory, file)
     const hash = sourceHash(source)
     const output = outputPath(source)

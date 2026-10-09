@@ -1,7 +1,7 @@
 # Общие диаграммы экосистемы
 
 Здесь хранятся только схемы, не принадлежащие одному сервису. Диаграммы Core,
-Plugin SDK, `pluginprotocol`, plugins, Constructor и React SDK живут рядом с
+Plugin SDK, `pluginprotocol` и plugins живут рядом с
 документацией владельца в его `docs/site/diagrams/`.
 
 `npm run docs:sync` собирает owner sources в `.site-src/diagrams/`; SVG в

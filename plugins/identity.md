@@ -15,7 +15,6 @@ identity session.
 | Identity plugin | Product settings, provider integrations, identity HTTP actions, sessions/tokens и cookies. |
 | Core | Generic instance/config generations в SQLite, Plugin SDK REST, grants, explicit interaction policy, health/audit и выбранный per-instance deployment mode. |
 | Server plugin | Public HTTP/TLS handling, routing/settings activation и direct capability dispatch; отдельный process. |
-| Constructor | Сейчас заморожен; остаётся клиентом общего Management API и declarative Admin Surface. |
 
 ## Контракты plugin
 

@@ -6,15 +6,15 @@
   "core": {
     "instances": 1,
     "desiredConfigStore": "SQLite on persistent local filesystem; immutable in-memory runtime generations; no database reads on the user traffic path.",
-    "pluginLifecycle": "Operator manually installs, starts, updates and restarts every plugin. Core connects only to fixed registered replica endpoints and exposes no process/container management API.",
-    "deferredToV2": ["Caddy-L4/public TCP-UDP relay", "CAPTCHA", "Identity/OIDC/OAuth", "TUF/plugin installation", "local process supervision", "Docker/Compose", "Docker Swarm", "Kubernetes"]
+    "pluginLifecycle": "Operator installs, starts, updates and restarts every plugin using operator-selected tooling. Core connects to registered replica endpoints and exposes no installation or process/container management API.",
+    "deferredToV2": ["Caddy-L4/public TCP-UDP relay", "CAPTCHA", "Identity/OIDC/OAuth", "Docker/Compose", "Docker Swarm", "Kubernetes"]
   },
   "management": {
     "publicTrafficProxy": false,
     "webController": "Private HTTPS, client mTLS and a distinct Bearer service credential per binding; credentials never enter a browser.",
     "desktop": "Restricted SSH port-forward to loopback Management API with TLS server verification and Bearer from OS credential store; no shell/SFTP/agent forwarding.",
     "roles": ["platform-admin"],
-    "userAuthorization": "Constructor owns human users and permissions; Core authenticates and audits the Controller binding principal.",
+    "userAuthorization": "Core v1 has no human user or role database; an external management backend may authenticate users before calling Core. Core authenticates and audits only the authenticated client binding principal.",
     "rawKey": "Service-key plaintext is returned once; only verifier/metadata is persisted.",
     "health": "Unauthenticated health reveals process health only, not config or plugin inventory."
   },

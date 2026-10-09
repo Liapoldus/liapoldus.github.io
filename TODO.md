@@ -11,10 +11,14 @@
 - [x] Breaking rename Gateway → Core в VitePress структуре, sidebar, API paths,
   contract IDs и примерах; старый `/gateway/` путь не является поддерживаемым
   compatibility surface.
-- [x] Разделены v1 и v2: v1 — Core, Plugin SDK, `pluginprotocol`, Server plugin
-  и forms-db; ручной запуск plugin binaries. Docker/Compose/Swarm/Kubernetes,
-  process supervision/install, Caddy-L4/public L4, CAPTCHA, Identity/OIDC/OAuth
-  и TUF перенесены в v2.
+- [x] Разделены v1, v2 и v3: v1 — Core, Plugin SDK, `pluginprotocol`, Server
+  plugin и forms-db с ручным запуском. В v2 — внешнее размещение,
+  self-registration/rollout, mixed transports, Domain и Runtime; Server/forms-db
+  остаются неизменённым v1 baseline. В v3 — все дальнейшие Server/forms-db
+  product changes, включая Server scaling/storage/ACME, forms-db SQL cohort и
+  website/content, а также Caddy-L4/public L4, Identity/CAPTCHA, FFI/Python,
+  монолитная композиция. Установка и обновление Core/plugins принадлежат
+  оператору. Studio развивается отдельно.
 - [x] Core↔plugin lifecycle отнесён к Plugin SDK REST; `pluginprotocol` описан
   только как generic plugin↔plugin library. Product schemas и capabilities
   остаются у конкретных plugins.
@@ -23,9 +27,7 @@
   используется для восстановления незавершённой durable operation; успешная
   активация транзакционно двигает active/previous.
 - [x] Документация Core, публичные contracts, sidebar и ссылки обновлены;
-  локальный `npm run build` прошёл 2026-09-30. Из-за заморозки Constructor
-  Mermaid-генератор в этом запуске пропустил его diagram sources; Core ER SVG
-  был сгенерирован отдельно из собственного источника.
+  локальный `npm run build` прошёл 2026-09-30.
 - [x] Manifest hashes для изменённых `errors.json` и `management.openapi.yaml`
   пересчитаны; YAML разбирается, OpenAPI содержит 12 paths / 14 operations и
   не содержит отсутствующих локальных `$ref`.
@@ -36,21 +38,28 @@
 
 ## Открыто
 
-- [ ] Синхронизировать public contracts с фактически компилируемыми Plugin SDK,
-  Server и forms-db owner contracts после завершения их миграции. Сейчас обе
-  активные plugin integrations падают при Go compile; не объявлять contract
-  parity или production readiness до сквозного Core→SDK→plugin smoke.
+- [ ] После owner commits обновить SHA pins в `docs-sources.yaml` для Core,
+  Plugin SDK, protocol, Server, forms-db, Domain и Runtime; незакоммиченные
+  owner docs нельзя закрепить commit pin. Затем выполнить `npm run docs:sync`
+  и `npm run build`, проверить маршруты и не коммитить generated staging.
+
+- [x] В рамках общего v2 закрепить опубликованные owner commits для
+  `plugins/domain` и `plugins/runtime` в `docs-sources.yaml`, добавить
+  канонические страницы в sidebar и проверить локальную сборку.
+- [ ] После публикации актуальных owner revisions синхронизировать public
+  contracts и pins с Plugin SDK, Server и forms-db. В рамках v2 Server/forms-db
+  остаются неизменёнными v1 regression targets; их дальнейшие product изменения
+  и conformance принадлежат v3. Не объявлять parity/production readiness без
+  сквозных проверок соответствующего этапа.
 - [ ] Добавить/подтвердить CI gate hashes опубликованных schemas/OpenAPI/vectors
   и целостность ссылок на внешние owner contracts без копирования `.proto` или
   plugin-owned JSON schemas.
 - [ ] После следующего документационного изменения собрать сайт командой
-  `npm run build`, но сначала проверить затронутые diagram sources: build
-  регенерирует `public/diagrams/*.svg`. Не перезаписывать пользовательские
-  Constructor diagrams, пока Constructor заморожен.
+  `npm run build` и проверить изменившиеся SVG с исходными Mermaid-файлами.
 
 ## Вне области
 
-Не менять product code/tests в `Constructor/`, `react-lib/`, замороженных `plugins/captcha/` и
+Не менять product code/tests в замороженных `plugins/captcha/` и
 `plugins/identity/`, `archive/plugins/tls-issuer/` или `test/`. Не менять код,
 contracts активных plugins вместо их владельцев. Не коммитить, не
 пушить и не публиковать последующие изменения без отдельного явного запроса.
@@ -58,13 +67,13 @@ contracts активных plugins вместо их владельцев. Не 
 ## Миграция документационных исходников
 
 - [x] Разделить ownership: общая главная, product overview, ecosystem
-  architecture и guidelines остаются в агрегаторе; Core, protocol, SDK, Server,
-  forms-db, Constructor и React SDK владеют собственными Markdown/Mermaid.
+  architecture и guidelines остаются в агрегаторе; Core, protocol, SDK, Server
+  и forms-db владеют собственными Markdown/Mermaid.
 - [x] Добавить pinned-source manifest, локальный staging assembler и VitePress
   `srcDir`; публичные URL сохраняются, исходники не дублируются при сборке.
 - [x] Owner commits созданы, source pins сверены с их полными SHA, локальный
   `npm run build` проходит на sibling workspace checkouts.
 - [ ] После отдельного разрешения отправить owner commits; только после этого
   проверить `DOCS_SYNC_MODE=remote npm run build` и публиковать aggregator.
-- [x] CAPTCHA/Identity остаются замороженным v2-исключением в aggregator до
-  отдельного решения о разморозке их documentation owners.
+- [x] CAPTCHA/Identity остаются замороженными v3 backlog items в aggregator;
+  их owner repositories не трогаются до отдельной разморозки.

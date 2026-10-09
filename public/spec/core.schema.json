@@ -59,9 +59,10 @@
     "The v1 workspace contains three manually started services: Core, Server plugin and forms-db plugin; Plugin SDK and pluginprotocol are shared libraries.",
     "Plugin processes are operator-managed. Core only connects to fixed registered endpoints and has no process, binary-installation or container-provider management API.",
     "Plugin settings are not accepted in core.yaml, environment variables, argv, or plugin application-config files; plugins pull exact immutable versioned JSON from Core REST after Reload(generation).",
+    "In v2, mutable generic caller-to-target peer-link policies are stored only in SQLite and authored through the authenticated Management API; they are not bootstrap YAML or static-file configuration.",
     "Traffic listeners, sites, routes, and traffic-plugin runtime configuration are not part of core.yaml.",
     "Traffic plugins own their runtime state on persistent local storage; Core remains implementation-agnostic.",
-    "Local process supervision, TUF package installation, Docker/Compose/Swarm/Kubernetes providers and workload automation are deferred to v2.",
+    "External Docker/Swarm/Kubernetes placement and replica self-registration are v2. Core process supervision, installation, deployment management and load-based autoscaling are not planned.",
     "Management TLS is always enabled. Management and plugin workload trust roots are separate.",
     "SQLite and plugin-owned runtime state use persistent local storage; Core has no plugin package cache.",
     "Plaintext secret values are forbidden in core.yaml and plugin settings JSON; secrets are returned only by scoped Core REST grants."

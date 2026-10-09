@@ -1,0 +1,67 @@
+version: 1
+sources:
+  - name: core
+    repository: https://github.com/Liapoldus/core.git
+    ref: 7b12cb7809aff20e1b483272ac64e64234921eb3
+    workspacePath: core
+    mappings:
+      - from: docs/site/core
+        to: core
+      - from: docs/site/diagrams/core-config-store.mmd
+        to: diagrams/core-config-store.mmd
+  - name: pluginprotocol
+    repository: https://github.com/Liapoldus/pluginprotocol.git
+    ref: 28572a406272c983cb4b3041f35acbebd7d15aaf
+    workspacePath: pluginprotocol
+    mappings:
+      - from: docs/site/pluginprotocol/index.md
+        to: pluginprotocol/index.md
+      - from: docs/site/pluginprotocol/consumer-guide.md
+        to: pluginprotocol/docs/consumer-guide.md
+      - from: docs/site/pluginprotocol/migration.md
+        to: pluginprotocol/docs/migration.md
+      - from: CHANGELOG.md
+        to: pluginprotocol/CHANGELOG.md
+  - name: plugin-sdk
+    repository: https://github.com/Liapoldus/plugin-sdk.git
+    ref: b3b04877474d9522f3026cefa5022ec63a581f68
+    workspacePath: plugin-sdk
+    mappings:
+      - from: README.md
+        to: plugin-sdk/index.md
+      - from: docs/site/plugins
+        to: plugins
+      - from: docs/site/diagrams/plugin-admin-page-flow.mmd
+        to: diagrams/plugin-admin-page-flow.mmd
+  - name: server
+    repository: https://github.com/Liapoldus/server.git
+    ref: bce48055633e3c06319ca1c6f3ee8ddd99e49654
+    workspacePath: plugins/server
+    mappings:
+      - from: docs/site/plugins/server.md
+        to: plugins/server.md
+      - from: docs/site/core/examples
+        to: core/examples
+  - name: forms-db
+    repository: https://github.com/Liapoldus/forms-db.git
+    ref: 639314d5386dcc461c178a60562f2394fcf2d09f
+    workspacePath: plugins/forms-db
+    mappings:
+      - from: docs/site/plugins/forms-db.md
+        to: plugins/forms-db.md
+      - from: docs/site/core/examples/forms.md
+        to: core/examples/forms.md
+  - name: domain
+    repository: https://github.com/Liapoldus/domain.git
+    ref: 11be666caa09fd407cd11ffd4ec548e667d7ce12
+    workspacePath: plugins/domain
+    mappings:
+      - from: docs/site/plugins/domain.md
+        to: plugins/domain.md
+  - name: runtime
+    repository: https://github.com/Liapoldus/runtime.git
+    ref: 9086e82868d25b79a6daa8229c7155eab39dfec8
+    workspacePath: plugins/runtime
+    mappings:
+      - from: docs/site/plugins/runtime.md
+        to: plugins/runtime.md

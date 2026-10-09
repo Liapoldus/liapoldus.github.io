@@ -1,27 +1,22 @@
 # Границы и инварианты
 
-## Инварианты
-
-- **Git — source of truth** исходного React-проекта. БД Constructor хранит
-  operational metadata, но не закрытую копию исходников.
-- **React-only.** Constructor не вводит универсальный слой для Vue, Svelte или
-  Angular; итогом является обычный оптимизированный React static frontend.
-- **Visual first, code escape hatch.** Структурированные вещи редактируются
-  визуально; сложная логика остаётся TypeScript/React-кодом.
-- **Core владеет Core.** Constructor использует его API и документирует
-  отсутствующую возможность как gap, а не дублирует runtime.
-- **Plugin владеет plugin-specific logic.** Constructor строит UI по контракту,
-  а не по списку заранее известных плагинов.
-- **Designer не меняет JSX internals.** Он действует только в рамках схемы,
-  опубликованной разработчиком.
-- **Secrets не попадают в Git, Snapshot или static frontend.** В моделях
-  сохраняются ссылки на secret storage.
+- **Git — источник исходников.** Опубликованные сайты собираются из
+  версионированных артефактов; Core не становится хранилищем исходных проектов.
+- **Core владеет control plane.** Он хранит desired configuration в SQLite,
+  публикует Management API и управляет общим lifecycle подключённых plugins.
+- **Server plugin владеет public data plane.** Он открывает HTTP/HTTPS
+  listeners, применяет TLS и исполняет маршруты.
+- **Plugin владеет предметной логикой.** Схемы, данные и capabilities принадлежат
+  соответствующему plugin; Core работает с ними через общие контракты.
+- **Секреты не попадают в Git, конфигурационные документы, логи или audit.**
+  В settings хранятся только внешние references.
 
 ## Runtime boundary
 
-Редакторские модели (component schema, asset metadata, visual routes) нужны
-Constructor. Build превращает их в React chunks, CSS, assets, i18n JSON и
-конфигурационные артефакты. В browser bundle не требуется Constructor backend.
+Core принимает настройки через Management API, сохраняет точные JSON bytes и
+передаёт поколения через Plugin SDK REST lifecycle. Plugins применяют настройки
+в собственной памяти и обслуживают принадлежащую им работу. Plugin-to-plugin
+вызовы используют generic `pluginprotocol` и не проходят через Core.
 
 Server-side webhook, cron и handler не могут исполняться в static frontend: их
-надо реализовать отдельным upstream либо plugin/runtime capability.
+надо реализовать отдельным upstream либо plugin capability.

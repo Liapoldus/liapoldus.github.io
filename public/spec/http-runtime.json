@@ -3,7 +3,7 @@
   "$id": "https://liapoldus.github.io/spec/http-runtime.json",
   "title": "Liapoldus Core plugin traffic boundary",
   "version": "1.0.0",
-  "core": "A single Core stores desired plugin configuration in SQLite, exposes Management API, connects to manually started plugins at fixed registered endpoints, and never installs or manages plugin processes/containers. Docker/Compose, Swarm, Kubernetes and local process supervision are deferred to v2. Core does not serve or proxy public traffic.",
+  "core": "A single Core stores desired plugin configuration in SQLite and exposes Management API. V1 connects to manually started plugins at fixed registered endpoints; v2 adds external Docker/Swarm/Kubernetes placement and replica self-registration without Core workload management. The operator installs and updates workloads; Core never provides install or process-management APIs and does not serve or proxy public traffic.",
   "serverPlugin": {
     "process": "One separate Server plugin instance per Core in v1; Caddy is built into the plugin, never into Core.",
     "configSource": "Versioned plugin JSON settings stored by Core and pulled by the plugin from Core REST after Reload(generation); the plugin compiles JSON into its private Caddy runtime configuration.",
@@ -102,5 +102,5 @@
   "activation": "Core validates candidate bytes before a transaction, atomically promotes them to active and shifts the former active to previous, then calls REST Reload. Each plugin pulls the exact generation and ACKs its digest; partial application is roll-forward with per-replica fencing, not compensation.",
   "configuration": "User traffic and plugin-specific configuration are never read from SQLite per request; Core serves active in-memory generations.",
   "ha": "Core is one instance and Server plugin is one active v1 instance; PostgreSQL, S3 and shared-storage HA are not required.",
-  "deferredV2": ["public-l4-tcp-udp-relay", "caddy-l4", "captcha", "identity-oidc-oauth", "tuf-plugin-installation", "process-and-container-orchestration"]
+  "deferredV2": ["public-l4-tcp-udp-relay", "caddy-l4", "captcha", "identity-oidc-oauth"]
 }

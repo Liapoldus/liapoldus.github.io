@@ -2,10 +2,10 @@
 
 | Surface | Владелец | Клиенты | Назначение |
 | --- | --- | --- | --- |
-| Core Management API | Core | Constructor backend, CLI, CI/operator | Plugin instances с per-instance deployment mode, provider records, generic JSON settings, policies, operations, access и audit. |
+| Core Management API | Core | Оператор, CLI, CI | Plugin instances с фиксированными endpoints, generic JSON settings, operations, access и audit. |
 | Plugin SDK REST | Локальная Go-библиотека `plugin-sdk/` | Core и каждый plugin | Общий технический lifecycle, identity, Manifest/schema, `Reload`, exact config pull, health/readiness, metrics/logging и безопасные errors. |
 | Plugin protocol | `pluginprotocol` | Plugins | Только plugin-to-plugin communication: registration собственных методов/streams и настраиваемый физический transport/security; Core и plugin products не являются зависимостями. |
-| Plugin Admin Surface | Core как защищённый фасад, plugin как владелец capability | Constructor backend | Schema-ограниченные административные страницы и actions; browser не соединяется с plugin напрямую. |
+| Plugin Admin Surface | Core как защищённый фасад, plugin как владелец capability | Инструмент управления | Schema-ограниченные административные данные и actions; клиент не соединяется с plugin напрямую. |
 | Public traffic | Server plugin | Browser, TCP/UDP clients, upstream services | HTTP/TLS/L4 обработка и direct plugin dispatch по разрешённым protocol edges. |
 | Caddy runtime management | Server plugin | Только сам Server plugin | Производная внутренняя runtime-конфигурация; не является публичным Core API или независимым source of truth. |
 
@@ -22,18 +22,21 @@ group-release API или отдельная route DSL Core. Плагин мож�
 производить Caddy runtime JSON/Caddyfile-подобные данные, но они производны от
 Core revision и не управляются независимо.
 
-## Per-instance deployment modes
+## Размещение и обновление
 
-Режим запуска задаётся для каждого plugin instance отдельно; один Core может
-сочетать `supervised process`, `managed container` и `external`.
+Оператор устанавливает и планово обновляет Core и plugins выбранными средствами.
+Целевые способы размещения — standalone, Docker, Swarm service
+и Kubernetes; выбор платформы не создаёт deployment mode внутри Core. Core
+никогда не управляет процессами или контейнерами. Он хранит desired settings,
+принимает регистрацию живых replicas, наблюдает leases и readiness, выполняет
+`Reload` и координирует rollout. Инструменты размещения передают только инфраструктурный
+bootstrap, а product JSON меняется через Core Management API.
 
-- `supervised process`: Core устанавливает доверенный TUF binary release и
-  владеет локальным процессом;
-- `managed container`: Core через ограниченный provider adapter создаёт и
-  сверяет только принадлежащие ему Compose, Swarm или Kubernetes workloads;
-- `external`: workloads создаёт оператор, Core подключается к заданным
-  per-replica endpoints и управляет только desired settings, policies, grants
-  и health.
+Release digest из регистрации служит Core для проверки совместимости когорт,
+но не подтверждает происхождение бинарника. Доставку и проверку artifact
+выполняет операторская автоматизация. Отдельный traffic controller применяет
+публичные веса и подтверждает их Core; продвижение stage требует отдельного
+одобрения platform-admin.
 
 В v1 Server plugin имеет одну replica и отдельное persistent filesystem для
 ACME/site runtime data. Core хранит свою конфигурацию в SQLite; Server plugin

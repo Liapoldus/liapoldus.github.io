@@ -1,14 +1,24 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { readDocsSources } from './docs-sources-manifest.mjs'
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const workspaceRoot = resolve(projectRoot, '..')
 const stagingRoot = join(projectRoot, '.site-src')
 const checkoutRoot = join(projectRoot, '.docs-sources')
-const manifest = JSON.parse(readFileSync(join(projectRoot, 'docs-sources.json'), 'utf8'))
+const manifest = readDocsSources(join(projectRoot, 'docs-sources.yaml'))
 const remoteMode = process.argv.includes('--remote') || process.env.DOCS_SYNC_MODE === 'remote'
+
+if (existsSync(checkoutRoot)) {
+  const activeSources = new Set(manifest.sources.map((source) => source.name))
+  for (const entry of readdirSync(checkoutRoot, { withFileTypes: true })) {
+    if (entry.isDirectory() && !activeSources.has(entry.name)) {
+      rmSync(join(checkoutRoot, entry.name), { recursive: true, force: true })
+    }
+  }
+}
 
 function isWithin(parent, child) {
   const pathFromParent = relative(parent, child)

@@ -8,6 +8,3 @@
 interface — один файл. Application содержит use cases, infrastructure —
 адаптеры, presentation — API/CLI. Подробная схема — в
 [архитектуре Core](/core/architecture/structure).
-
-Constructor хранит проектные исходники в Git. Его БД хранит только users,
-permissions, bindings, snapshots, builds, deployments и runtime metadata.

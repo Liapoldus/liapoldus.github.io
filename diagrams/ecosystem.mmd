@@ -1,10 +1,8 @@
 flowchart TD
-  GIT[(Git repository)] -->|source of truth| C[Constructor]
-  C -->|snapshot and build| A[Static frontend artifact]
-  C -->|Management API| GW[Core]
-  C -->|admin contract| P[Plugins]
-  A -->|release| GW
+  OP[Operator / CI] -->|Management API| GW[Core]
+  OP -->|site artifact| A[Static frontend artifact]
+  A -->|publish| P[Server plugin]
   P -->|scoped capabilities| GW
   GW -->|control plane| CADDY[Caddy data plane]
-  CADDY -->|HTTP / TCP / UDP| R[Public runtime]
+  CADDY -->|HTTP / HTTPS| R[Public runtime]
   CADDY -->|direct gRPC dispatch| P

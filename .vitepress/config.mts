@@ -37,11 +37,9 @@ export default defineConfig({
           text: 'Библиотеки',
           items: [
             { text: 'Plugin SDK', link: '/plugin-sdk/' },
-            { text: 'pluginprotocol', link: '/pluginprotocol/' },
-            { text: 'React SDK', link: '/react-lib/' }
+            { text: 'pluginprotocol', link: '/pluginprotocol/' }
           ]
         },
-        { text: 'Constructor', link: '/constructor/' }
       ],
 
       search: {
@@ -221,6 +219,8 @@ export default defineConfig({
           {
             text: 'Отложено до v2',
             items: [
+              { text: 'Domain plugin', link: '/plugins/domain' },
+              { text: 'Runtime plugin', link: '/plugins/runtime' },
               { text: 'Identity plugin', link: '/plugins/identity' },
               { text: 'CAPTCHA plugin', link: '/plugins/captcha' }
             ]
@@ -247,38 +247,6 @@ export default defineConfig({
               { text: 'Руководство потребителя', link: '/pluginprotocol/docs/consumer-guide' },
               { text: 'Миграция', link: '/pluginprotocol/docs/migration' },
               { text: 'Changelog', link: '/pluginprotocol/CHANGELOG' }
-            ]
-          }
-        ],
-        '/react-lib/': [
-          {
-            text: 'React SDK',
-            items: [{ text: 'Обзор', link: '/react-lib/' }]
-          }
-        ],
-        '/constructor/': [
-          {
-            text: 'Constructor',
-            items: [
-              { text: 'Обзор', link: '/constructor/' },
-              { text: 'Концепции и модель проекта', link: '/constructor/concepts' },
-              { text: 'Reference stack', link: '/constructor/reference-stack' },
-              { text: 'Архитектура', link: '/constructor/architecture' },
-              { text: 'Git project format', link: '/constructor/project-format' },
-              { text: 'Development Mode и IDE', link: '/constructor/development' },
-              { text: 'Site Management Mode', link: '/constructor/site-management' },
-              { text: 'Components, primitives и SDK', link: '/constructor/components' },
-              { text: 'React SDK v1', link: '/constructor/sdk-v1' },
-              { text: 'State, scripts и infrastructure', link: '/constructor/application-model' },
-              { text: 'Routing и network canvas', link: '/constructor/routing' },
-              { text: 'Assets, themes и localization', link: '/constructor/content-assets' },
-              { text: 'Git, versions, snapshots и delivery', link: '/constructor/delivery' },
-              { text: 'Core и plugins', link: '/constructor/integrations' },
-              { text: 'Sites, auth и deployment', link: '/constructor/governance' },
-              { text: 'API и contracts', link: '/constructor/api' },
-              { text: 'Данные и ERD', link: '/constructor/data-model' },
-              { text: 'State machines', link: '/constructor/state-machines' },
-              { text: 'Validation, preview и UX', link: '/constructor/experience' }
             ]
           }
         ],
