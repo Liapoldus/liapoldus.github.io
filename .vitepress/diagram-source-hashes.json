@@ -7,5 +7,9 @@
   "studio-information-architecture.mmd": "8a2a847c4572bc0ed474ec6557be1176871f589b260bf802bf49a0224e029653",
   "studio-pages.mmd": "dbe9aadf3fcb920460120ef020104e8b6a09b45d4ec21918e2e702b9d99f0d6a",
   "studio-plugin-lifecycle.mmd": "85e1996cc6edf08d775bf1b4a7dcf6cb7d739dc16eb22d5f162302976c0dcf5e",
-  "studio-project-sync.mmd": "6080997ecfd9a18ebd80f2b8fbaca7edefa1cdd666d3c3696da20fcdc9893a1e"
+  "studio-project-sync.mmd": "6080997ecfd9a18ebd80f2b8fbaca7edefa1cdd666d3c3696da20fcdc9893a1e",
+  "cli-apply-pipeline.mmd": "fe2d4c84d2e341c8b3e43a4473e386ac5bdc1b2a1fb265b98c6dcd4894b19f4a",
+  "cli-boundaries.mmd": "81c94704a9efd0a7f7b5efa9dba475c5eb57248820e4cc0c4e1bc9df547d8226",
+  "cli-ci-deploy.mmd": "92f6086eecac8a9c7fc488d7221bc44bc96468cc89f5f440317129744978bd93",
+  "cli-multi-target.mmd": "37004645f3261062be2d5fb9957f867d4727098c59479bcb80e6c222e2795208"
 }

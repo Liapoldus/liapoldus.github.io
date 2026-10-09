@@ -3,17 +3,17 @@
 Liapoldus v1 объединяет Core, отдельные plugins и две библиотеки для управления
 сервисами и публикации сайтов.
 
-В экосистеме также создаётся Liapoldus Studio — отдельный клиент для
-обслуживания экосистемы с desktop-вариантом на Wails и заделом на web-вариант.
-Web-каркас привязан к одному Core, не поддерживает SSH-мост и переключение
-системы; оба варианта используют общий React UI. Подключение к Core пока не
-реализовано, Studio не входит в сервисную приёмку v1.
+В экосистеме также создаются Liapoldus Studio и универсальный Liapoldus CLI.
+Studio — отдельный desktop-first клиент для проектов, файлов и Git; CLI —
+единый инструмент сборки и доставки commit-backed конфигураций в один или
+несколько Core. Studio не обращается к Core напрямую.
 
 <img src="/diagrams/ecosystem.svg" alt="Core управляет plugins, Server plugin обслуживает опубликованный сайт" />
 
 <div class="cards">
   <a class="card" href="/core/"><h3>Core</h3><p>Control API, SQLite desired state и конфигурация plugins.</p></a>
-  <a class="card" href="/studio/"><h3>Studio</h3><p>Проект, дерево файлов, canvas и безопасное управление Core services.</p></a>
+  <a class="card" href="/studio/"><h3>Studio</h3><p>Проект, дерево файлов, Git, canvas и подготовка конфигураций.</p></a>
+  <a class="card" href="/cli/"><h3>CLI</h3><p>Единый CLI для materialization, plan/apply и деплоя в один или несколько Core.</p></a>
   <a class="card" href="/plugins/"><h3>Plugins</h3><p>Изолированные процессы для прикладной и инфраструктурной логики.</p></a>
 </div>
 
@@ -29,7 +29,7 @@ HTTP traffic обслуживает отдельно запущенный Server
 | Роль | Задача | Главная точка входа |
 | --- | --- | --- |
 | Оператор | настроить, проверить, применить и наблюдать Core | [Core](/core/) |
-| Разработчик-оператор | собрать project, связать services и применить изменения | [Studio](/studio/) |
+| Разработчик-оператор | собрать project, связать services и передать revision в CLI | [Studio](/studio/) + [CLI](/cli/) |
 | Интегратор | подключить capability-процесс | [Плагины](/plugins/) |
 | Реализатор | понять границы продуктов и API | [Архитектура](/architecture/) |
 

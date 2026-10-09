@@ -11,7 +11,7 @@ sources:
         to: diagrams/core-config-store.mmd
   - name: studio
     repository: https://github.com/Liapoldus/studio.git
-    ref: 7f2c250ff0f8cffef0b228dbf049ea00067a935e
+    ref: e32ac9b06b27880d452b33f65df39e2e6872afae
     workspacePath: studio
     mappings:
       - from: docs/index.md
@@ -20,6 +20,8 @@ sources:
         to: studio/product-model.md
       - from: docs/project-and-files.md
         to: studio/project-and-files.md
+      - from: docs/version-control.md
+        to: studio/version-control.md
       - from: docs/core-workspace.md
         to: studio/core-workspace.md
       - from: docs/operations.md
@@ -40,6 +42,37 @@ sources:
         to: diagrams/studio-plugin-lifecycle.mmd
       - from: docs/diagrams/studio-project-sync.mmd
         to: diagrams/studio-project-sync.mmd
+  - name: cli
+    repository: https://github.com/Liapoldus/cli.git
+    ref: 7db8f75d55d707f4014b7114599c2c19ac404646
+    workspacePath: cli
+    mappings:
+      - from: docs/index.md
+        to: cli/index.md
+      - from: docs/architecture.md
+        to: cli/architecture.md
+      - from: docs/project-and-bundle.md
+        to: cli/project-and-bundle.md
+      - from: docs/commands.md
+        to: cli/commands.md
+      - from: docs/core-api.md
+        to: cli/core-api.md
+      - from: docs/targets.md
+        to: cli/targets.md
+      - from: docs/ci-and-approval.md
+        to: cli/ci-and-approval.md
+      - from: docs/migration-from-core-cli.md
+        to: cli/migration-from-core-cli.md
+      - from: docs/roadmap.md
+        to: cli/roadmap.md
+      - from: docs/diagrams/cli-boundaries.mmd
+        to: diagrams/cli-boundaries.mmd
+      - from: docs/diagrams/apply-pipeline.mmd
+        to: diagrams/cli-apply-pipeline.mmd
+      - from: docs/diagrams/multi-target.mmd
+        to: diagrams/cli-multi-target.mmd
+      - from: docs/diagrams/ci-deploy.mmd
+        to: diagrams/cli-ci-deploy.mmd
   - name: pluginprotocol
     repository: https://github.com/Liapoldus/pluginprotocol.git
     ref: 28572a406272c983cb4b3041f35acbebd7d15aaf

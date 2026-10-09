@@ -36,6 +36,12 @@ features:
       inspector, operations и расширениями Studio plugins.
     link: /studio/
     linkText: Продуктовая модель
+  - title: CLI
+    details: >-
+      Универсальная сборка, планирование и доставка commit-backed конфигураций
+      в один или несколько Core.
+    link: /cli/
+    linkText: Документация CLI
   - title: Архитектура экосистемы
     details: >-
       Границы владения, API и общий путь от Git до работающего сайта.

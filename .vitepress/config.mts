@@ -33,6 +33,7 @@ export default defineConfig({
         { text: 'Code Guidelines', link: '/guidelines/' },
         { component: 'CoreNav' },
         { text: 'Studio', link: '/studio/' },
+        { text: 'CLI', link: '/cli/' },
         { text: 'Плагины', link: '/plugins/' },
         {
           text: 'Библиотеки',
@@ -125,11 +126,28 @@ export default defineConfig({
               { text: 'Обзор', link: '/studio/' },
               { text: 'Продуктовая модель', link: '/studio/product-model' },
               { text: 'Проект и дерево файлов', link: '/studio/project-and-files' },
+              { text: 'Git и управление версиями', link: '/studio/version-control' },
               { text: 'Core workspace', link: '/studio/core-workspace' },
               { text: 'Операции и диагностика', link: '/studio/operations' },
               { text: 'Studio plugins и marketplace', link: '/studio/studio-plugins' },
               { text: 'Безопасность и режимы', link: '/studio/security-and-modes' },
               { text: 'Roadmap и решения', link: '/studio/roadmap' }
+            ]
+          }
+        ],
+        '/cli/': [
+          {
+            text: 'Liapoldus CLI',
+            items: [
+              { text: 'Обзор', link: '/cli/' },
+              { text: 'Архитектура и границы', link: '/cli/architecture' },
+              { text: 'Project и config bundle', link: '/cli/project-and-bundle' },
+              { text: 'Команды', link: '/cli/commands' },
+              { text: 'Core API contract', link: '/cli/core-api' },
+              { text: 'Targets и несколько Core', link: '/cli/targets' },
+              { text: 'GitHub CI и approval', link: '/cli/ci-and-approval' },
+              { text: 'Миграция из Core CLI', link: '/cli/migration-from-core-cli' },
+              { text: 'Roadmap', link: '/cli/roadmap' }
             ]
           }
         ],
