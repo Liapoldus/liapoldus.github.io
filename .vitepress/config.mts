@@ -168,8 +168,7 @@ export default defineConfig({
             text: 'Оператор · конфигурация',
             items: [
               { text: 'Обзор и быстрый старт', link: '/core/configuration/' },
-              { text: 'Bootstrap core.yaml', link: '/core/configuration/bootstrap' },
-              { text: 'Полная схема bootstrap', link: '/core/configuration/core-schema' },
+              { text: 'Bootstrap и запуск', link: '/core/configuration/bootstrap' },
               { text: 'Traffic settings plugin', link: '/core/configuration/http-runtime' },
               { text: 'HTTP-транспорты', link: '/core/configuration/transports' },
               { text: 'Upstream и балансировка', link: '/core/configuration/upstreams' },
@@ -199,6 +198,7 @@ export default defineConfig({
               { text: 'Обзор', link: '/core/api/' },
               { text: 'Аутентификация', link: '/core/api/authentication' },
               { text: 'Настройки plugins', link: '/core/api/config' },
+              { text: 'Config bundles для CLI', link: '/core/api/config-bundles' },
               { text: 'Ресурсы и операции', link: '/core/api/operations' },
               { text: 'Audit и operations', link: '/core/api/audit' },
               { text: 'OpenAPI', link: '/core/api/openapi' }
