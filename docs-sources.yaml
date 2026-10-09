@@ -9,6 +9,37 @@ sources:
         to: core
       - from: docs/site/diagrams/core-config-store.mmd
         to: diagrams/core-config-store.mmd
+  - name: studio
+    repository: https://github.com/Liapoldus/studio.git
+    ref: 7f2c250ff0f8cffef0b228dbf049ea00067a935e
+    workspacePath: studio
+    mappings:
+      - from: docs/index.md
+        to: studio/index.md
+      - from: docs/product-model.md
+        to: studio/product-model.md
+      - from: docs/project-and-files.md
+        to: studio/project-and-files.md
+      - from: docs/core-workspace.md
+        to: studio/core-workspace.md
+      - from: docs/operations.md
+        to: studio/operations.md
+      - from: docs/studio-plugins.md
+        to: studio/studio-plugins.md
+      - from: docs/security-and-modes.md
+        to: studio/security-and-modes.md
+      - from: docs/roadmap.md
+        to: studio/roadmap.md
+      - from: docs/diagrams/studio-information-architecture.mmd
+        to: diagrams/studio-information-architecture.mmd
+      - from: docs/diagrams/studio-change-lifecycle.mmd
+        to: diagrams/studio-change-lifecycle.mmd
+      - from: docs/diagrams/studio-pages.mmd
+        to: diagrams/studio-pages.mmd
+      - from: docs/diagrams/studio-plugin-lifecycle.mmd
+        to: diagrams/studio-plugin-lifecycle.mmd
+      - from: docs/diagrams/studio-project-sync.mmd
+        to: diagrams/studio-project-sync.mmd
   - name: pluginprotocol
     repository: https://github.com/Liapoldus/pluginprotocol.git
     ref: 28572a406272c983cb4b3041f35acbebd7d15aaf

@@ -13,6 +13,7 @@ Web-каркас привязан к одному Core, не поддержив�
 
 <div class="cards">
   <a class="card" href="/core/"><h3>Core</h3><p>Control API, SQLite desired state и конфигурация plugins.</p></a>
+  <a class="card" href="/studio/"><h3>Studio</h3><p>Проект, дерево файлов, canvas и безопасное управление Core services.</p></a>
   <a class="card" href="/plugins/"><h3>Plugins</h3><p>Изолированные процессы для прикладной и инфраструктурной логики.</p></a>
 </div>
 
@@ -28,6 +29,7 @@ HTTP traffic обслуживает отдельно запущенный Server
 | Роль | Задача | Главная точка входа |
 | --- | --- | --- |
 | Оператор | настроить, проверить, применить и наблюдать Core | [Core](/core/) |
+| Разработчик-оператор | собрать project, связать services и применить изменения | [Studio](/studio/) |
 | Интегратор | подключить capability-процесс | [Плагины](/plugins/) |
 | Реализатор | понять границы продуктов и API | [Архитектура](/architecture/) |
 

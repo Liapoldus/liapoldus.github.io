@@ -32,6 +32,7 @@ export default defineConfig({
         { text: 'Архитектура', link: '/architecture/' },
         { text: 'Code Guidelines', link: '/guidelines/' },
         { component: 'CoreNav' },
+        { text: 'Studio', link: '/studio/' },
         { text: 'Плагины', link: '/plugins/' },
         {
           text: 'Библиотеки',
@@ -114,6 +115,21 @@ export default defineConfig({
               { text: 'Настройка Core', link: '/core/configuration/' },
               { text: 'Практические сценарии', link: '/core/examples/' },
               { text: 'Развёртывание', link: '/core/deploy/' }
+            ]
+          }
+        ],
+        '/studio/': [
+          {
+            text: 'Liapoldus Studio',
+            items: [
+              { text: 'Обзор', link: '/studio/' },
+              { text: 'Продуктовая модель', link: '/studio/product-model' },
+              { text: 'Проект и дерево файлов', link: '/studio/project-and-files' },
+              { text: 'Core workspace', link: '/studio/core-workspace' },
+              { text: 'Операции и диагностика', link: '/studio/operations' },
+              { text: 'Studio plugins и marketplace', link: '/studio/studio-plugins' },
+              { text: 'Безопасность и режимы', link: '/studio/security-and-modes' },
+              { text: 'Roadmap и решения', link: '/studio/roadmap' }
             ]
           }
         ],

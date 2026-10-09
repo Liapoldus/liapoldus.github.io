@@ -30,6 +30,12 @@ features:
       добавляются отдельными версиями.
     link: /plugins/
     linkText: Существующие плагины
+  - title: Studio
+    details: >-
+      Desktop-first рабочее пространство с project tree, service canvas,
+      inspector, operations и расширениями Studio plugins.
+    link: /studio/
+    linkText: Продуктовая модель
   - title: Архитектура экосистемы
     details: >-
       Границы владения, API и общий путь от Git до работающего сайта.
