@@ -44,7 +44,7 @@ sources:
         to: diagrams/studio-project-sync.mmd
   - name: cli
     repository: https://github.com/Liapoldus/cli.git
-    ref: 54b3d5ceaa1f2beb098fcf2b24d888603430ef3b
+    ref: 3b3d6551772162bee9f6153a6117227196afe048
     workspacePath: cli
     mappings:
       - from: docs/index.md
