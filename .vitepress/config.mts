@@ -182,18 +182,6 @@ export default defineConfig({
             ]
           }
         ],
-        '/core/cli/': [
-          {
-            text: 'Оператор · CLI',
-            items: [
-              { text: 'Обзор', link: '/core/cli/' },
-              { text: 'serve', link: '/core/cli/serve' },
-              { text: 'Версии и откат', link: '/core/cli/versions' },
-              { text: 'Диагностика', link: '/core/cli/inspect' },
-              { text: 'accounts', link: '/core/cli/accounts' }
-            ]
-          }
-        ],
         '/core/deploy/': [
           {
             text: 'Оператор · развёртывание',
