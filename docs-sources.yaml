@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: 12ff43c898393df7f7585694c9d57c3709d810fb
+    ref: d73658c57581e09b5f7fdb98afbd457140ccce6a
     workspacePath: core
     mappings:
       - from: docs/site/core
@@ -44,7 +44,7 @@ sources:
         to: diagrams/studio-project-sync.mmd
   - name: cli
     repository: https://github.com/Liapoldus/cli.git
-    ref: 3b3d6551772162bee9f6153a6117227196afe048
+    ref: 859e382780f787b8f0d6621976d116f913eebfe8
     workspacePath: cli
     mappings:
       - from: docs/index.md
