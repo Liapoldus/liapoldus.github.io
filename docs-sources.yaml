@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: 7b12cb7809aff20e1b483272ac64e64234921eb3
+    ref: 8b48b8be04733206357fe0f51b369f09cc700741
     workspacePath: core
     mappings:
       - from: docs/site/core
@@ -44,7 +44,7 @@ sources:
         to: core/examples
   - name: forms-db
     repository: https://github.com/Liapoldus/forms-db.git
-    ref: 639314d5386dcc461c178a60562f2394fcf2d09f
+    ref: e0c7c2d1bf99abe7940258ce50380dbdfa247072
     workspacePath: plugins/forms-db
     mappings:
       - from: docs/site/plugins/forms-db.md
