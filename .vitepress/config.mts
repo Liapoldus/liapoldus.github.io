@@ -125,12 +125,18 @@ export default defineConfig({
             items: [
               { text: 'Обзор', link: '/studio/' },
               { text: 'Продуктовая модель', link: '/studio/product-model' },
+              { text: 'Техническая архитектура', link: '/studio/technical-architecture' },
+              { text: 'UI system', link: '/studio/ui-system' },
               { text: 'Проект и дерево файлов', link: '/studio/project-and-files' },
               { text: 'Git и управление версиями', link: '/studio/version-control' },
               { text: 'Config workspace', link: '/studio/core-workspace' },
+              { text: 'CLI integration', link: '/studio/cli-integration' },
               { text: 'Операции и диагностика', link: '/studio/operations' },
               { text: 'Studio plugins и marketplace', link: '/studio/studio-plugins' },
+              { text: 'Traffic inspector', link: '/studio/traffic-inspector' },
               { text: 'Безопасность и режимы', link: '/studio/security-and-modes' },
+              { text: 'Release policy', link: '/studio/release' },
+              { text: 'Production readiness', link: '/studio/production-readiness' },
               { text: 'Roadmap и решения', link: '/studio/roadmap' }
             ]
           }
@@ -147,6 +153,7 @@ export default defineConfig({
               { text: 'Targets и несколько Core', link: '/cli/targets' },
               { text: 'GitHub CI и approval', link: '/cli/ci-and-approval' },
               { text: 'Миграция из Core CLI', link: '/cli/migration-from-core-cli' },
+              { text: 'Release policy', link: '/cli/release' },
               { text: 'Roadmap', link: '/cli/roadmap' }
             ]
           }
@@ -211,6 +218,7 @@ export default defineConfig({
             items: [
               { text: 'Обзор', link: '/core/architecture/' },
               { text: 'План реализации Core v2/v3', link: '/core/architecture/roadmap' },
+              { text: 'Целевая архитектура v3', link: '/core/architecture/v3' },
               { text: 'Границы и решения', link: '/core/architecture/target' },
               { text: 'Control plane и группы', link: '/core/architecture/control-plane' },
               { text: 'Компоненты runtime', link: '/core/architecture/core' },
