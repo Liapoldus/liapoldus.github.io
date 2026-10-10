@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: a4d6d00ced3238b40d30eb612300cae322034f31
+    ref: 089699303c7529d04aa86e62de100605eb6e9d38
     workspacePath: core
     mappings:
       - from: docs/site/core
@@ -40,6 +40,8 @@ sources:
         to: studio/security-and-modes.md
       - from: docs/release.md
         to: studio/release.md
+      - from: docs/production-readiness.md
+        to: studio/production-readiness.md
       - from: docs/roadmap.md
         to: studio/roadmap.md
       - from: docs/diagrams/studio-information-architecture.mmd
@@ -87,7 +89,7 @@ sources:
         to: diagrams/cli-ci-deploy.mmd
   - name: pluginprotocol
     repository: https://github.com/Liapoldus/pluginprotocol.git
-    ref: 74a473ac82b20315607f1f28f55949682a51c598
+    ref: a5a70e47eb4b2d2fe72608e1ee156885406a3d58
     workspacePath: pluginprotocol
     mappings:
       - from: docs/site/pluginprotocol/index.md
@@ -100,7 +102,7 @@ sources:
         to: pluginprotocol/CHANGELOG.md
   - name: plugin-sdk
     repository: https://github.com/Liapoldus/plugin-sdk.git
-    ref: decb6d9130fd0b537238a24404d40829ec5a30bf
+    ref: f3cf649e450485691cef110111cf3a39c0deb32b
     workspacePath: plugin-sdk
     mappings:
       - from: README.md
