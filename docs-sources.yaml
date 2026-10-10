@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: ff94e199d610dd206cd21b6ab56b5084bcc2d1d0
+    ref: a4d6d00ced3238b40d30eb612300cae322034f31
     workspacePath: core
     mappings:
       - from: docs/site/core
@@ -18,6 +18,10 @@ sources:
         to: studio/index.md
       - from: docs/product-model.md
         to: studio/product-model.md
+      - from: docs/technical-architecture.md
+        to: studio/technical-architecture.md
+      - from: docs/ui-system.md
+        to: studio/ui-system.md
       - from: docs/project-and-files.md
         to: studio/project-and-files.md
       - from: docs/version-control.md
@@ -26,10 +30,16 @@ sources:
         to: studio/core-workspace.md
       - from: docs/operations.md
         to: studio/operations.md
+      - from: docs/cli-integration.md
+        to: studio/cli-integration.md
       - from: docs/studio-plugins.md
         to: studio/studio-plugins.md
+      - from: docs/traffic-inspector.md
+        to: studio/traffic-inspector.md
       - from: docs/security-and-modes.md
         to: studio/security-and-modes.md
+      - from: docs/release.md
+        to: studio/release.md
       - from: docs/roadmap.md
         to: studio/roadmap.md
       - from: docs/diagrams/studio-information-architecture.mmd
@@ -65,6 +75,8 @@ sources:
         to: cli/migration-from-core-cli.md
       - from: docs/roadmap.md
         to: cli/roadmap.md
+      - from: docs/release.md
+        to: cli/release.md
       - from: docs/diagrams/cli-boundaries.mmd
         to: diagrams/cli-boundaries.mmd
       - from: docs/diagrams/apply-pipeline.mmd
@@ -75,7 +87,7 @@ sources:
         to: diagrams/cli-ci-deploy.mmd
   - name: pluginprotocol
     repository: https://github.com/Liapoldus/pluginprotocol.git
-    ref: 28572a406272c983cb4b3041f35acbebd7d15aaf
+    ref: 74a473ac82b20315607f1f28f55949682a51c598
     workspacePath: pluginprotocol
     mappings:
       - from: docs/site/pluginprotocol/index.md
@@ -88,7 +100,7 @@ sources:
         to: pluginprotocol/CHANGELOG.md
   - name: plugin-sdk
     repository: https://github.com/Liapoldus/plugin-sdk.git
-    ref: b3b04877474d9522f3026cefa5022ec63a581f68
+    ref: decb6d9130fd0b537238a24404d40829ec5a30bf
     workspacePath: plugin-sdk
     mappings:
       - from: README.md
