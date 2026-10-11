@@ -1,9 +1,12 @@
 # Пользователи и UX
 
-Liapoldus v2 предоставляет Core Management API, standalone CLI, Studio, Server
-plugin для публичного HTTP traffic и forms-db для простых форм. Studio работает
-с Project/Git, а CLI обращается к Core API; Core credentials не передаются в
-Studio или браузер.
+Целевая продуктовая модель Liapoldus v2 включает Core Management API,
+standalone CLI, Studio, Server plugin для публичного HTTP traffic и forms-db
+для простых форм. Текущий implementation/acceptance scope ограничен Server и
+Echo; forms-db и остальные дополнительные плагины отложены. Их статус и
+незавершённые gates перечислены на канонической странице
+[плагинов](/plugins/). Studio работает с Project/Git, а CLI обращается к Core
+API; Core credentials не передаются в Studio или браузер.
 
 ## Модель действия
 

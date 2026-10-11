@@ -11,14 +11,43 @@ instance сохраняются в SQLite. Core вызывает REST `Reload(ge
 manifest/schema и хранит plugin-neutral metadata; бизнес-семантика остаётся в
 plugin.
 
-## Замороженные продукты
+Каждый активный plugin строится строго на базе Plugin SDK `HandlerSet`. SDK
+универсально предоставляет `GET /healthz` и `GET /metrics`; эти endpoints не
+реализуются product plugin-ами отдельно и имеют одинаковую семантику для
+Server, forms-db, Echo и будущих plugin-ов.
 
-`captcha` и `identity` (OIDC/OAuth) заморожены целиком и исключены из Core
-v2: их репозитории не входят в активный Go workspace, их исходники и тесты не
-меняются, а их product capabilities не являются v2 acceptance gates. Возврат
-требует отдельного решения о разморозке. Это не замораживает security самого
-Core: Management API по-прежнему требует authentication/authorization, mTLS,
-audit и redaction.
+## Обязательная SDK-интеграция
+
+Правило относится ко всем product plugins, включая CAPTCHA, Identity, Domain и
+Runtime: production binary использует Plugin SDK `HandlerSet` для Core-facing
+REST lifecycle. `GET /healthz` и `GET /metrics` универсальны и реализуются
+только SDK с едиными путями и семантикой; plugin не добавляет, не переопределяет
+и не дублирует эти endpoints. Domain и Runtime в текущем pass не изменяются;
+это исключение из объёма работ, а не из архитектурного правила.
+
+SDK migration не означает, что все product capabilities уже готовы к
+production acceptance. OIDC/OAuth и CAPTCHA product readiness остаются
+отдельными gates, описанными у владельцев этих plugins.
+
+## Текущий implementation scope
+
+В текущем срезе Studio/runtime acceptance активно дорабатываются только Server
+и Echo. Остальные плагины отложены; их исходники не входят в данный
+implementation scope. Перед возобновлением каждый должен пройти SDK conformance
+и собственные product acceptance gates:
+
+| Plugin | Статус | Что завершить перед возобновлением |
+| --- | --- | --- |
+| [Server](/plugins/server) | Активен | Core Management API → SDK REST startup/configuration, независимая маршрутизация к Echo, curl smoke и production diagnostics. |
+| Echo | Активен | SDK-owned health/metrics, typed manifest/settings, независимый peer handler и Server→Echo smoke без зависимости Echo от Server. |
+| [forms-db](/plugins/forms-db) | Отложен | Повторно проверить SDK contract v2, единые `/healthz`/`/metrics`, Core configuration lifecycle и SQL/peer integration gates. |
+| [CAPTCHA](/plugins/captcha) | Отложен | Завершить SDK v2 runtime migration, secret/config lifecycle, универсальные observability endpoints и отдельный Core/Caddy/Siteverify acceptance. |
+| [Identity](/plugins/identity) | Отложен | Завершить SDK v2 runtime migration, строгие schemas и OIDC/OAuth/session/key lifecycle acceptance; универсальные endpoints должны оставаться SDK-owned. |
+| [Domain](/plugins/domain), [Runtime](/plugins/runtime) | Не трогать в текущем pass | До новой реализации сверить SDK composition, `/healthz` и `/metrics`, затем закрыть их собственные domain/runtime acceptance gates. |
+
+Общее правило SDK и observability остаётся целевым для всех plugins; отсрочка
+означает только последовательность реализации, а не отдельный lifecycle или
+допуск к production без conformance.
 
 ## Runtime ownership
 

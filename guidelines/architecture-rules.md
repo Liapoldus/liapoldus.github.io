@@ -12,5 +12,14 @@ product plugin владеет своей схемой настроек, данн
 управляет workload process lifecycle; standalone CLI и operator adapters
 запускают процессы и передают конфигурацию через Core API.
 
+Каждый product plugin обязан быть построен через Plugin SDK `HandlerSet`.
+Универсальные `GET /healthz` и `GET /metrics` фиксируются versioned SDK
+contract и реализуются самим SDK на базе его общего observability collector.
+Plugin не реализует, не переопределяет, не переименовывает и не дублирует эти
+handlers или их response shape. Если у plugin есть публичный listener, он
+подключает SDK `NewObservabilityHandler`, а не собственную реализацию. Domain и
+Runtime не меняются в текущем implementation pass, но правило распространяется
+и на них.
+
 Клиенты управления используют только Core Management API и не повторяют Core
 runtime. Любое новое пересечение владения фиксируется у владельца контракта как API gap.

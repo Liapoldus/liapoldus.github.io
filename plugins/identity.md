@@ -1,9 +1,10 @@
 # Identity plugin
 
-> **Статус: полностью заморожен и исключён из Core v2.** Репозиторий не
-> входит в активный workspace; код, tests и product contracts не изменяются.
-> Содержимое ниже сохранено как справочная спецификация и не является v2 gate.
-> Authentication/authorization самого Core Management API остаются обязательны.
+> **Статус: отложен.** Текущий implementation scope ограничен Server и Echo;
+> Identity не включён в их acceptance. Перед возобновлением завершить SDK v2
+> migration, строгие schemas и OIDC/OAuth/session/key flows, а также пройти
+> универсальные health/metrics и Core lifecycle gates. Подробности — в
+> [списке работ владельца](https://github.com/Liapoldus/identity/blob/main/TODO.md).
 
 Identity plugin владеет browser identity flows, OAuth/OIDC providers,
 authorization server, state, nonce, PKCE, session, cookies, token/JWKS
@@ -25,7 +26,8 @@ Capabilities объявляются независимо от runtime readiness.
 
 Manifest объявляет capabilities для OIDC client, token validation и OAuth
 authorization server; полный список и versioned product contracts принадлежат
-Identity plugin и остаются вне scope v2 до отдельного решения о разморозке.
+Identity plugin. Реализация product flows и production acceptance отложены;
+общий SDK lifecycle и observability contract от этого исключения не меняются.
 
 Владелец OIDC Provider surface — Identity plugin. Он публикует
 `GET /.well-known/openid-configuration` через отдельную capability
@@ -73,3 +75,7 @@ cookie boundary: входящие cookies allow-listed per instance/capability,
 Плагин сам владеет token/session/cookie lifecycle; Core остаётся
 plugin-agnostic. См. [plugin deployment](/core/architecture/plugin-deployment)
 и [целевую архитектуру](/core/architecture/target).
+
+SDK v2 единолично предоставляет `GET /healthz` и `GET /metrics`. После
+возобновления Identity обязана использовать SDK `HandlerSet` и не создавать
+собственные реализации или альтернативные пути этих endpoints.

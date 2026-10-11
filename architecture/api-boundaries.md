@@ -3,13 +3,20 @@
 | Surface | Владелец | Клиенты | Назначение |
 | --- | --- | --- | --- |
 | Core Management API | Core | Standalone CLI, CI | Canonical bundles, plugin instances с фиксированными endpoints, generic JSON settings, operations, access и audit. |
-| Plugin SDK REST | Локальная Go-библиотека `plugin-sdk/` | Core и каждый plugin | Общий технический lifecycle, identity, Manifest/schema, `Reload`, exact config pull, health/readiness, metrics/logging и безопасные errors. |
+| Plugin SDK REST | Локальная Go-библиотека `plugin-sdk/` | Core и каждый plugin | Общий технический lifecycle, identity, Manifest/schema, `Reload`, exact config pull, readiness, logging, безопасные errors и единственные универсальные SDK endpoints `GET /healthz` и `GET /metrics`. |
 | Plugin protocol | `pluginprotocol` | Plugins | Только plugin-to-plugin communication: registration собственных методов/streams и настраиваемый физический transport/security; Core и plugin products не являются зависимостями. |
 | Plugin Admin Surface | Core как защищённый фасад, plugin как владелец capability | Инструмент управления | Schema-ограниченные административные данные и actions; клиент не соединяется с plugin напрямую. |
 | Public traffic | Server plugin | Browser, TCP/UDP clients, upstream services | HTTP/TLS/L4 обработка и direct plugin dispatch по разрешённым protocol edges. |
 | Caddy runtime management | Server plugin | Только сам Server plugin | Производная внутренняя runtime-конфигурация; не является публичным Core API или независимым source of truth. |
 
 ## Конфигурация и desired state
+
+Все product plugins используют один SDK-owned observability surface. `GET
+/healthz` и `GET /metrics` фиксируются versioned SDK contract; handlers,
+универсальный health response и Prometheus exposition формирует Plugin SDK из
+своего collector. Product code не содержит параллельных реализаций, путей или
+response shapes этих endpoints. Публичный listener plugin-а подключает тот же
+SDK observability handler, а не переопределяет его.
 
 Core — один экземпляр и единственный источник желаемой конфигурации всех
 сервисов. Он сохраняет versioned raw JSON generations и active pointers в

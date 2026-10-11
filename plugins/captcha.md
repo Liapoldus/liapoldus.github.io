@@ -1,9 +1,9 @@
 # CAPTCHA plugin
 
-> **Статус: полностью заморожен и исключён из Core v2.** Репозиторий не
-> входит в активный workspace; код, tests и product contracts не изменяются.
-> Содержимое ниже сохранено как справочная спецификация и не является v2 gate.
-> Security Core Management API остаётся обязательной частью v2.
+> **Статус: отложен.** Текущий implementation scope ограничен Server и Echo;
+> CAPTCHA не включён в их acceptance. Перед возобновлением завершить SDK v2
+> migration, проверить универсальные `/healthz` и `/metrics`, secret/config
+> lifecycle и product-specific acceptance по [списку работ владельца](https://github.com/Liapoldus/captcha/blob/main/TODO.md).
 
 CAPTCHA — plugin-owned capability, не встроенная Core feature. Plugin владеет
 provider settings, token verification, challenge/callback, nonce/state, replay
@@ -28,6 +28,8 @@ Turnstile требует обязательной проверки на серв
 проверки Turnstile](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/).
 CAPTCHA plugin получает конфигурацию только через Plugin SDK REST lifecycle;
 `pluginprotocol` используется только для прямого plugin↔plugin взаимодействия.
+В целевой архитектуре `GET /healthz` и `GET /metrics` создаются только
+Plugin SDK: CAPTCHA не должен регистрировать или переопределять эти routes.
 
 ## Границы
 

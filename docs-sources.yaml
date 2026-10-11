@@ -20,6 +20,12 @@ sources:
         to: studio/product-model.md
       - from: docs/technical-architecture.md
         to: studio/technical-architecture.md
+      - from: docs/frontend-architecture.md
+        to: studio/frontend-architecture.md
+      - from: docs/docker-runtime.md
+        to: studio/docker-runtime.md
+      - from: docs/build-workspace.md
+        to: studio/build-workspace.md
       - from: docs/ui-system.md
         to: studio/ui-system.md
       - from: docs/project-and-files.md
