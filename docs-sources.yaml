@@ -125,7 +125,7 @@ sources:
         to: diagrams/service-admin-page-flow.mmd
   - name: server
     repository: https://github.com/Liapoldus/server.git
-    ref: c9e101d927c5f2de4d019f396310cec5e6bd8bd5
+    ref: 1a58389fe1c750a2fcb0119c5e89d3fe32b03f3d
     workspacePath: services/server
     mappings:
       - from: docs/site/services/server.md
