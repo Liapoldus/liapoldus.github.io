@@ -100,7 +100,7 @@ sources:
       - from: docs/diagrams/ci-deploy.mmd
         to: diagrams/cli-ci-deploy.mmd
   - name: wool
-    repository: https://github.com/Liapoldus/wool.git
+    repository: https://github.com/Liapoldus/pluginprotocol.git
     ref: c2b51ed192af5ec02fe0295b97a7f6d4c4834c3d
     workspacePath: wool
     mappings:
