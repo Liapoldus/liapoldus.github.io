@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: 5e2fa524c08d977943dcf9daa4ca533d53678abb
+    ref: 3d584c110762cde02a52041197916c3fca35ee36
     workspacePath: core
     mappings:
       - from: contracts/v1
@@ -13,7 +13,7 @@ sources:
         to: diagrams/core-config-store.mmd
   - name: studio
     repository: https://github.com/Liapoldus/studio.git
-    ref: c31f897ce1c61f7123b900d9e647abf7a156a35f
+    ref: 22d03b5a91c3bae1a5b914afecfec0e7004a276b
     workspacePath: studio
     mappings:
       - from: docs/index.md
@@ -36,8 +36,6 @@ sources:
         to: studio/ui-system.md
       - from: docs/project-and-files.md
         to: studio/project-and-files.md
-      - from: docs/version-control.md
-        to: studio/version-control.md
       - from: docs/core-workspace.md
         to: studio/core-workspace.md
       - from: docs/operations.md
@@ -68,7 +66,7 @@ sources:
         to: diagrams/studio-project-sync.mmd
   - name: cli
     repository: https://github.com/Liapoldus/cli.git
-    ref: 0e475430999fb5e1385ffb14879428b8acc6c843
+    ref: a2ff95e8cc2fdb962e9bf958b589216251a9130d
     workspacePath: cli
     mappings:
       - from: docs/index.md
@@ -114,7 +112,7 @@ sources:
         to: wool/CHANGELOG.md
   - name: service-sdk
     repository: https://github.com/Liapoldus/service-sdk.git
-    ref: 4fabc4d4315dceb3ead5d54e43b73bf2dbd0a133
+    ref: 110ac5e72a64fce6167dbbc4aac6af52dfcb50c3
     workspacePath: service-sdk
     mappings:
       - from: README.md
@@ -127,7 +125,7 @@ sources:
         to: diagrams/service-admin-page-flow.mmd
   - name: server
     repository: https://github.com/Liapoldus/server.git
-    ref: 1790c4f03ce406f7874f52e5ab62643f2f8e1f8c
+    ref: 2bc9f5648e2d5974ae80dd6562d5f09abf4bd959
     workspacePath: services/server
     mappings:
       - from: docs/site/services/server.md

@@ -133,7 +133,6 @@ export default defineConfig({
               { text: 'Build workspace', link: '/studio/build-workspace' },
               { text: 'UI system', link: '/studio/ui-system' },
               { text: 'Проект и дерево файлов', link: '/studio/project-and-files' },
-              { text: 'Git и управление версиями', link: '/studio/version-control' },
               { text: 'Config workspace', link: '/studio/core-workspace' },
               { text: 'CLI integration', link: '/studio/cli-integration' },
               { text: 'Операции и диагностика', link: '/studio/operations' },
