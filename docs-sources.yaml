@@ -2,20 +2,26 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: f99fba3bb88b1d1d8a39787657d5f7f5f59ea0d9
+    ref: 5e2fa524c08d977943dcf9daa4ca533d53678abb
     workspacePath: core
     mappings:
+      - from: contracts/v1
+        to: public/spec
       - from: docs/site/core
         to: core
       - from: docs/site/diagrams/core-config-store.mmd
         to: diagrams/core-config-store.mmd
   - name: studio
     repository: https://github.com/Liapoldus/studio.git
-    ref: 23e840acd08f0ce0bbcf6e16d2bb147d71fd0e25
+    ref: c31f897ce1c61f7123b900d9e647abf7a156a35f
     workspacePath: studio
     mappings:
       - from: docs/index.md
         to: studio/index.md
+      - from: plan.md
+        to: studio/plan.md
+      - from: docs/nomenclature-migration.md
+        to: studio/nomenclature-migration.md
       - from: docs/product-model.md
         to: studio/product-model.md
       - from: docs/technical-architecture.md
@@ -62,7 +68,7 @@ sources:
         to: diagrams/studio-project-sync.mmd
   - name: cli
     repository: https://github.com/Liapoldus/cli.git
-    ref: 39244b35721dfcbec83c1a4338540ac35f7a957c
+    ref: 0e475430999fb5e1385ffb14879428b8acc6c843
     workspacePath: cli
     mappings:
       - from: docs/index.md
@@ -93,59 +99,61 @@ sources:
         to: diagrams/cli-multi-target.mmd
       - from: docs/diagrams/ci-deploy.mmd
         to: diagrams/cli-ci-deploy.mmd
-  - name: pluginprotocol
-    repository: https://github.com/Liapoldus/pluginprotocol.git
-    ref: a5a70e47eb4b2d2fe72608e1ee156885406a3d58
-    workspacePath: pluginprotocol
+  - name: wool
+    repository: https://github.com/Liapoldus/wool.git
+    ref: c2b51ed192af5ec02fe0295b97a7f6d4c4834c3d
+    workspacePath: wool
     mappings:
-      - from: docs/site/pluginprotocol/index.md
-        to: pluginprotocol/index.md
-      - from: docs/site/pluginprotocol/consumer-guide.md
-        to: pluginprotocol/docs/consumer-guide.md
-      - from: docs/site/pluginprotocol/migration.md
-        to: pluginprotocol/docs/migration.md
+      - from: docs/site/wool/index.md
+        to: wool/index.md
+      - from: docs/site/wool/consumer-guide.md
+        to: wool/consumer-guide.md
+      - from: docs/site/wool/migration.md
+        to: wool/migration.md
       - from: CHANGELOG.md
-        to: pluginprotocol/CHANGELOG.md
-  - name: plugin-sdk
-    repository: https://github.com/Liapoldus/plugin-sdk.git
-    ref: f3cf649e450485691cef110111cf3a39c0deb32b
-    workspacePath: plugin-sdk
+        to: wool/CHANGELOG.md
+  - name: service-sdk
+    repository: https://github.com/Liapoldus/service-sdk.git
+    ref: d7e83045ea13f293ee95ac680aa8c7e08b7bba72
+    workspacePath: service-sdk
     mappings:
       - from: README.md
-        to: plugin-sdk/index.md
-      - from: docs/site/plugins
-        to: plugins
-      - from: docs/site/diagrams/plugin-admin-page-flow.mmd
-        to: diagrams/plugin-admin-page-flow.mmd
+        to: service-sdk/index.md
+      - from: TODO.md
+        to: service-sdk/todo.md
+      - from: docs/site/services
+        to: services
+      - from: docs/site/diagrams/service-admin-page-flow.mmd
+        to: diagrams/service-admin-page-flow.mmd
   - name: server
     repository: https://github.com/Liapoldus/server.git
-    ref: bce48055633e3c06319ca1c6f3ee8ddd99e49654
-    workspacePath: plugins/server
+    ref: 1790c4f03ce406f7874f52e5ab62643f2f8e1f8c
+    workspacePath: services/server
     mappings:
-      - from: docs/site/plugins/server.md
-        to: plugins/server.md
+      - from: docs/site/services/server.md
+        to: services/server.md
       - from: docs/site/core/examples
         to: core/examples
   - name: forms-db
     repository: https://github.com/Liapoldus/forms-db.git
-    ref: e0c7c2d1bf99abe7940258ce50380dbdfa247072
-    workspacePath: plugins/forms-db
+    ref: e33b30db093a8546ebcdacc3a24ad808dee94ace
+    workspacePath: services/forms-db
     mappings:
-      - from: docs/site/plugins/forms-db.md
-        to: plugins/forms-db.md
+      - from: docs/site/services/forms-db.md
+        to: services/forms-db.md
       - from: docs/site/core/examples/forms.md
         to: core/examples/forms.md
   - name: domain
     repository: https://github.com/Liapoldus/domain.git
-    ref: 11be666caa09fd407cd11ffd4ec548e667d7ce12
-    workspacePath: plugins/domain
+    ref: 784a3b444d544441c686a86c88d581a37aba6176
+    workspacePath: services/domain
     mappings:
-      - from: docs/site/plugins/domain.md
-        to: plugins/domain.md
+      - from: docs/site/services/domain.md
+        to: services/domain.md
   - name: runtime
     repository: https://github.com/Liapoldus/runtime.git
-    ref: 9086e82868d25b79a6daa8229c7155eab39dfec8
-    workspacePath: plugins/runtime
+    ref: 80fddbebc4535a79d3e438a89f77c60c2bd075eb
+    workspacePath: services/runtime
     mappings:
-      - from: docs/site/plugins/runtime.md
-        to: plugins/runtime.md
+      - from: docs/site/services/runtime.md
+        to: services/runtime.md

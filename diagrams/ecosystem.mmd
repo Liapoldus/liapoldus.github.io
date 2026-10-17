@@ -1,7 +1,7 @@
 flowchart TD
   OP[Operator / CI] -->|Management API| GW[Core]
   OP -->|site artifact| A[Static frontend artifact]
-  A -->|publish| P[Server plugin]
+  A -->|publish| P[Server service]
   P -->|scoped capabilities| GW
   GW -->|control plane| CADDY[Caddy data plane]
   CADDY -->|HTTP / HTTPS| R[Public runtime]

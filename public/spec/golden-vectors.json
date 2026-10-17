@@ -1,21 +1,20 @@
 {
   "version": "liapoldus.core.v1",
-  "description": "Core configuration, plugin lifecycle, direct interaction and recovery vectors. Plugin wire/JSON vectors are owned by pluginprotocol.",
+  "description": "Behavioral vectors for published Core API contracts.",
   "vectors": [
-    {"id":"bootstrap-rejects-plugin-traffic-settings","input":{"keys":["state","management","server"]},"expected":{"valid":false,"code":"unknown_field"}},
-    {"id":"bootstrap-rejects-traffic-dsl","input":{"keys":["state","artifacts","execution","management","routes","sites","includes"]},"expected":{"valid":false,"code":"unknown_field"}},
-    {"id":"plugins-are-manually-started","input":{"operation":"core-starts-plugin"},"expected":{"accepted":false,"pluginProcessStarted":false}},
-    {"id":"plugin-config-cas-conflict","input":{"ifMatch":"revision-1","actual":"revision-2"},"expected":{"status":412,"code":"plugin_revision_conflict","activeConfigChanged":false}},
-    {"id":"config-roll-forward-before-Reload","input":{"active":"revision-1","candidate":"revision-2","requiredAcks":3,"receivedAcks":2},"expected":{"activeGeneration":"revision-2","previousGeneration":"revision-1","operationState":"degraded","unacknowledgedReplicasFenced":true}},
-    {"id":"config-partial-apply-keeps-desired-active","input":{"active":"revision-2","previous":"revision-1","replicaApply":"failed"},"expected":{"active":"revision-2","replicaFenced":true,"rollForwardRetry":true}},
-    {"id":"sqlite-recovery-retries-active-generation","input":{"active":"revision-2","previous":"revision-1","crash":"after-commit-before-Reload"},"expected":{"recoveredActive":"revision-2","reloadRetried":true,"readiness":"after-ack"}},
-    {"id":"interaction-policy-default-deny","input":{"edge":"caller-a->target-b/capability-x/call","configured":false},"expected":{"allowed":false,"coreProxy":false}},
-    {"id":"plugin-mtls-no-downgrade","input":{"certificate":"rejected","fallback":"plaintext"},"expected":{"connected":false,"fallback":"none"}},
-    {"id":"signed-crl-revokes-active-channel","input":{"newCrl":"valid-and-revokes-peer","channel":"open"},"expected":{"channel":"closed","reconnectRequiresNewHandshake":true}},
-    {"id":"call-unknown-result-not-replayed","input":{"callResult":"unknown-after-disconnect"},"expected":{"replay":false}},
-    {"id":"server-is-singleton-v1","input":{"instances":2},"expected":{"accepted":false}},
-    {"id":"server-state-survives-restart","input":{"persistentVolume":true,"restart":true},"expected":{"certificatesPreserved":true,"siteReleasesPreserved":true}},
-    {"id":"site-release-rollback-current-previous","input":{"current":"release-2","previous":"release-1","rollback":true},"expected":{"current":"release-1","previous":"release-2","activationAtomic":true}},
-    {"id":"management-has-no-server-admin-proxy","input":{"path":"/api/server/admin"},"expected":{"routeExists":false}}
+    {"id":"archive-traversal","input":{"entry":"frontends/x/../../outside"},"expected":{"accepted":false,"code":"artifact_invalid","activeRevisionChanged":false}},
+    {"id":"archive-gzip-integrity","input":{"entries":[{"name":"frontends/ui/index.html","content":"valid file"}],"corruptGzip":true},"expected":{"accepted":false,"code":"artifact_invalid","activeRevisionChanged":false}},
+    {"id":"archive-duplicate-path","input":{"entries":[{"name":"frontends/ui/index.html","content":"first"},{"name":"frontends/ui/index.html","content":"second"}]},"expected":{"accepted":false,"code":"artifact_invalid","activeRevisionChanged":false}},
+    {"id":"archive-case-collision","input":{"entries":[{"name":"frontends/ui/Logo.svg","content":"first"},{"name":"frontends/ui/logo.svg","content":"second"}]},"expected":{"accepted":false,"code":"artifact_invalid","activeRevisionChanged":false}},
+    {"id":"archive-nfc-normalization","input":{"entries":[{"name":"frontends/ui/café.txt","content":"normalized name"}]},"expected":{"accepted":true,"code":"","activeRevisionChanged":false}},
+    {"id":"archive-path-depth-limit","input":{"entryDepth":33},"expected":{"accepted":false,"code":"artifact_invalid","activeRevisionChanged":false}},
+    {"id":"archive-path-byte-limit","input":{"entryPathBytes":1025},"expected":{"accepted":false,"code":"artifact_invalid","activeRevisionChanged":false}},
+    {"id":"archive-entry-count-limit","input":{"entryCount":10001},"expected":{"accepted":false,"code":"artifact_too_large","activeRevisionChanged":false}},
+    {"id":"archive-compression-ratio-limit","input":{"contentBytes":16384},"expected":{"accepted":false,"code":"artifact_too_large","activeRevisionChanged":false}},
+    {"id":"archive-compressed-byte-limit","input":{"contentBytes":1024,"contentEntropy":true,"limits":{"compressedArtifactLimitBytes":256}},"expected":{"accepted":false,"code":"artifact_too_large","activeRevisionChanged":false}},
+    {"id":"archive-uncompressed-byte-limit","input":{"contentBytes":257,"limits":{"uncompressedArtifactLimitBytes":256}},"expected":{"accepted":false,"code":"artifact_too_large","activeRevisionChanged":false}},
+    {"id":"management-api-requires-bearer","input":{"bearer":false},"expected":{"authorized":false}},
+    {"id":"remote-plugin-no-downgrade","input":{"mode":"remote","certificate":"rejected"},"expected":{"connected":false,"fallback":"none"}},
+    {"id":"credential-one-time-reveal","input":{"operation":"rotate"},"expected":{"rawTokenReturnedOnce":true,"storedValue":"verifier-only"}}
   ]
 }

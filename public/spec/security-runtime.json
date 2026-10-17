@@ -3,41 +3,41 @@
   "$id": "https://liapoldus.github.io/spec/security-runtime.json",
   "title": "Liapoldus Core security runtime contract",
   "version": "1.0.0",
-  "core": {
-    "instances": 1,
-    "desiredConfigStore": "SQLite on persistent local filesystem; immutable in-memory runtime generations; no database reads on the user traffic path.",
-    "pluginLifecycle": "Operator installs, starts, updates and restarts every plugin using operator-selected tooling. Core connects to registered replica endpoints and exposes no installation or process/container management API.",
-    "deferredToV2": ["Caddy-L4/public TCP-UDP relay", "CAPTCHA", "Identity/OIDC/OAuth", "Docker/Compose", "Docker Swarm", "Kubernetes"]
-  },
   "management": {
-    "publicTrafficProxy": false,
-    "webController": "Private HTTPS, client mTLS and a distinct Bearer service credential per binding; credentials never enter a browser.",
-    "desktop": "Restricted SSH port-forward to loopback Management API with TLS server verification and Bearer from OS credential store; no shell/SFTP/agent forwarding.",
+    "loopback": "Management API may bind loopback; local CLI/desktop SSH forwarding requires Bearer service key and TLS server verification.",
+    "webController": "A trusted web management backend connects only over private HTTPS with mTLS and a separate Bearer platform-admin token per Core binding.",
+    "desktopAccess": "A remote operator may use a restricted OpenSSH/bastion port-forward to loopback Management API; the client verifies server TLS and uses Bearer authorization.",
     "roles": ["platform-admin"],
     "userAuthorization": "Core v1 has no human user or role database; an external management backend may authenticate users before calling Core. Core authenticates and audits only the authenticated client binding principal.",
-    "rawKey": "Service-key plaintext is returned once; only verifier/metadata is persisted.",
-    "health": "Unauthenticated health reveals process health only, not config or plugin inventory."
+    "rawKey": "Service key plaintext is returned once during create/rotate; only a verifier/hash is persisted.",
+    "trustRoots": "Management client trust roots and service workload trust roots MUST be distinct.",
+    "health": "Unauthenticated health endpoint exposes process health only and no configuration or runtime inventory."
   },
-  "pluginWorkload": {
-    "protocol": "Plugin control uses the independent Plugin SDK REST API; pluginprotocol is only direct plugin-to-plugin communication and uses its independently configured authenticated transport.",
-    "replicaIdentity": "Operator provisions a unique identity for every replica using an external CA/PEM or SPIFFE workload source and registers the expected identity with its fixed endpoint.",
-    "certificateAuthority": "Core is not a workload CA; external CA/operator provisions remote identities and signed CRL bundles.",
-    "trustRoots": "Management and plugin workload trust roots are distinct.",
-    "revocation": "Invalid/missing/stale signed CRL fails closed; CRL update closes active channels; no insecure downgrade.",
-    "secretDelivery": "Plugin settings pull carries opaque references only; secret bytes are delivered only through scoped Core REST grants.",
-    "interactionPolicy": "Core distributes explicit caller-to-target/method/transport allow edges over Plugin SDK REST; default deny; direct peer calls are not proxied by Core.",
-    "recovery": "Reconnect repeats identity/manifest/config/dispatch checks; unknown Call outcomes are not replayed and disconnected Streams are closed."
-  },
-  "serverPlugin": {
-    "instancesPerCore": 1,
-    "adminApiExposure": false,
-    "configuration": "Core JSON settings are the only desired-config source; plugin compiles/applies Caddy runtime configuration.",
-    "persistentState": "ACME certificates and site releases live in plugin-owned persistent local filesystem; the operator preserves this directory across manual restarts. One replica means no PostgreSQL/S3/shared-storage dependency.",
-    "publicListeners": "Opened by the plugin itself; Core does not run as root for Caddy and does not socket-activate public ports."
+  "services": {
+    "local": "Core supervises a service process on an assigned loopback endpoint.",
+    "remote": "A stable Service endpoint uses TLS/mTLS; each externally issued workload-replica identity maps to one logical service instance.",
+    "clientIdentities": "Remote Core control RPCs and service data-plane Call/Stream use distinct workload client identities and scopes; the service rejects RPCs outside the identity scope.",
+    "replicas": "Ready replicas share protocol, release, Manifest and settings digests; every new gRPC connection repeats TLS validation and handshake.",
+    "recovery": "Core reconnects without replaying a unary Call with unknown outcome; an interrupted Stream closes and is not migrated to another replica.",
+    "degradedMode": "An unavailable service degrades only its bound routes; unrelated routes remain available.",
+    "dataPath": "Connected data-plane services handle user traffic directly; Core Management API never proxies user request bodies.",
+    "grantBroker": "Only a narrow service-to-Core scoped-secret redemption callback is permitted; it does not proxy client traffic.",
+    "coreCa": false,
+    "downgrade": false,
+    "serviceToServiceTraffic": false,
+    "managementApiInUserRequestPath": false,
+    "rotation": "External CA rotation uses credential replacement and rolling restart; rejected/revoked certificates fail closed."
   },
   "secrets": {
     "plaintextAllowedIn": [],
+    "externalReferencesOnly": true,
     "redactFrom": ["API errors", "logs", "traces", "audit", "crash reports"],
-    "auditPayloads": "No raw settings secrets, Caddy runtime payloads, credentials, cookies, private keys, grants or request bodies."
+    "adminAudit": "Never stores native request/response bodies or sensitive headers."
+  },
+  "storage": {
+    "database": "SQLite on local filesystem; network filesystem database mounts are unsupported.",
+    "artifactStore": "Service-owned runtime files remain outside Core; service settings and revisions are stored in SQLite.",
+    "runtime": "Active configuration is hydrated into an immutable in-memory snapshot; user request paths do not read SQLite or config files.",
+    "secretValuesInDatabase": false
   }
 }

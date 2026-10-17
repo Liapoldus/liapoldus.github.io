@@ -2,14 +2,14 @@
 
 Эта страница описывает только межсервисные границы. Полная архитектура каждого
 сервиса принадлежит его репозиторию: [Core](/core/architecture/),
-[Plugin SDK](/plugins/architecture), [`pluginprotocol`](/pluginprotocol/),
-[Server plugin](/plugins/server). Агрегатор
+[Service SDK](/service-sdk/), [Wool](/wool/),
+[сервисы](/services/). Агрегатор
 собирает owner Markdown и диаграммы, не создавая их параллельные копии.
 
 Для v2 единственным каноном по регистрации replicas, rollout и смешанному
-размещению служит [Core deployment design](/core/architecture/plugin-deployment).
+размещению служит [Core deployment design](/core/architecture/service-deployment).
 В v2 Core не управляет процессами или replica count. Установка и плановые
-обновления Core и plugins принадлежат оператору.
+обновления Core и services принадлежат оператору.
 
 Liapoldus состоит из независимых продуктов с явными API-границами. Это не
 монолит: каждый продукт можно развивать и развертывать отдельно.
@@ -18,9 +18,9 @@ Liapoldus состоит из независимых продуктов с яв�
 
 | Продукт | Владеет | Не владеет |
 | --- | --- | --- |
-| [Core](/core/) | control plane, Management API, desired state, plugin lifecycle, releases и runtime reconciliation | traffic protocol execution, которое принадлежит Server plugin; прикладная логика plugins |
-| [Core runtime](/core/architecture/core) | desired-state control plane, Management API и plugin lifecycle | public HTTP/TLS traffic Server plugin |
-| [Plugins](/plugins/) | capability-логика, свой жизненный цикл и конфигурационная схема | public socket, внешняя маршрутизация и raw secrets |
+| [Core](/core/) | control plane, Management API, desired state, service lifecycle, releases и runtime reconciliation | traffic protocol execution, которое принадлежит Server service; прикладная логика services |
+| [Core runtime](/core/architecture/core) | desired-state control plane, Management API и service lifecycle | public HTTP/TLS traffic Server service |
+| [Сервисы](/services/) | capability-логика, свой lifecycle и schema | public socket, внешняя маршрутизация и raw secrets |
 
 ## Путь публикации
 
@@ -32,6 +32,6 @@ release`. Snapshot фиксирует, что именно собирается 
 
 <div class="cards">
   <a class="card" href="/architecture/boundaries"><h3>Границы и инварианты</h3><p>Ownership, source of truth и production boundary.</p></a>
-  <a class="card" href="/architecture/api-boundaries"><h3>API-границы</h3><p>Core, Plugin SDK и Plugin Admin API.</p></a>
+  <a class="card" href="/architecture/api-boundaries"><h3>API-границы</h3><p>Core, Service SDK и service Admin API.</p></a>
   <a class="card" href="/architecture/glossary"><h3>Глоссарий</h3><p>Единая терминология экосистемы.</p></a>
 </div>

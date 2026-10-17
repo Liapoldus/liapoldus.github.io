@@ -11,4 +11,4 @@
 | Snapshot | согласованная deployable ссылка на Git revision и metadata |
 | Build | immutable artifact, собранный из Snapshot |
 | Deployment | связь Environment, Build и фактически активного состояния |
-| Plugin | изолированный capability-процесс Core |
+| service | изолированный capability-процесс Core |

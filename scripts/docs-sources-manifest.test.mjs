@@ -11,10 +11,10 @@ sources:
   - name: example
     repository: https://github.com/Liapoldus/example.git
     ref: '0123456789012345678901234567890123456789'
-    workspacePath: plugins/example
+    workspacePath: services/example
     mappings:
       - from: docs/site/example.md
-        to: plugins/example.md
+        to: services/example.md
 `
 
 test('YAML parser preserves manifest shape and scalar strings', () => {
@@ -24,8 +24,8 @@ test('YAML parser preserves manifest shape and scalar strings', () => {
       name: 'example',
       repository: 'https://github.com/Liapoldus/example.git',
       ref: '0123456789012345678901234567890123456789',
-      workspacePath: 'plugins/example',
-      mappings: [{ from: 'docs/site/example.md', to: 'plugins/example.md' }]
+      workspacePath: 'services/example',
+      mappings: [{ from: 'docs/site/example.md', to: 'services/example.md' }]
     }]
   })
 })
@@ -38,6 +38,13 @@ test('root YAML manifest contains only full pinned source revisions', () => {
     assert.match(source.ref, /^[a-fA-F0-9]{40}$/)
     assert.ok(source.mappings.length > 0)
   }
+})
+
+test('published Core specs are synchronized from the canonical owner bundle', () => {
+  const manifest = readDocsSources(new URL('../docs-sources.yaml', import.meta.url))
+  const core = manifest.sources.find((source) => source.name === 'core')
+  assert.ok(core)
+  assert.ok(core.mappings.some((mapping) => mapping.from === 'contracts/v1' && mapping.to === 'public/spec'))
 })
 
 test('file reader reads YAML and reports a missing manifest', () => {

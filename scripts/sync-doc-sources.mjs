@@ -73,12 +73,22 @@ mkdirSync(join(stagingRoot, 'diagrams'), { recursive: true })
 for (const file of readdirSync(join(projectRoot, 'diagrams')).filter((name) => name.endsWith('.mmd'))) {
   copyMapping(projectRoot, { from: join('diagrams', file), to: join('diagrams', file) })
 }
-for (const path of ['plugins/index.md', 'plugins/existing.md', 'plugins/captcha.md', 'plugins/identity.md']) {
+for (const path of ['services/index.md', 'services/existing.md', 'services/echo.md', 'services/captcha.md', 'services/identity.md']) {
   copyMapping(projectRoot, { from: path, to: path })
 }
 
 for (const source of manifest.sources) {
   const root = sourceRoot(source)
-  for (const mapping of source.mappings) copyMapping(root, mapping)
+  for (const mapping of source.mappings) {
+    // The Core versioned bundle is canonical. Replace the copied static mirror
+    // instead of merging it, which could leave retired contracts publishable.
+    if (source.name === 'core' && mapping.to === 'public/spec') {
+      rmSync(join(stagingRoot, 'public/spec'), { recursive: true, force: true })
+      const publishedMirror = join(projectRoot, 'public/spec')
+      rmSync(publishedMirror, { recursive: true, force: true })
+      cpSync(resolve(root, mapping.from), publishedMirror, { recursive: true, force: true })
+    }
+    copyMapping(root, mapping)
+  }
   console.log(`Synced documentation from ${source.name} at ${source.ref}`)
 }

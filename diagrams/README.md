@@ -1,8 +1,8 @@
 # Общие диаграммы экосистемы
 
 Здесь хранятся только схемы, не принадлежащие одному сервису. Диаграммы Core,
-Plugin SDK, `pluginprotocol` и plugins живут рядом с
-документацией владельца в его `docs/site/diagrams/`.
+Service SDK, Wool и отдельных сервисов принадлежат своим репозиториям в
+`docs/site/diagrams/`.
 
 `npm run docs:sync` собирает owner sources в `.site-src/diagrams/`; SVG в
 `public/diagrams/` генерируются перед сборкой и подключаются как статические

@@ -1,79 +1,69 @@
-# TODO — нормативная документация Core v1
+# Документация Liapoldus — состояние миграции
 
-Нормативная цель, границы v1/v2 и критерии готовности описаны в канонических
-страницах [`core/architecture/target`](core/architecture/target),
-[`core/architecture/v1-migration-roadmap`](core/architecture/v1-migration-roadmap)
-и [`core/configuration/acceptance`](core/configuration/acceptance). Реализация
-и её открытые задачи принадлежат TODO соответствующих репозиториев.
+Канонические продуктовые контракты принадлежат Core, CLI, Studio, Service SDK,
+Wool и владельцам сервисов. Этот репозиторий собирает их по закреплённым
+ревизиям и хранит только общие материалы экосистемы.
 
-## Завершено в документационном срезе
+## Словарь и границы
 
-- [x] Breaking rename Gateway → Core в VitePress структуре, sidebar, API paths,
-  contract IDs и примерах; старый `/gateway/` путь не является поддерживаемым
-  compatibility surface.
-- [x] Разделены v1, v2 и v3: v1 — Core, Plugin SDK, `pluginprotocol`, Server
-  plugin и forms-db с ручным запуском. В v2 — внешнее размещение,
-  self-registration/rollout, mixed transports, Domain и Runtime; Server/forms-db
-  остаются неизменённым v1 baseline. В v3 — все дальнейшие Server/forms-db
-  product changes, включая Server scaling/storage/ACME, forms-db SQL cohort и
-  website/content, а также Caddy-L4/public L4, Identity/CAPTCHA, FFI/Python,
-  монолитная композиция. Установка и обновление Core/plugins принадлежат
-  оператору. Studio развивается отдельно.
-- [x] Core↔plugin lifecycle отнесён к Plugin SDK REST; `pluginprotocol` описан
-  только как generic plugin↔plugin library. Product schemas и capabilities
-  остаются у конкретных plugins.
-- [x] Зафиксирован plugin config lifecycle: точные raw JSON bytes; durable
-  `active`/`previous`/internal `staging`; staging недоступен plugin pull и
-  используется для восстановления незавершённой durable operation; успешная
-  активация транзакционно двигает active/previous.
-- [x] Документация Core, публичные contracts, sidebar и ссылки обновлены;
-  локальный `npm run build` прошёл 2026-09-30.
-- [x] Manifest hashes для изменённых `errors.json` и `management.openapi.yaml`
-  пересчитаны; YAML разбирается, OpenAPI содержит 12 paths / 14 operations и
-  не содержит отсутствующих локальных `$ref`.
-- [x] Проверить GitHub Pages deployment breaking rename: HTTP вернул `200` для
-  `/core/`, `/core/configuration/` и `/core/configuration/acceptance`, а старый
-  `/gateway/configuration/` — `404`. Текущая ветка `main` синхронизирована с
-  `origin/main`; все её commits опубликованы.
+- Runtime-компоненты, управляемые Core, называются сервисами.
+- Service SDK владеет регистрацией, конфигурацией, lifecycle и универсальными
+  health/metrics контрактами сервисов.
+- Wool обеспечивает прямые вызовы между независимыми сервисами. Core не
+  проксирует бизнес-трафик.
+- Только расширения desktop-редактора называются Studio plugins.
+- Control plane: Studio → typed CLI → Core Management API → Service SDK REST.
+- Data plane: Service → Wool → Service.
 
-## Открыто
+## Локальная миграция
 
-- [ ] После owner commits обновить SHA pins в `docs-sources.yaml` для Core,
-  Plugin SDK, protocol, Server, forms-db, Domain и Runtime; незакоммиченные
-  owner docs нельзя закрепить commit pin. Затем выполнить `npm run docs:sync`
-  и `npm run build`, проверить маршруты и не коммитить generated staging.
+- [x] Сохранить прежний план Studio в архиве и заменить `studio/plan.md`
+  согласованным планом конфигуратора и терминологической миграции.
+- [x] Перенести активные owner checkouts в `services/`, Service SDK и Wool — в
+  одноимённые каталоги; сохранить отдельные Git boundaries там, где они были.
+- [x] Обновить локальные Core, CLI, Studio, Service SDK, Wool и Server contracts
+  на новую терминологию и API paths.
+- [x] Добавить preview/recovery для миграции Studio workspace и сохранить
+  registry данные CLI, SQLite поколения Core и исторические reports.
+- [x] Подключить опубликованный Core contract bundle к docs staging напрямую,
+  без второй устаревшей копии OpenAPI и схем.
+- [x] Завершить терминологическую миграцию активных сервисов и проверить
+  Go-модули отдельно и через `services/go.work`.
+- [x] Пройти локальные межрепозиторные проверки: Core/Server/forms-db smoke,
+  Core/CLI/Studio, generated Wails bindings, Service SDK/Wool и VitePress.
 
-- [x] В рамках общего v2 закрепить опубликованные owner commits для
-  `plugins/domain` и `plugins/runtime` в `docs-sources.yaml`, добавить
-  канонические страницы в sidebar и проверить локальную сборку.
-- [ ] После публикации актуальных owner revisions синхронизировать public
-  contracts и pins с Plugin SDK, Server и forms-db. В рамках v2 Server/forms-db
-  остаются неизменёнными v1 regression targets; их дальнейшие product изменения
-  и conformance принадлежат v3. Не объявлять parity/production readiness без
-  сквозных проверок соответствующего этапа.
-- [ ] Добавить/подтвердить CI gate hashes опубликованных schemas/OpenAPI/vectors
-  и целостность ссылок на внешние owner contracts без копирования `.proto` или
-  plugin-owned JSON schemas.
-- [ ] После следующего документационного изменения собрать сайт командой
-  `npm run build` и проверить изменившиеся SVG с исходными Mermaid-файлами.
+## Публикация
 
-## Вне области
+- [x] Проверить доступность новых URL `Liapoldus/service-sdk` и
+  `Liapoldus/wool`; на 2026-10-13 они доступны и старые имена ведут к тем же
+  опубликованным HEAD.
+- [ ] После owner commits/push закрепить в `docs-sources.yaml` точные SHA
+  мигрированных `service-sdk` и `wool`; до публикации локальных изменений pins
+  не менять.
+- [ ] После публикации source revisions выполнить remote `docs:sync`, build и
+  проверить hosted CI. Локальный VitePress build по соседним worktrees не
+  заменяет remote pin/hosted gate.
+- [ ] Commit, push, release и Pages deployment — только по отдельному явному
+  запросу пользователя.
 
-Не менять product code/tests в замороженных `plugins/captcha/` и
-`plugins/identity/`, `archive/plugins/tls-issuer/` или `test/`. Не менять код,
-contracts активных plugins вместо их владельцев. Не коммитить, не
-пушить и не публиковать последующие изменения без отдельного явного запроса.
+## Конфигуратор Studio — владелец общего сайта
 
-## Миграция документационных исходников
+- [x] Определить owner routing: Studio и каждый Service SDK/Core/CLI/Service
+  контракт редактируются только в их исходном репозитории; сайт не создаёт
+  копию спецификаций.
+- [x] Развести source placement: runtime-компоненты остаются сервисами в
+  `services/`, Server editor package — StudioPlugin в
+  `plugins/studio-server/`; frozen `plugins/captcha`/`identity` не включать.
+- [x] Сохранить канонический план в `studio/plan.md` и его предусмотренный
+  маршрут `/studio/plan`; VitePress build по локальным owner worktrees проходит.
+- [ ] После появления опубликованных owner revisions синхронизировать новые
+  разделы `/service-sdk/`, `/wool/` и `/services/` по точным commit SHA;
+  проверить nav/sidebar и отсутствие ссылок на старые runtime routes.
+- [ ] Добавлять сюда только общий UX/product overview и межсервисную архитектуру;
+  implementation details и таблицы контрактов оставлять у владельцев.
 
-- [x] Разделить ownership: общая главная, product overview, ecosystem
-  architecture и guidelines остаются в агрегаторе; Core, protocol, SDK, Server
-  и forms-db владеют собственными Markdown/Mermaid.
-- [x] Добавить pinned-source manifest, локальный staging assembler и VitePress
-  `srcDir`; публичные URL сохраняются, исходники не дублируются при сборке.
-- [x] Owner commits созданы, source pins сверены с их полными SHA, локальный
-  `npm run build` проходит на sibling workspace checkouts.
-- [ ] После отдельного разрешения отправить owner commits; только после этого
-  проверить `DOCS_SYNC_MODE=remote npm run build` и публиковать aggregator.
-- [x] CAPTCHA/Identity остаются замороженными v3 backlog items в aggregator;
-  их owner repositories не трогаются до отдельной разморозки.
+## Замороженные сервисы
+
+CAPTCHA и Identity остаются вне активной миграции. Их owner repositories,
+контракты и product code не меняются; страницы агрегатора показывают только
+статус и не описывают устаревший runtime API как действующий.

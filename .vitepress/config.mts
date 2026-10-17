@@ -34,12 +34,12 @@ export default defineConfig({
         { text: 'Core', link: '/core/' },
         { text: 'Studio', link: '/studio/' },
         { text: 'CLI', link: '/cli/' },
-        { text: 'Плагины', link: '/plugins/' },
+        { text: 'Сервисы', link: '/services/' },
         {
           text: 'Библиотеки',
           items: [
-            { text: 'Plugin SDK', link: '/plugin-sdk/' },
-            { text: 'pluginprotocol', link: '/pluginprotocol/' }
+            { text: 'Service SDK', link: '/service-sdk/' },
+            { text: 'Wool', link: '/wool/' }
           ]
         },
       ],
@@ -124,6 +124,8 @@ export default defineConfig({
             text: 'Liapoldus Studio',
             items: [
               { text: 'Обзор', link: '/studio/' },
+              { text: 'План конфигуратора', link: '/studio/plan' },
+              { text: 'Словарь и миграция', link: '/studio/nomenclature-migration' },
               { text: 'Продуктовая модель', link: '/studio/product-model' },
               { text: 'Техническая архитектура', link: '/studio/technical-architecture' },
               { text: 'Архитектура фронтенда', link: '/studio/frontend-architecture' },
@@ -227,59 +229,61 @@ export default defineConfig({
               { text: 'Компоненты runtime', link: '/core/architecture/core' },
               { text: 'Blueprint реализации', link: '/core/architecture/implementation' },
               { text: 'Кодовая архитектура', link: '/core/architecture/structure' },
-              { text: 'Plugin protocol', link: '/core/architecture/protocol' },
+              { text: 'Wool и data plane', link: '/wool/' },
               { text: 'Cookie-контракт', link: '/core/architecture/cookies' },
-              { text: 'Режимы подключения plugin', link: '/core/architecture/plugin-deployment' },
-              { text: 'Гайд: создание плагина', link: '/core/architecture/guide' }
+              { text: 'Режимы подключения сервисов', link: '/core/configuration/transports' },
+              { text: 'Разработка сервисов', link: '/services/development' }
             ]
           }
         ],
-        '/plugins/': [
+        '/services/': [
           {
-            text: 'Plugins',
+            text: 'Сервисы',
             items: [
-              { text: 'Обзор и настройка', link: '/plugins/' },
-              { text: 'Архитектура и lifecycle', link: '/plugins/architecture' },
-              { text: 'Manifest и capabilities', link: '/plugins/manifest' },
-              { text: 'Server plugin', link: '/plugins/server' },
-              { text: 'Admin UI contract', link: '/plugins/admin-ui-contract' },
-              { text: 'Admin pages', link: '/plugins/admin-pages' },
-              { text: 'Разработка плагина', link: '/plugins/development' },
-              { text: 'Существующие плагины', link: '/plugins/existing' },
-              { text: 'forms-db', link: '/plugins/forms-db' }
+              { text: 'Обзор и настройка', link: '/services/' },
+              { text: 'Архитектура и lifecycle', link: '/services/architecture' },
+              { text: 'Manifest и capabilities', link: '/services/manifest' },
+              { text: 'Server', link: '/services/server' },
+              { text: 'Admin UI contract', link: '/services/admin-ui-contract' },
+              { text: 'Admin pages', link: '/services/admin-pages' },
+              { text: 'Разработка сервиса', link: '/services/development' },
+              { text: 'Существующие сервисы', link: '/services/existing' },
+              { text: 'forms-db', link: '/services/forms-db' },
+              { text: 'Echo', link: '/services/echo' }
             ]
           },
           {
             text: 'Отложено до v2',
             items: [
-              { text: 'Domain plugin', link: '/plugins/domain' },
-              { text: 'Runtime plugin', link: '/plugins/runtime' },
-              { text: 'Identity plugin', link: '/plugins/identity' },
-              { text: 'CAPTCHA plugin', link: '/plugins/captcha' }
+              { text: 'Domain', link: '/services/domain' },
+              { text: 'Runtime', link: '/services/runtime' },
+              { text: 'Identity', link: '/services/identity' },
+              { text: 'CAPTCHA', link: '/services/captcha' }
             ]
           }
         ],
-        '/plugin-sdk/': [
+        '/service-sdk/': [
           {
-            text: 'Plugin SDK',
+            text: 'Service SDK',
             items: [
-              { text: 'Обзор', link: '/plugin-sdk/' },
-              { text: 'Разработка plugins', link: '/plugins/development' },
-              { text: 'Plugin runtime', link: '/plugins/architecture' },
-              { text: 'Manifest и capabilities', link: '/plugins/manifest' },
-              { text: 'Admin Pages', link: '/plugins/admin-pages' },
-              { text: 'Admin UI contract', link: '/plugins/admin-ui-contract' }
+              { text: 'Обзор', link: '/service-sdk/' },
+              { text: 'Backlog', link: '/service-sdk/todo' },
+              { text: 'Разработка сервисов', link: '/services/development' },
+              { text: 'Service runtime', link: '/services/architecture' },
+              { text: 'Manifest и capabilities', link: '/services/manifest' },
+              { text: 'Admin Pages', link: '/services/admin-pages' },
+              { text: 'Admin UI contract', link: '/services/admin-ui-contract' }
             ]
           }
         ],
-        '/pluginprotocol/': [
+        '/wool/': [
           {
-            text: 'pluginprotocol',
+            text: 'Wool',
             items: [
-              { text: 'Обзор', link: '/pluginprotocol/' },
-              { text: 'Руководство потребителя', link: '/pluginprotocol/docs/consumer-guide' },
-              { text: 'Миграция', link: '/pluginprotocol/docs/migration' },
-              { text: 'Changelog', link: '/pluginprotocol/CHANGELOG' }
+              { text: 'Обзор', link: '/wool/' },
+              { text: 'Руководство потребителя', link: '/wool/consumer-guide' },
+              { text: 'Миграция', link: '/wool/migration' },
+              { text: 'Changelog', link: '/wool/CHANGELOG' }
             ]
           }
         ],
@@ -293,7 +297,7 @@ export default defineConfig({
 
       socialLinks: [],
       footer: {
-        message: 'Liapoldus — Core control plane и расширяемая plugin-система.'
+        message: 'Liapoldus — Core control plane, независимые сервисы и расширения Studio.'
       }
     },
 

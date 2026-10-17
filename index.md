@@ -5,7 +5,7 @@ hero:
   name: Liapoldus
   text: Экосистема для управления сервисами и публикации сайтов
   tagline: >-
-    Core, plugin ecosystem и инструменты для управления сервисами и сайтами.
+    Core, service ecosystem и инструменты для управления сервисами и сайтами.
   actions:
     - theme: brand
       text: Обзор экосистемы
@@ -20,20 +20,20 @@ hero:
 features:
   - title: Core
     details: >-
-      Plugin-neutral control plane, SQLite generations, secure REST lifecycle
+      service-neutral control plane, SQLite generations, secure REST lifecycle
       и управление отдельно запущенными сервисами.
     link: /core/
     linkText: Разделы документации
-  - title: Плагины
+  - title: Сервисы
     details: >-
-      Server plugin для HTTP/HTTPS и forms-db; новые transport/product features
+      Server service для HTTP/HTTPS и forms-db; новые transport/product features
       добавляются отдельными версиями.
-    link: /plugins/
-    linkText: Существующие плагины
+    link: /services/
+    linkText: Сервисы
   - title: Studio
     details: >-
       Desktop-first рабочее пространство с project tree, service canvas,
-      inspector, operations и расширениями Studio plugins.
+      inspector, operations и расширениями Studio services.
     link: /studio/
     linkText: Продуктовая модель
   - title: CLI

@@ -5,13 +5,22 @@
 под этим каталогом применяется только этот файл: здесь лежит документация,
 и сайт разворачивается на GitHub Pages.
 
+## Терминология
+
+Runtime-компоненты Core — **сервисы**: Service, ServiceInstance, ServiceReplica.
+service-sdk — Service SDK; wool — Wool, transport-only библиотека прямых вызовов
+между сервисами. **Плагин Studio** (StudioPlugin) — только расширение редактора.
+Control plane: Studio → CLI → Core Management API → Service SDK REST.
+Data plane: независимый сервис → Wool → независимый сервис. Core не проксирует
+бизнес-вызовы. Не называть runtime компоненты «плагинами».
+
 ## Назначение
 
 Официальный единый сайт документации Liapoldus — генератор статики
 [VitePress](https://vitepress.dev) (1.6.x). Этот репозиторий владеет главной,
 общими материалами экосистемы, гайдлайнами, публичными агрегированными
 контрактами и сборкой сайта. Архитектура и продуктовая документация каждого
-сервиса, SDK и plugin принадлежит его репозиторию и синхронизируется для сборки
+сервиса и SDK принадлежит его репозиторию и синхронизируется для сборки
 по закреплённым ревизиям из `docs-sources.yaml`.
 
 Продакшн-адрес: `https://liapoldus.github.io/` (после переименования репо —
@@ -78,11 +87,16 @@ curl -s -o /dev/null -w '%{http_code}\n' https://liapoldus.github.io/core/config
 ## Источник документации и структура агрегатора
 
 - Канонические исходники Core — `core/docs/site/`; protocol —
-  `pluginprotocol/docs/site/pluginprotocol/`; SDK — `plugin-sdk/docs/site/` и
-  `plugin-sdk/README.md`; Server/forms-db — `plugins/{server,forms-db}/docs/site/`.
+  `wool/docs/site/wool/`; SDK — `service-sdk/docs/site/` и
+  `service-sdk/README.md`; Studio — `studio/docs/` плюс `studio/plan.md`; Server/forms-db —
+  `services/{server,forms-db}/docs/site/`.
 - Каждый владелец редактирует только свой источник. Главная, product overview,
   общая архитектура экосистемы и гайдлайны остаются здесь. Не создавать в
   агрегаторе вторую копию страниц сервиса.
+- `studio/plan.md` публикуется как часть owner section `/studio/plan`. Код
+  расширения Server editor принадлежит
+  `plugins/studio-server/`; документация о host boundary принадлежит Studio,
+  а не этому агрегатору или runtime Server.
 - `docs-sources.yaml` закрепляет repository URL и commit SHA источника. Сборка
   синхронизирует эти ревизии, если локального workspace-соседа нет. После
   изменения документации сначала сохранить и опубликовать commit владельца,
@@ -103,7 +117,7 @@ diagrams/                     # общие Mermaid-исходники
 .vitepress/theme/            # кастомные компоненты (CoreNav), custom.css
 .vitepress/shim/             # fastdom-заглушки для сборки (не трогать)
 public/                      # favicon, versioned contracts и сгенерированные SVG
-plugins/                      # общие overview и замороженные v2 указатели
+services/                      # общие overview и замороженные v2 указатели
 architecture/ guidelines/     # общие границы экосистемы и правила документации
 public/                       # общие versioned contracts и generated SVG
 product/                     # «О продукте» (обзор, user-experience)
