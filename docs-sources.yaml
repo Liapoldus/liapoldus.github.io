@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: d7f82cd03800cdd72d08d689452103b487490104
+    ref: cded5cd2400b8e6de66176fc66f1a2ec61276608
     workspacePath: core
     mappings:
       - from: contracts/v1
@@ -13,7 +13,7 @@ sources:
         to: diagrams/core-config-store.mmd
   - name: studio
     repository: https://github.com/Liapoldus/studio.git
-    ref: bbd80a8895ec48d0dba80be52c653d51d3d0c3a0
+    ref: dd66d71e43098b6d49f1f94edebe14b5218212df
     workspacePath: studio
     mappings:
       - from: docs/index.md
@@ -66,7 +66,7 @@ sources:
         to: diagrams/studio-project-sync.mmd
   - name: cli
     repository: https://github.com/Liapoldus/cli.git
-    ref: 7e7d607b980b70c45fcfb962311d85e6c875e6d2
+    ref: 385f4f535b1977b74088e077ac4802d0ad33639d
     workspacePath: cli
     mappings:
       - from: docs/index.md
