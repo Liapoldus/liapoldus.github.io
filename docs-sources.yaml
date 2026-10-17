@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: 3d584c110762cde02a52041197916c3fca35ee36
+    ref: 5f57110b25ba82af7b654df43516cb1f3794a99b
     workspacePath: core
     mappings:
       - from: contracts/v1
@@ -125,7 +125,7 @@ sources:
         to: diagrams/service-admin-page-flow.mmd
   - name: server
     repository: https://github.com/Liapoldus/server.git
-    ref: 2bc9f5648e2d5974ae80dd6562d5f09abf4bd959
+    ref: c9e101d927c5f2de4d019f396310cec5e6bd8bd5
     workspacePath: services/server
     mappings:
       - from: docs/site/services/server.md
