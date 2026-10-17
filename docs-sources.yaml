@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: d01f644b45d7f03336846e851e0080206707eebd
+    ref: d7f82cd03800cdd72d08d689452103b487490104
     workspacePath: core
     mappings:
       - from: contracts/v1
