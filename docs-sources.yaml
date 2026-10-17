@@ -13,7 +13,7 @@ sources:
         to: diagrams/core-config-store.mmd
   - name: studio
     repository: https://github.com/Liapoldus/studio.git
-    ref: 22d03b5a91c3bae1a5b914afecfec0e7004a276b
+    ref: d6369bcc0c3b19d632335653640b43b139ea1a82
     workspacePath: studio
     mappings:
       - from: docs/index.md
@@ -66,7 +66,7 @@ sources:
         to: diagrams/studio-project-sync.mmd
   - name: cli
     repository: https://github.com/Liapoldus/cli.git
-    ref: a2ff95e8cc2fdb962e9bf958b589216251a9130d
+    ref: f60ce6562f982febe4d79c0dfe1ac2689feec391
     workspacePath: cli
     mappings:
       - from: docs/index.md
