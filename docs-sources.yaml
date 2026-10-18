@@ -112,7 +112,7 @@ sources:
         to: wool/CHANGELOG.md
   - name: service-sdk
     repository: https://github.com/Liapoldus/service-sdk.git
-    ref: 562768aea03359a733745c17bd36f3962a07912d
+    ref: 8de742082ec182243d336721d5098de6ffb7286d
     workspacePath: service-sdk
     mappings:
       - from: README.md
@@ -125,7 +125,7 @@ sources:
         to: diagrams/service-admin-page-flow.mmd
   - name: server
     repository: https://github.com/Liapoldus/server.git
-    ref: 52f21d9cc9a0e2f1c313cf47433fecc41654b19d
+    ref: e19432037bfb2813c9796428fb66f0313b7442d6
     workspacePath: services/server
     mappings:
       - from: docs/site/services/server.md
