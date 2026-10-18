@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: 2768cb5caa1b6044a56f13b0376d92e48cef9775
+    ref: aecc186ce09e090fe733b61e9562983aec49bf82
     workspacePath: core
     mappings:
       - from: contracts/v1
@@ -112,7 +112,7 @@ sources:
         to: wool/CHANGELOG.md
   - name: service-sdk
     repository: https://github.com/Liapoldus/service-sdk.git
-    ref: 8de742082ec182243d336721d5098de6ffb7286d
+    ref: 1f68ac6603c5a719116d7e14c65d24417aa73a63
     workspacePath: service-sdk
     mappings:
       - from: README.md
