@@ -112,7 +112,7 @@ sources:
         to: wool/CHANGELOG.md
   - name: service-sdk
     repository: https://github.com/Liapoldus/service-sdk.git
-    ref: fd38787d0d5ac9d385374aa97df69e75fb436d18
+    ref: fd38787df232edfd088600df617544aee9623d8a
     workspacePath: service-sdk
     mappings:
       - from: README.md
