@@ -2,7 +2,7 @@ version: 1
 sources:
   - name: core
     repository: https://github.com/Liapoldus/core.git
-    ref: 320d9ff2102155e9333ee7e95ceab6556920f852
+    ref: e8752d2200e913f3ba928524024aafe7df44bc63
     workspacePath: core
     mappings:
       - from: contracts/v1
@@ -13,7 +13,7 @@ sources:
         to: diagrams/core-config-store.mmd
   - name: studio
     repository: https://github.com/Liapoldus/studio.git
-    ref: c2c11dfe5b29f0b35a4cf434297a88e03098e9f0
+    ref: 64a6933570fac8af46c833186308f3407c164bd0
     workspacePath: studio
     mappings:
       - from: docs/index.md
@@ -66,7 +66,7 @@ sources:
         to: diagrams/studio-project-sync.mmd
   - name: cli
     repository: https://github.com/Liapoldus/cli.git
-    ref: 758c8f6a0e901acf8bf430294839b329de266db7
+    ref: 4516447e8b5fd964d631729de50f24da95b75233
     workspacePath: cli
     mappings:
       - from: docs/index.md
@@ -112,7 +112,7 @@ sources:
         to: wool/CHANGELOG.md
   - name: service-sdk
     repository: https://github.com/Liapoldus/service-sdk.git
-    ref: 110ac5e72a64fce6167dbbc4aac6af52dfcb50c3
+    ref: a5e55efdc9091b9f8e631041d800f1d8f1c2cb21
     workspacePath: service-sdk
     mappings:
       - from: README.md
@@ -125,7 +125,7 @@ sources:
         to: diagrams/service-admin-page-flow.mmd
   - name: server
     repository: https://github.com/Liapoldus/server.git
-    ref: 60f4f4bf0136fe8b7ab44b51f1b56fd46f2f2bfd
+    ref: 6dcb45cf01b8a7966e3e6913778b664558d2463a
     workspacePath: services/server
     mappings:
       - from: docs/site/services/server.md
