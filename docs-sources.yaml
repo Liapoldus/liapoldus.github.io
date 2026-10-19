@@ -13,7 +13,7 @@ sources:
         to: diagrams/core-config-store.mmd
   - name: studio
     repository: https://github.com/Liapoldus/studio.git
-    ref: 14fa9f65467d51a26ed29a4beb41f0b1d3242e24
+    ref: 02bc88d93b2f8484dc37bd85e12766332991e046
     workspacePath: studio
     mappings:
       - from: docs/index.md
